@@ -1,19 +1,19 @@
-import type { GroupPanelPartInitParameters, IContentRenderer } from 'dockview-core'
+import type { GroupPanelPartInitParameters, IContentRenderer } from "dockview-core"
 
 export class GameViewRenderer implements IContentRenderer {
 	private canvas: HTMLCanvasElement
 	constructor(public readonly id: string) {
-		this.canvas = document.createElement('canvas')
-		this.canvas.style.width = '100%'
-		this.canvas.style.height = '100%'
+		this.canvas = document.createElement("canvas")
+		this.canvas.style.width = "100%"
+		this.canvas.style.height = "100%"
 	}
 	get element(): HTMLElement {
 		return this.canvas
 	}
-	init(parameters: GroupPanelPartInitParameters): void {
+	init(_parameters: GroupPanelPartInitParameters): void {
 		//this.gv = createView
 	}
-	layout?(width: number, height: number): void {
+	layout?(_width: number, _height: number): void {
 		//this.gv?.resize(width, height)
 	}
 	dispose(): void {

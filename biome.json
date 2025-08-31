@@ -1,0 +1,46 @@
+{
+	"$schema": "https://biomejs.dev/schemas/2.2.2/schema.json",
+	"files": {
+		"includes": ["**/*.ts", "**/*.js", ".vscode/*.json"],
+		"ignoreUnknown": true
+	},
+	"formatter": {
+		"lineWidth": 100,
+		"indentStyle": "tab"
+	},
+	"javascript": {
+		"formatter": {
+			"semicolons": "asNeeded"
+		}
+	},
+	"linter": {
+		"rules": {
+			"style": {
+				"noNonNullAssertion": "off",
+				"useSingleVarDeclarator": {
+					"level": "warn"
+				},
+				"useTemplate": {
+					"level": "warn"
+				},
+				"noParameterAssign": "off"
+			},
+			"suspicious": {
+				"noExplicitAny": "off",
+				"noDebugger": "error",
+				"noConsole": "info"
+			},
+			"performance": {
+				"noAccumulatingSpread": "off"
+			},
+			"complexity": {
+				"noBannedTypes": "off"
+			},
+			"security": {},
+			"correctness": {
+				"noUnusedImports": { "level": "info" }
+			},
+			"nursery": {}
+		}
+	}
+}

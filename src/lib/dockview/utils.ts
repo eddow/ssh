@@ -1,17 +1,17 @@
-import type { GroupPanelPartInitParameters, IContentRenderer } from 'dockview-core'
-import { type Component, type Snippet, mount } from 'svelte'
+import type { GroupPanelPartInitParameters, IContentRenderer } from "dockview-core"
+import { type Component, mount, type Snippet } from "svelte"
 
-export const dvContext: unique symbol = Symbol('Dockview dvContext')
+export const dvContext: unique symbol = Symbol("Dockview dvContext")
 export interface IDockviewContext {
 	registerComponent(name: string, snippet: Snippet<[Record<string, any>]>): Component
 }
 abstract class AbstractRenderer implements IContentRenderer {
 	readonly element: HTMLElement
 	constructor(public readonly id: string) {
-		this.element = document.createElement('div')
-		this.element.className = 'dv-svelte-part'
-		this.element.style.height = '100%'
-		this.element.style.width = '100%'
+		this.element = document.createElement("div")
+		this.element.className = "dv-svelte-part"
+		this.element.style.height = "100%"
+		this.element.style.width = "100%"
 	}
 	abstract init(parameters: GroupPanelPartInitParameters): void
 }
@@ -19,7 +19,7 @@ export class ContentRenderer<Parameters extends Record<string, any>> extends Abs
 	constructor(
 		id: string,
 		public readonly renderer: Component<Parameters>,
-		private readonly props: Partial<Parameters> = {}
+		private readonly props: Partial<Parameters> = {},
 	) {
 		super(`iad-${id}`)
 	}

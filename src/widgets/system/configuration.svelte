@@ -1,9 +1,11 @@
 <script lang="ts">
 	//https://uxwing.com/?s=Mouse+left+
 	//https://boxy-svg.com/
+
+	import { Alert } from 'flowbite-svelte'
 	import DarkMode from '$lib/dark-mode.svelte'
 	import { configuration, dockview } from '$lib/globals.svelte'
-	import { Alert } from 'flowbite-svelte'
+
 	let darkMode = $state(configuration.darkMode)
 
 	$effect(() => {
@@ -19,5 +21,4 @@
 <Alert>
 	<p>Wheel = zoom + look-at</p>
 	<p>Both left+right down = pan</p>
-	<a href="https://github.com/eddow/hex-map" target="_blank">https://github.com/eddow/hex-map</a>
 </Alert>

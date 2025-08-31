@@ -1,4 +1,4 @@
-import { type Axial, type AxialKey, type AxialRef, axial } from './axial'
+import { type Axial, type AxialKey, type AxialRef, axial } from "./axial"
 
 export interface AxialKeyDictionary<T> {
 	get(key: AxialRef): T | undefined
@@ -54,7 +54,7 @@ export class FixedAxialKeyMap<T> extends AxialFixedKeyIndex implements AxialKeyD
 
 	set(key: AxialRef, value: T) {
 		const index = this.index(axial.key(key))
-		if (index === undefined) throw new Error('Key not found while setting a fixed-map')
+		if (index === undefined) throw new Error("Key not found while setting a fixed-map")
 		this.data[index] = value
 		return true
 	}
@@ -81,7 +81,7 @@ export class AxialKeyMap<T> implements AxialKeyDictionary<T>, Iterable<[AxialKey
 		this.map = new Map(
 			(function* () {
 				for (const [k, v] of init) yield [axial.key(k), v]
-			})()
+			})(),
 		)
 	}
 	[Symbol.iterator](): Iterator<[number, T], any, any> {
@@ -127,7 +127,7 @@ export class AxialSet implements Iterable<Axial> {
 		this.set = new AxialKeyMap(
 			(function* () {
 				for (const k of init) yield [axial.key(k), axial.access(k)]
-			})()
+			})(),
 		)
 	}
 	[Symbol.iterator](): Iterator<Axial, any, any> {
@@ -158,7 +158,9 @@ export abstract class Heap<Indexed, Comparable extends number | string> {
 	protected indexMap = new Map<Indexed, number>()
 
 	constructor(protected readonly heap: [Indexed, Comparable][] = []) {
-		heap.forEach((entry, idx) => this.indexMap.set(entry[0], idx))
+		heap.forEach((entry, idx) => {
+			this.indexMap.set(entry[0], idx)
+		})
 		if (heap.length) this.heapifyDown(0)
 	}
 

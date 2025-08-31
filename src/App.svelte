@@ -1,17 +1,17 @@
 <script lang="ts">
-	import { configuration, dockview } from '$lib/globals.svelte'
-	import { DockviewApi } from 'dockview-core'
-	import { DockView } from '$lib/dockview'
+	import type { DockviewApi } from 'dockview-core'
 	import { Toolbar, ToolbarButton, ToolbarGroup } from 'flowbite-svelte'
 	import {
 		AdjustmentsHorizontalOutline,
-		FloppyDiskAltOutline,
-		BugOutline
+		BugOutline,
+		FloppyDiskAltOutline
 	} from 'flowbite-svelte-icons'
 	import { onMount } from 'svelte'
+	import { DockView } from '$lib/dockview'
 	import createGameViewRenderer from '$lib/dockview/view-panel'
+	import { configuration, dockview } from '$lib/globals.svelte'
 	import widgets from './widgets'
-
+	import { game } from '$lib/scene'
 	$effect(() => {
 		if (configuration.darkMode) document.documentElement.classList.add('dark')
 		else document.documentElement.classList.remove('dark')
@@ -26,7 +26,7 @@
 		}
 	})
 
-	let api: DockviewApi = $derived(dockview.api)
+	const api: DockviewApi = $derived(dockview.api)
 	function gotApi(api: DockviewApi) {
 		dockview.api = api
 	}
@@ -99,7 +99,7 @@
 			<ToolbarButton onclick={showSystem('games')} title="Games">
 				<FloppyDiskAltOutline class="w-6 h-6" />
 			</ToolbarButton>
-      -->
+			-->
 			<ToolbarButton onclick={showSystem('debug')} title="Debug">
 				<BugOutline class="w-6 h-6" />
 			</ToolbarButton>

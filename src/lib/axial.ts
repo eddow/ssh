@@ -1,10 +1,10 @@
 /**
  * @link https://www.redblobgames.com/grids/hexagons/
  */
-import type { Vector2Like } from 'three'
-import type { Sextuplet } from '~/types'
-import type { RandGenerator } from '~/utils/numbers'
-import { assert } from './debug'
+import type { Vector2Like } from "three"
+import type { Sextuplet } from "~/types"
+import type { RandGenerator } from "~/utils/numbers"
+import { assert } from "./debug"
 
 export type AxialKey = number
 export interface AxialCoord {
@@ -106,7 +106,7 @@ export function posInTile(aRef: AxialRef, radius: number) {
 	const outerRadius = radius + 0.5
 	const { q, r } = { q: coord.q / outerRadius, r: coord.r / outerRadius }
 	const s = -q - r
-	const signs = (q >= 0 ? 'Q' : 'q') + (r >= 0 ? 'R' : 'r') + (s >= 0 ? 'S' : 's')
+	const signs = (q >= 0 ? "Q" : "q") + (r >= 0 ? "R" : "r") + (s >= 0 ? "S" : "s")
 	return {
 		Qrs: { s: 0, u: -r, v: -s },
 		QrS: { s: 1, u: s, v: q },
@@ -128,7 +128,7 @@ function bitShiftUnpair(z: number): AxialCoord {
 
 export const axial = {
 	access(aRef: AxialRef): Axial {
-		if (typeof aRef === 'number') return axial.keyAccess(aRef)
+		if (typeof aRef === "number") return axial.keyAccess(aRef)
 		return axial.coordAccess(aRef)
 	},
 	keyAccess(aRef: AxialKey): Axial {
@@ -138,8 +138,8 @@ export const axial = {
 		}
 	},
 	coordAccess(aRef: AxialCoord): Axial {
-		assert(!('key' in aRef) || aRef.key !== undefined, 'key must be defined if set')
-		if ('key' in aRef) return aRef as Axial
+		assert(!("key" in aRef) || aRef.key !== undefined, "key must be defined if set")
+		if ("key" in aRef) return aRef as Axial
 		return Object.assign(aRef, {
 			key: bitShiftPair(aRef),
 		})
@@ -152,10 +152,10 @@ export const axial = {
 	 */
 	coord(aRef: AxialRef | string): AxialCoord {
 		switch (typeof aRef) {
-			case 'number':
+			case "number":
 				return bitShiftUnpair(aRef)
-			case 'string': {
-				const [q, r] = aRef.split(',').map(Number)
+			case "string": {
+				const [q, r] = aRef.split(",").map(Number)
 				return { q, r }
 			}
 			default:
@@ -170,9 +170,9 @@ export const axial = {
 	 */
 	key(aRef: AxialRef | string): AxialKey {
 		switch (typeof aRef) {
-			case 'number':
+			case "number":
 				return aRef
-			case 'string':
+			case "string":
 				return bitShiftPair(axial.coord(aRef))
 			default:
 				return axial.coordAccess(aRef as Axial).key // cache it
@@ -197,7 +197,7 @@ export const axial = {
 				const { q, r } = axial.coord(aRef)
 				return { q: acc.q + coef * q, r: acc.r + coef * r }
 			},
-			{ q: 0, r: 0 }
+			{ q: 0, r: 0 },
 		)
 	},
 	/**
@@ -205,7 +205,7 @@ export const axial = {
 	 * @returns boolean
 	 */
 	zero(aRef: AxialRef) {
-		if (typeof aRef !== 'object') return aRef === 0
+		if (typeof aRef !== "object") return aRef === 0
 		const { q, r } = axial.coord(aRef)
 		return q === 0 && r === 0
 	},
@@ -243,7 +243,7 @@ export const axial = {
 	orthogonal(ARef: AxialRef, BRef: AxialRef): [AxialCoord, AxialCoord] {
 		const sideAxial = axial.linear(ARef, [-1, BRef])
 		const side = hexSides.findIndex(({ q, r }) => q === sideAxial.q && r === sideAxial.r)
-		assert(side !== -1, 'Orthogonal: Points must be neighbors')
+		assert(side !== -1, "Orthogonal: Points must be neighbors")
 		return [
 			axial.linear(BRef, hexSides[(side + 1) % 6]),
 			axial.linear(BRef, hexSides[(side + 5) % 6]),
@@ -289,4 +289,4 @@ const neighborIndexes: (AxialDirection | undefined)[] = [
 ]
 
 // @ts-expect-error - this is only for debug purpose anyway
-if (typeof window !== 'undefined') window.axial = axial
+if (typeof window !== "undefined") window.axial = axial

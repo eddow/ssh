@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Button } from 'flowbite-svelte'
-	import { SunSolid, MoonSolid } from 'flowbite-svelte-icons'
+	import { MoonSolid, SunSolid } from 'flowbite-svelte-icons'
+
 	let {
 		darkMode = $bindable(false),
 		class: className = ''
