@@ -1,0 +1,128 @@
+<script lang="ts">
+	import { configuration, dockview } from '$lib/globals.svelte'
+	import { DockviewApi } from 'dockview-core'
+	import { DockView } from '$lib/dockview'
+	import { Toolbar, ToolbarButton, ToolbarGroup } from 'flowbite-svelte'
+	import {
+		AdjustmentsHorizontalOutline,
+		FloppyDiskAltOutline,
+		BugOutline
+	} from 'flowbite-svelte-icons'
+	import { onMount } from 'svelte'
+	import createGameViewRenderer from '$lib/dockview/view-panel'
+	import widgets from './widgets'
+
+	$effect(() => {
+		if (configuration.darkMode) document.documentElement.classList.add('dark')
+		else document.documentElement.classList.remove('dark')
+	})
+	$effect(() => {
+		const disposable = api.onDidLayoutChange(() => {
+			const layout = api.toJSON()
+			localStorage.setItem('layout', JSON.stringify(layout))
+		})
+		return () => {
+			disposable.dispose()
+		}
+	})
+
+	let api: DockviewApi = $derived(dockview.api)
+	function gotApi(api: DockviewApi) {
+		dockview.api = api
+	}
+	function showSystem(widget: 'configuration' | 'games' | 'debug') {
+		return () => {
+			const id = `system.${widget}`
+			let panel = api.getPanel(id)
+			if (panel) {
+				if (panel.api.isActive) panel.api.close()
+				else panel.api.setActive()
+			} else {
+				const otherSystem = api.panels.find((p) => p.id.startsWith('system.'))
+				panel = api.addPanel({
+					id,
+					component: widget,
+					title: `widget:${widget}`,
+					...(otherSystem
+						? {
+								position: {
+									direction: 'within',
+									referencePanel: otherSystem
+								}
+							}
+						: { floating: true })
+				})
+			}
+		}
+	}
+	const layoutJson = false //location.host.startsWith('localhost') ? localStorage.getItem('layout') : null
+	onMount(() => {
+		if (layoutJson)
+			try {
+				api.fromJSON(JSON.parse(layoutJson))
+				return
+			} catch {
+				localStorage.removeItem('layout')
+			}
+		else {
+			showSystem('configuration')()
+
+			dockview.api.addPanel({
+				id: `game.${crypto.randomUUID()}`,
+				component: 'gameView',
+				title: 'Game X',
+				params: {
+					game: 'GameX'
+				},
+				position: {
+					direction: 'right'
+				}
+			})
+		}
+	})
+	function preventDefault(event: MouseEvent) {
+		if (event.button === 4 || event.button === 3) {
+			event.preventDefault()
+		}
+	}
+</script>
+
+<!-- Prevent default navigation behaviors associated to buttons 3 & 4 -->
+<svelte:body onmouseup={preventDefault} onmousedown={preventDefault} />
+<div class="screen bg-white dark:bg-gray-900">
+	<Toolbar>
+		<ToolbarGroup>
+			<ToolbarButton onclick={showSystem('configuration')} title="Configuration">
+				<AdjustmentsHorizontalOutline class="w-6 h-6" />
+			</ToolbarButton>
+			<!--
+			<ToolbarButton onclick={showSystem('games')} title="Games">
+				<FloppyDiskAltOutline class="w-6 h-6" />
+			</ToolbarButton>
+      -->
+			<ToolbarButton onclick={showSystem('debug')} title="Debug">
+				<BugOutline class="w-6 h-6" />
+			</ToolbarButton>
+		</ToolbarGroup>
+	</Toolbar>
+	<DockView
+		class="content"
+		theme={configuration.darkMode ? 'dracula' : 'light'}
+		renderers={{ gameView: createGameViewRenderer }}
+		onready={gotApi}
+		{widgets}
+	/>
+</div>
+
+<style>
+	.screen {
+		width: 100vw;
+		height: 100vh;
+		display: flex;
+		flex-direction: column;
+	}
+
+	:global(.content) {
+		flex: 1;
+	}
+</style>

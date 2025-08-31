@@ -1,0 +1,15 @@
+<script lang="ts">
+	import { Button } from 'flowbite-svelte'
+	import { EyeOutline } from 'flowbite-svelte-icons'
+
+	//let tile = $derived(land.tile(hKey))
+	let terrainTypeName = 'tile'
+	function goTo() {}
+</script>
+
+<div class="tile-info">
+	<h1>{terrainTypeName}</h1>
+	<Button onclick={goTo}>
+		<EyeOutline class="w-6 h-6" />
+	</Button>
+</div>
