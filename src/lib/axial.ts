@@ -1,15 +1,18 @@
 /**
  * @link https://www.redblobgames.com/grids/hexagons/
  */
-import type { Vector2Like } from "three"
-import type { Sextuplet } from "~/types"
-import type { RandGenerator } from "~/utils/numbers"
+import type { Sextuplet } from "../types"
+import type { RandGenerator } from "./numbers"
 import { assert } from "./debug"
 
 export type AxialKey = number
 export interface AxialCoord {
 	q: number
 	r: number
+}
+export interface WorldCoord {
+	x: number
+	y: number
 }
 export interface Axial extends AxialCoord {
 	key: AxialKey
@@ -67,7 +70,7 @@ export function cartesian(aRef: AxialRef, size = 1) {
 	return { x: A * q + B * r, y: C * r }
 }
 
-export function fromCartesian({ x, y }: Vector2Like, size: number) {
+export function fromCartesian({ x, y }: WorldCoord, size: number) {
 	const A = Math.sqrt(3) * size
 	const B = (Math.sqrt(3) / 2) * size
 	const C = (3 / 2) * size
@@ -77,8 +80,14 @@ export function fromCartesian({ x, y }: Vector2Like, size: number) {
 	return { q, r }
 }
 
-function lerp(a: number, b: number, t: number) {
-	return a + (b - a) * t
+function lerp(a: number, b: number, t: number): number
+function lerp(a: WorldCoord, b: WorldCoord, t: number): WorldCoord
+function lerp(a: number|WorldCoord, b: number|WorldCoord, t: number): number|WorldCoord {
+	if(typeof a === "number" && typeof b === "number")
+		return a + (b - a) * t
+	if(typeof a === "object" && typeof b === "object")
+		return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t }
+	throw new Error("Invalid type for lerp")
 }
 
 /**

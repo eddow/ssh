@@ -8,10 +8,10 @@
 	} from 'flowbite-svelte-icons'
 	import { onMount } from 'svelte'
 	import { DockView } from '$lib/dockview'
-	import createGameViewRenderer from '$lib/dockview/view-panel'
+	import createGameViewRenderer from '$lib/dockview/game-view'
 	import { configuration, dockview } from '$lib/globals.svelte'
 	import widgets from './widgets'
-	import { game } from '$lib/scene'
+
 	$effect(() => {
 		if (configuration.darkMode) document.documentElement.classList.add('dark')
 		else document.documentElement.classList.remove('dark')
@@ -55,7 +55,7 @@
 			}
 		}
 	}
-	const layoutJson = false //location.host.startsWith('localhost') ? localStorage.getItem('layout') : null
+	const layoutJson = location.host.startsWith('localhost') ? localStorage.getItem('layout') : null
 	onMount(() => {
 		if (layoutJson)
 			try {

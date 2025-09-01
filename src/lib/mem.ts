@@ -106,6 +106,9 @@ export class AxialKeyMap<T> implements AxialKeyDictionary<T>, Iterable<[AxialKey
 	keys(): Iterable<AxialKey> {
 		return this.map.keys()
 	}
+	*coords(): Iterable<Axial> {
+		for (const key of this.map.keys()) yield axial.keyAccess(key)
+	}
 	entries(): MapIterator<[AxialKey, T]> {
 		return this.map.entries()
 	}
