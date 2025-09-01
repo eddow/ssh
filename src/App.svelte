@@ -7,8 +7,7 @@
 		FloppyDiskAltOutline
 	} from 'flowbite-svelte-icons'
 	import { onMount } from 'svelte'
-	import { DockView } from '$lib/dockview'
-	import createGameViewRenderer from '$lib/dockview/game-view'
+	import { DockView } from './components/dockview'
 	import { configuration } from '$lib/globals.svelte'
 	import widgets from './widgets'
 
@@ -66,18 +65,7 @@
 			}
 		else {
 			showSystem('configuration')()
-
-			api!.addPanel({
-				id: `game.${crypto.randomUUID()}`,
-				component: 'gameView',
-				title: 'Game X',
-				params: {
-					game: 'GameX'
-				},
-				position: {
-					direction: 'right'
-				}
-			})
+			addGame()
 		}
 	})
 	function preventDefault(event: MouseEvent) {
@@ -86,9 +74,18 @@
 		}
 	}
 	function addGame() {
-		dockview!.addWidget('game', {
-			game: 'GameX'
-		})
+		let panel = api!.getPanel('game')
+		if (panel) panel.api.setActive()
+		else
+			dockview!.addWidget(
+				'game',
+				{
+					game: 'GameX'
+				},
+				{
+					id: 'game'
+				}
+			)
 	}
 </script>
 
@@ -111,7 +108,6 @@
 	<DockView
 		class="content"
 		theme={configuration.darkMode ? 'dracula' : 'light'}
-		renderers={{ gameView: createGameViewRenderer }}
 		bind:api
 		bind:this={dockview}
 		{widgets}

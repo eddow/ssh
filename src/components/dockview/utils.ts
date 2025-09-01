@@ -16,9 +16,7 @@ abstract class AbstractRenderer implements IContentRenderer {
 	}
 	abstract init(parameters: GroupPanelPartInitParameters): void
 }
-export class ContentRenderer<
-	Parameters extends Record<string, any>,
-> extends AbstractRenderer {
+export class ContentRenderer<Parameters extends Record<string, any>> extends AbstractRenderer {
 	private size = writable<{ width: number; height: number }>({ width: 100, height: 100 })
 	constructor(
 		id: string,
@@ -29,13 +27,13 @@ export class ContentRenderer<
 	}
 
 	init(parameters: GroupPanelPartInitParameters): void {
-			//@ts-expect-error size is not a valid prop
+		//@ts-expect-error size is not a valid prop
 		mount(this.renderer, {
 			target: this.element,
-			props: { size: this.size, ...this.props, ...parameters.params }
+			props: { size: this.size, ...this.props, ...parameters.params },
 		})
 	}
-	
+
 	layout(width: number, height: number): void {
 		if (width > 0 && height > 0) {
 			this.size.set({ width, height })

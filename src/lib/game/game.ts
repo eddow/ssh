@@ -25,16 +25,11 @@ export class LevelScene extends Phaser.Scene {
 	}
 	create() {
 		this.board = new HexBoard(this)
-		this.board.on("tile-click", (pointer: any, coord: AxialCoord) => {
-			console.log(`tile-click: ${coord.q},${coord.r}`)
-		})
-		this.board.on("gameobject-click", (gameObject: any) => {
-			console.log(`gameobject-click: ${gameObject.tile}`)
-		})
 
 		// Setup mouse input for zoom and pan
 		this.setupMouseInput()
 		this.cameras.main.centerOn(0, 0)
+		this.game.events.emit("sceneReady")
 	}
 
 	private setupMouseInput() {
@@ -104,7 +99,9 @@ export class LevelScene extends Phaser.Scene {
 
 export class Game {
 	public phaser: Phaser.Game
-	public ground: LevelScene
+	get ground() {
+		return this.phaser.scene.getScene("GroundScene") as LevelScene
+	}
 	get board() {
 		return this.ground.board
 	}
@@ -118,7 +115,6 @@ export class Game {
 				scene: [{ key: "rexboardPlugin", plugin: RexBoardPlugin, mapping: "rexBoard" }],
 			},
 		})
-		this.ground = this.phaser.scene.getScene("GroundScene") as LevelScene
 	}
 	get camera() {
 		return this.ground.cameras.main

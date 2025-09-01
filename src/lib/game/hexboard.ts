@@ -2,6 +2,7 @@ import type Phaser from "phaser"
 import type Board from "phaser3-rex-plugins/plugins/board/board/LogicBoard"
 import type { TileXYType, WorldXYType } from "phaser3-rex-plugins/plugins/board/types/Position"
 import EventEmitter from "phaser3-rex-plugins/plugins/utils/eventemitter/EventEmitter"
+import { Eventful } from "$lib/events"
 import { type AxialCoord, type AxialRef, axial } from "../axial"
 import { AxialKeyMap } from "../mem"
 import { LCG, type RandGenerator } from "../numbers"
@@ -17,6 +18,7 @@ export enum TerrainType {
 export interface HexTile {
 	terrain: TerrainType
 	textureOffset: { x: number; y: number }
+
 	// Future properties can be added here like elevation, resources, etc.
 }
 const stagger = {
@@ -29,6 +31,9 @@ export function preloadTerrains(scene: LevelScene) {
 	scene.load.image("terrain-grass", "assets/terrain/grass.jpg")
 	scene.load.image("terrain-forest", "assets/terrain/forest.jpg")
 	scene.load.image("terrain-rocky", "assets/terrain/stone.jpg")
+	scene.load.atlas("objects", "assets/objects/bushes.png", "assets/objects/bushes.json")
+	scene.load.atlas("objects", "assets/objects/trees.png", "assets/objects/trees.json")
+	scene.load.atlas("objects", "assets/objects/rocks.png", "assets/objects/rocks.json")
 }
 
 export function cubic2offset(coord: AxialRef): TileXYType {
@@ -47,11 +52,16 @@ export function offset2cubic(xy: TileXYType): AxialCoord {
 	}
 }
 
-export class HexBoard extends EventEmitter {
+export class HexBoard extends Eventful<{
+	tileClick: (pointer: any, coord: AxialCoord) => void
+	tileUp: (pointer: any, coord: AxialCoord) => void
+	tileOver: (pointer: any, coord: AxialCoord) => void
+	tileOut: (pointer: any, coord: AxialCoord) => void
+	gameobjectClick: (pointer: any, coord: AxialCoord) => void
+}> {
 	private tiles: AxialKeyMap<HexTile>
 	private size: number
 	private board: Board
-	private graphics: Phaser.GameObjects.Graphics
 	private randomGenerator: RandGenerator
 
 	axial2world(coord: AxialRef) {
@@ -72,7 +82,7 @@ export class HexBoard extends EventEmitter {
 		const tileForward = (event: string) => {
 			return (pointer: any, xy: any) => {
 				const coord = offset2cubic(xy)
-				if (this.hasTile(coord)) this.emit(event, pointer, coord)
+				if (this.hasTile(coord)) this.emit(event as any, pointer, coord)
 			}
 		}
 		this.board = scene.rexBoard.add
@@ -87,30 +97,18 @@ export class HexBoard extends EventEmitter {
 				infinity: true,
 			})
 			.setInteractive()
-			.on("tiledown", tileForward("tile-click"))
-			.on("tileup", tileForward("tile-up"))
-			.on("tileover", tileForward("tile-over"))
-			.on("tileout", tileForward("tile-out"))
+			.on("tiledown", tileForward("tileClick"))
+			.on("tileup", tileForward("tileUp"))
+			.on("tileover", tileForward("tileOver"))
+			.on("tileout", tileForward("tileOut"))
 			.on("gameobjectdown", (_pointer: any, _gameObject: any) => {
 				debugger
 			})
-
-		const graphics = scene.add.graphics({
-			lineStyle: {
-				width: 2,
-				color: 0xffffff,
-				alpha: 1,
-			},
-		})
-		this.graphics = graphics
 		for (const coord of this.tiles.coords()) {
 			const tile = this.tiles.get(coord)!
 
 			// Get hexagonal tile points
 			const gridPoints = this.board.getGridPoints(cubic2offset(coord), true)
-
-			// Draw hexagon outline
-			graphics.strokePoints(gridPoints, true)
 
 			// Create hexagonal tile filled with texture
 			const textureKey = `terrain-${tile.terrain}`
@@ -130,9 +128,6 @@ export class HexBoard extends EventEmitter {
 			const offsetX = tile.textureOffset.x * 50 // Adjust scale as needed
 			const offsetY = tile.textureOffset.y * 50
 			texture.setPosition(worldXY.x + offsetX, worldXY.y + offsetY)
-
-			// Add coordinate text on top
-			scene.add.text(worldXY.x, worldXY.y, `${coord.q},${coord.r}`).setOrigin(0.5).setDepth(1) // Ensure text appears above texture
 		}
 	}
 

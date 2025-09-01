@@ -23,21 +23,30 @@
 			.map(([k, v]): string => `${k}: ${debugged(v)}`)
 			.join(' | ')
 	}
-	const dDebugInfo = $derived(Object.entries(debugInfo).map(([k, v]) => [k, debugged(v)]))
+	const dDebugInfo = $derived(Object.entries(debugInfo))
 	function resetLayout() {
 		localStorage.removeItem('layout')
 		location.reload()
 	}
+	function displayed(content: any) {
+		if (typeof content !== 'object') return content
+		return Object.entries(content)
+			.map(([k, v]) => [k, debugged(v)])
+			.join(' | ')
+	}
 </script>
 
 <Button class="w-full" onclick={resetLayout}>Reset layout</Button>
-<Table>
-	<TableBody title="Debug info">
-		{#each dDebugInfo as content}
-			<TableBodyRow>
-				<TableHeadCell>{content[0]}</TableHeadCell>
-				<TableBodyCell>{content[1]}</TableBodyCell>
-			</TableBodyRow>
-		{/each}
-	</TableBody>
-</Table>
+{#each dDebugInfo as content}
+	<h2>{content[0]}</h2>
+	<Table>
+		<TableBody title="Debug info">
+			{#each Object.entries(content[1]) as kvp}
+				<TableBodyRow>
+					<TableHeadCell>{kvp[0]}</TableHeadCell>
+					<TableBodyCell>{displayed(kvp[1])}</TableBodyCell>
+				</TableBodyRow>
+			{/each}
+		</TableBody>
+	</Table>
+{/each}
