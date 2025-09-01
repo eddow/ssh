@@ -1,10 +1,16 @@
+<script lang="ts" module>
+	export function title(params: Record<string, any>) {
+		return `Configuration`
+	}
+</script>
+
 <script lang="ts">
 	//https://uxwing.com/?s=Mouse+left+
 	//https://boxy-svg.com/
 
 	import { Alert } from 'flowbite-svelte'
 	import DarkMode from '$lib/dark-mode.svelte'
-	import { configuration, dockview } from '$lib/globals.svelte'
+	import { configuration } from '$lib/globals.svelte'
 
 	let darkMode = $state(configuration.darkMode)
 

@@ -2,8 +2,8 @@
  * @link https://www.redblobgames.com/grids/hexagons/
  */
 import type { Sextuplet } from "../types"
-import type { RandGenerator } from "./numbers"
 import { assert } from "./debug"
+import type { RandGenerator } from "./numbers"
 
 export type AxialKey = number
 export interface AxialCoord {
@@ -82,10 +82,9 @@ export function fromCartesian({ x, y }: WorldCoord, size: number) {
 
 function lerp(a: number, b: number, t: number): number
 function lerp(a: WorldCoord, b: WorldCoord, t: number): WorldCoord
-function lerp(a: number|WorldCoord, b: number|WorldCoord, t: number): number|WorldCoord {
-	if(typeof a === "number" && typeof b === "number")
-		return a + (b - a) * t
-	if(typeof a === "object" && typeof b === "object")
+function lerp(a: number | WorldCoord, b: number | WorldCoord, t: number): number | WorldCoord {
+	if (typeof a === "number" && typeof b === "number") return a + (b - a) * t
+	if (typeof a === "object" && typeof b === "object")
 		return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t }
 	throw new Error("Invalid type for lerp")
 }

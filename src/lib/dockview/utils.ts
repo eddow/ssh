@@ -1,5 +1,6 @@
 import type { GroupPanelPartInitParameters, IContentRenderer } from "dockview-core"
 import { type Component, mount, type Snippet } from "svelte"
+import { type Writable, writable } from "svelte/store"
 
 export const dvContext: unique symbol = Symbol("Dockview dvContext")
 export interface IDockviewContext {
@@ -15,7 +16,10 @@ abstract class AbstractRenderer implements IContentRenderer {
 	}
 	abstract init(parameters: GroupPanelPartInitParameters): void
 }
-export class ContentRenderer<Parameters extends Record<string, any>> extends AbstractRenderer {
+export class ContentRenderer<
+	Parameters extends Record<string, any>,
+> extends AbstractRenderer {
+	private size = writable<{ width: number; height: number }>({ width: 100, height: 100 })
 	constructor(
 		id: string,
 		public readonly renderer: Component<Parameters>,
@@ -23,15 +27,21 @@ export class ContentRenderer<Parameters extends Record<string, any>> extends Abs
 	) {
 		super(`iad-${id}`)
 	}
+
 	init(parameters: GroupPanelPartInitParameters): void {
+			//@ts-expect-error size is not a valid prop
 		mount(this.renderer, {
 			target: this.element,
-			props: { ...this.props, ...parameters.params } as Parameters,
+			props: { size: this.size, ...this.props, ...parameters.params }
 		})
-	} /*
-	layout?(width: number, height: number): void {
-		//throw new Error('Method not implemented.')
 	}
+	
+	layout(width: number, height: number): void {
+		if (width > 0 && height > 0) {
+			this.size.set({ width, height })
+		}
+	}
+	/*
 	update?(event: PanelUpdateEvent<Parameters>): void {
 		//throw new Error('Method not implemented.')
 	}
@@ -44,4 +54,9 @@ export class ContentRenderer<Parameters extends Record<string, any>> extends Abs
 	dispose?(): void {
 		//throw new Error('Method not implemented.')
 	}*/
+}
+
+export type DockviewWidget = {
+	title: (params: Record<string, any>) => string
+	component: Component<[Record<string, any>]>
 }

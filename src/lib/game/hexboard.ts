@@ -1,40 +1,49 @@
-import { AxialKeyMap } from "../mem"
-import { axial, type Axial, type AxialCoord, type AxialRef } from "../axial"
+import type Phaser from "phaser"
 import type Board from "phaser3-rex-plugins/plugins/board/board/LogicBoard"
 import type { TileXYType, WorldXYType } from "phaser3-rex-plugins/plugins/board/types/Position"
-import type { LevelScene } from "./game"
-import Phaser from "phaser"
 import EventEmitter from "phaser3-rex-plugins/plugins/utils/eventemitter/EventEmitter"
+import { type AxialCoord, type AxialRef, axial } from "../axial"
+import { AxialKeyMap } from "../mem"
+import { LCG, type RandGenerator } from "../numbers"
+import type { LevelScene } from "./game"
 
 export enum TerrainType {
 	WATER = "water",
-	GRASS = "grass", 
+	GRASS = "grass",
 	FOREST = "forest",
-	ROCKY = "rocky"
+	ROCKY = "rocky",
 }
 
 export interface HexTile {
 	terrain: TerrainType
+	textureOffset: { x: number; y: number }
 	// Future properties can be added here like elevation, resources, etc.
 }
 const stagger = {
-	staggeraxis: 'x',
-	staggerindex: 'odd'
+	staggeraxis: "x",
+	staggerindex: "odd",
 } as const
 
+export function preloadTerrains(scene: LevelScene) {
+	scene.load.image("terrain-water", "assets/terrain/water.jpg")
+	scene.load.image("terrain-grass", "assets/terrain/grass.jpg")
+	scene.load.image("terrain-forest", "assets/terrain/forest.jpg")
+	scene.load.image("terrain-rocky", "assets/terrain/stone.jpg")
+}
+
 export function cubic2offset(coord: AxialRef): TileXYType {
-	const {q, r} = axial.access(coord)
+	const { q, r } = axial.access(coord)
 	return {
 		x: q + (r - (r & 1)) / 2,
-		y: r
+		y: r,
 	}
 }
 
 export function offset2cubic(xy: TileXYType): AxialCoord {
-	const {x, y} = xy
+	const { x, y } = xy
 	return {
 		q: x - (y - (y & 1)) / 2,
-		r: y
+		r: y,
 	}
 }
 
@@ -43,60 +52,87 @@ export class HexBoard extends EventEmitter {
 	private size: number
 	private board: Board
 	private graphics: Phaser.GameObjects.Graphics
-	
+	private randomGenerator: RandGenerator
+
 	axial2world(coord: AxialRef) {
-		const {x, y} = cubic2offset(coord)
+		const { x, y } = cubic2offset(coord)
 		return this.board.tileXYToWorldXY(x, y)
 	}
 	world2axial(world: WorldXYType) {
-		const {x, y} = world
-		return offset2cubic({x, y})
+		const { x, y } = world
+		return offset2cubic({ x, y })
 	}
 	constructor(scene: LevelScene, size: number = 6) {
 		super()
 		this.size = size
 		this.tiles = new AxialKeyMap()
+		this.randomGenerator = LCG("hexboard-seed") // Use a constant seed for reproducibility
 		this.generateBoard()
 
 		const tileForward = (event: string) => {
 			return (pointer: any, xy: any) => {
 				const coord = offset2cubic(xy)
-				if(this.hasTile(coord))
-					this.emit(event, pointer, coord)
+				if (this.hasTile(coord)) this.emit(event, pointer, coord)
 			}
 		}
-		this.board = scene.rexBoard.add.board({
-			grid: {
-				gridType: 'hexagonGrid',
-				x: 60,
-				y: 60,
-				size: 30,
-				...stagger
-			},
-			infinity: true
-		})
+		this.board = scene.rexBoard.add
+			.board({
+				grid: {
+					gridType: "hexagonGrid",
+					x: 60,
+					y: 60,
+					size: 30,
+					...stagger,
+				},
+				infinity: true,
+			})
 			.setInteractive()
-			.on('tiledown', tileForward('tile-click'))
-			.on('tileup', tileForward('tile-up'))
-			.on('tileover', tileForward('tile-over'))
-			.on('tileout', tileForward('tile-out'))
-			.on('gameobjectdown', (pointer: any, gameObject: any) => {
+			.on("tiledown", tileForward("tile-click"))
+			.on("tileup", tileForward("tile-up"))
+			.on("tileover", tileForward("tile-over"))
+			.on("tileout", tileForward("tile-out"))
+			.on("gameobjectdown", (_pointer: any, _gameObject: any) => {
 				debugger
 			})
 
-		
 		const graphics = scene.add.graphics({
 			lineStyle: {
 				width: 2,
 				color: 0xffffff,
-				alpha: 1
-			}
-		});
+				alpha: 1,
+			},
+		})
 		this.graphics = graphics
 		for (const coord of this.tiles.coords()) {
-			graphics.strokePoints(this.board.getGridPoints(cubic2offset(coord), true), true);
-			const worldXY = this.axial2world(coord);
-			scene.add.text(worldXY.x, worldXY.y, `${coord.q},${coord.r}`).setOrigin(0.5);
+			const tile = this.tiles.get(coord)!
+
+			// Get hexagonal tile points
+			const gridPoints = this.board.getGridPoints(cubic2offset(coord), true)
+
+			// Draw hexagon outline
+			graphics.strokePoints(gridPoints, true)
+
+			// Create hexagonal tile filled with texture
+			const textureKey = `terrain-${tile.terrain}`
+			const worldXY = this.axial2world(coord)
+
+			// Create a regular image that will be masked to hexagon shape
+			const texture = scene.add.image(worldXY.x, worldXY.y, textureKey)
+			texture.setOrigin(0.5)
+
+			// Create a mask in the shape of the hexagon
+			const maskGraphics = scene.add.graphics()
+			maskGraphics.fillPoints(gridPoints, true, true)
+			const mask = maskGraphics.createGeometryMask()
+			texture.setMask(mask)
+
+			// Apply texture offset by adjusting the texture position
+			const offsetX = tile.textureOffset.x * 50 // Adjust scale as needed
+			const offsetY = tile.textureOffset.y * 50
+			texture.setPosition(worldXY.x + offsetX, worldXY.y + offsetY)
+
+			// Add coordinate text on top
+			scene.add.text(worldXY.x, worldXY.y, `${coord.q},${coord.r}`).setOrigin(0.5).setDepth(1) // Ensure text appears above texture
 		}
 	}
 
@@ -104,7 +140,14 @@ export class HexBoard extends EventEmitter {
 		// Generate all tiles within the board radius
 		for (const coord of axial.enum(this.size - 1)) {
 			const terrain = this.generateRandomTerrain(coord)
-			this.tiles.set(coord, { terrain })
+			const textureOffset = {
+				x: this.randomGenerator(),
+				y: this.randomGenerator(),
+			}
+			this.tiles.set(coord, {
+				terrain,
+				textureOffset,
+			})
 		}
 	}
 
@@ -112,11 +155,10 @@ export class HexBoard extends EventEmitter {
 		// Create some randomness based on position for more interesting generation
 		const distance = axial.distance(coord)
 		const angle = Math.atan2(coord.r, coord.q)
-		
-		// Use a simple hash of coordinates for consistent randomness
-		const hash = this.hashCoordinates(coord.q, coord.r)
-		const random = (hash % 1000) / 1000
-		
+
+		// Use the reproducible random generator for consistent randomness
+		const random = this.randomGenerator()
+
 		// Adjust probabilities based on distance from center
 		let waterChance = 0.15
 		let grassChance = 0.45
@@ -155,11 +197,6 @@ export class HexBoard extends EventEmitter {
 		} else {
 			return TerrainType.ROCKY
 		}
-	}
-
-	private hashCoordinates(q: number, r: number): number {
-		// Simple hash function for consistent randomness
-		return ((q * 73856093) ^ (r * 19349663)) >>> 0
 	}
 
 	// Public methods

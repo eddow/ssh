@@ -1,27 +1,33 @@
-<script lang="ts">
-import {
-	Button,
-	Table,
-	TableBody,
-	TableBodyCell,
-	TableBodyRow,
-	TableHeadCell,
-} from "flowbite-svelte";
-import { debugInfo } from "$lib/globals.svelte";
+<script lang="ts" module>
+	export function title(params: Record<string, any>) {
+		return `Debug Info`
+	}
+</script>
 
-function debugged(value: any) {
-	if (typeof value === "number") return value.toFixed(2);
-	if (typeof value !== "object") return value;
-	if (!value) return "" + value;
-	return Object.entries(value)
-		.map(([k, v]): string => `${k}: ${debugged(v)}`)
-		.join(" | ");
-}
-const dDebugInfo = $derived(Object.entries(debugInfo).map(([k, v]) => [k, debugged(v)]));
-function resetLayout() {
-	localStorage.removeItem("layout");
-	location.reload();
-}
+<script lang="ts">
+	import {
+		Button,
+		Table,
+		TableBody,
+		TableBodyCell,
+		TableBodyRow,
+		TableHeadCell
+	} from 'flowbite-svelte'
+	import { debugInfo } from '$lib/globals.svelte'
+
+	function debugged(value: any) {
+		if (typeof value === 'number') return value.toFixed(2)
+		if (typeof value !== 'object') return value
+		if (!value) return '' + value
+		return Object.entries(value)
+			.map(([k, v]): string => `${k}: ${debugged(v)}`)
+			.join(' | ')
+	}
+	const dDebugInfo = $derived(Object.entries(debugInfo).map(([k, v]) => [k, debugged(v)]))
+	function resetLayout() {
+		localStorage.removeItem('layout')
+		location.reload()
+	}
 </script>
 
 <Button class="w-full" onclick={resetLayout}>Reset layout</Button>

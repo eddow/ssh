@@ -20,5 +20,5 @@
       "$lib/*": ["./src/lib/*"]
     }
   },
-  "include": ["src/**/*.ts", "src/**/*.js", "src/**/*.svelte", "src/lib/dockview/game-viewts", "src/lib/dockview/game-viewts"]
+  "include": ["src/**/*.ts", "src/**/*.js", "src/**/*.svelte"]
 }

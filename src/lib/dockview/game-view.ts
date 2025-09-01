@@ -1,11 +1,9 @@
-import type { GroupPanelPartInitParameters, IContentRenderer, PanelUpdateEvent, Parameters } from "dockview-core"
-import Phaser from "phaser"
+import type { GroupPanelPartInitParameters, IContentRenderer } from "dockview-core"
+import type Phaser from "phaser"
 import { Game } from "$lib/game"
 
-
 export class GameViewRenderer implements IContentRenderer {
-
-	public game: Game = undefined! 
+	public game: Game = undefined!
 	private phaser: Phaser.Game = undefined!
 	constructor(public readonly id: string) {
 		//this.phaser = game.phaser
@@ -15,18 +13,18 @@ export class GameViewRenderer implements IContentRenderer {
 		return this.phaser.canvas
 	}
 
-	private initSize: { width: number, height: number } | undefined
+	private initSize: { width: number; height: number } | undefined
 	init(_parameters: GroupPanelPartInitParameters): void {
 		// TODO: get game from parameters
 		this.game = new Game()
 		this.phaser = this.game.phaser
-		
+
 		// Prevent context menu on the canvas
-		this.phaser.canvas.addEventListener('contextmenu', (e) => {
+		this.phaser.canvas.addEventListener("contextmenu", (e) => {
 			e.preventDefault()
 		})
-		
-		if(this.initSize) {
+
+		if (this.initSize) {
 			this.phaser.scale.resize(this.initSize.width, this.initSize.height)
 			this.initSize = undefined
 		}
@@ -34,7 +32,7 @@ export class GameViewRenderer implements IContentRenderer {
 
 	layout?(width: number, height: number): void {
 		if (width > 0 && height > 0) {
-			if(this.phaser) this.phaser.scale.resize(width, height)
+			if (this.phaser) this.phaser.scale.resize(width, height)
 			else this.initSize = { width, height }
 		}
 	}

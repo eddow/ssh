@@ -10,7 +10,7 @@ function stringToHash(str: string): number {
 }
 
 function numeric(seed: number | string): number {
-	return typeof seed === 'string' ? stringToHash(seed) : seed * Math.PI
+	return typeof seed === "string" ? stringToHash(seed) : seed * Math.PI
 }
 
 export type RandGenerator = (max?: number, min?: number) => number

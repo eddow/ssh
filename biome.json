@@ -27,8 +27,8 @@
 			},
 			"suspicious": {
 				"noExplicitAny": "off",
-				"noDebugger": "error",
-				"noConsole": "info"
+				"noDebugger": "off",
+				"noConsole": "off"
 			},
 			"performance": {
 				"noAccumulatingSpread": "off"
@@ -38,7 +38,8 @@
 			},
 			"security": {},
 			"correctness": {
-				"noUnusedImports": { "level": "info" }
+				"noUnusedImports": { "level": "info" },
+				"noUnusedFunctionParameters": "off"
 			},
 			"nursery": {}
 		}

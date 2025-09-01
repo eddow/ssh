@@ -1,3 +1,5 @@
+import type { Component, Snippet } from "svelte"
+
 const widgetsSource = import.meta.glob("./widgets/**/*.svelte", { eager: true })
 /*[
     "./widgets/selection-info.svelte",
@@ -5,9 +7,15 @@ const widgetsSource = import.meta.glob("./widgets/**/*.svelte", { eager: true })
     "./widgets/system/debug.svelte"
 ]*/
 const widgets = Object.fromEntries(
-	Object.entries(widgetsSource as Record<string, { default: any }>).map(([key, widget]) => [
+	Object.entries(widgetsSource as Record<string, any>).map(([key, widget]) => [
 		/^\.\/widgets.*\/(.*)\.svelte$/.exec(key)?.[1],
-		widget.default,
+		{
+			title: widget.title,
+			component: widget.default,
+		},
 	]),
-)
+) as Record<
+	string,
+	{ title: (params: Record<string, any>) => string; component: Component<[Record<string, any>]> }
+>
 export default widgets

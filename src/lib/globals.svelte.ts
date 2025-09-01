@@ -13,6 +13,4 @@ export const configuration = $state(
 				darkMode: window.matchMedia("(prefers-color-scheme: dark)").matches,
 			},
 )
-export const dockview = $state({ api: {} as DockviewApi } as { api: DockviewApi })
-
 export const debugInfo = $state({} as Record<string, any>)
