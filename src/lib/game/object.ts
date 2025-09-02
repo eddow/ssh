@@ -2,7 +2,6 @@ import type Phaser from "phaser"
 import type { WorldCoord } from "../axial"
 import { effect, Reactive, type UnwatchFunction } from "../reactive"
 import type { Game } from "./game"
-import type { T } from "vitest/dist/chunks/environment.d.cL3nLXbE.js"
 
 export function renderEffect<T extends Phaser.GameObjects.GameObject>(
 	render: () => T | undefined | false,
@@ -28,23 +27,23 @@ export function renderEffect<T extends Phaser.GameObjects.GameObject>(
 	}
 }
 
-const interactions = new WeakMap<Phaser.GameObjects.GameObject, InteractiveGameObject>()
-
-export abstract class RenderableObject<
-	T extends Phaser.GameObjects.GameObject & { x: number; y: number } = 
-		Phaser.GameObjects.GameObject & { x: number; y: number }
->  extends Reactive() {
+export type Positionable = Phaser.GameObjects.GameObject & {
+	setPosition(x: number, y: number): void
+}
+export abstract class RenderableObject<T extends Positionable = Positionable> extends Reactive() {
 	abstract readonly worldPosition: WorldCoord
 	abstract render(scene: Phaser.Scene): T
+	// POC
+	protected renderedObject?: T
 	tune(object: T) {
-		object.x = this.worldPosition.x
-		object.y = this.worldPosition.y
+		this.renderedObject = object
+		/*const { x, y } = this.worldPosition
+		object.setPosition(x, y)*/
 		object.on("destroy", () => {
 			this.remove()
 		})
-		object.setInteractive()
 		return () => {
-			interactions.delete(object)
+			if (this.renderedObject === object) this.renderedObject = undefined
 		}
 	}
 	private renderCleanup?: UnwatchFunction
@@ -57,25 +56,72 @@ export abstract class RenderableObject<
 	remove() {
 		this.renderCleanup?.()
 		this.renderCleanup = undefined
+		this.renderedObject = undefined
+	}
+	getRenderedObject(): T | undefined {
+		return this.renderedObject
 	}
 }
 
-export abstract class InteractiveGameObject<
-	T extends Phaser.GameObjects.GameObject & { x: number; y: number } = 
-		Phaser.GameObjects.GameObject & { x: number; y: number }
-> extends RenderableObject {
+export abstract class InteractiveGameObject extends RenderableObject {
 	constructor(public readonly game: Game) {
 		super()
 	}
 	abstract readonly uid: string
-	abstract highlight(highlighted: boolean): void
-	tune(object: T) {
-		interactions.set(object, this)
-		object.setInteractive()
-		return super.tune(object)
-	}
+	/**
+	 * Test if a world point is inside this interactive object
+	 * @param worldX - World X coordinate
+	 * @param worldY - World Y coordinate
+	 * @returns true if the point is inside the object
+	 */
+	abstract hitTest(worldX: number, worldY: number): SelectableGameObject | false
 }
 
-export function getInteractiveObject<T extends Phaser.GameObjects.GameObject>(object: T): InteractiveGameObject | undefined {
-	return interactions.get(object)
+export abstract class SelectableGameObject extends InteractiveGameObject {
+	/**
+	 * Highlight or unhighlight this object
+	 * @param highlighted - Whether to highlight or unhighlight
+	 */
+	abstract highlight(highlighted: boolean): void
+}
+
+export abstract class ContainerClass extends InteractiveGameObject {
+	protected container?: Phaser.GameObjects.Container
+
+	/**
+	 * Default hitTest behavior: iterate through children and return the first interactive one that passes hitTest
+	 */
+	hitTest(worldX: number, worldY: number): SelectableGameObject | false {
+		if (!this.container) return false
+
+		// Iterate through children in reverse order (topmost first)
+		for (let i = this.container.length - 1; i >= 0; i--) {
+			const child = this.container.getAt(i)
+			if (!child || !(child instanceof InteractiveGameObject)) continue
+			const hit = child.hitTest(worldX, worldY)
+			if (hit) return hit
+		}
+		return false
+	}
+
+	/**
+	 * Add a child to the container
+	 */
+	addChild(child: Phaser.GameObjects.GameObject): void {
+		this.container?.add(child)
+	}
+
+	/**
+	 * Remove a child from the container
+	 */
+	removeChild(child: Phaser.GameObjects.GameObject): void {
+		this.container?.remove(child)
+	}
+
+	/**
+	 * Clear all children from the container
+	 */
+	clearChildren(): void {
+		this.container?.removeAll()
+	}
 }

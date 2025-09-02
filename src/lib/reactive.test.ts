@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest"
-import { effect, isReactive, Reactive, reactive, unwrap } from "./reactive"
+import {
+	effect,
+	isNonReactive,
+	isReactive,
+	markNonReactive,
+	markNonReactiveClass,
+	Reactive,
+	reactive,
+	unwrap,
+} from "./reactive"
 
 describe("reactive", () => {
 	describe("basic functionality", () => {
@@ -518,5 +527,236 @@ describe("Reactive mixin", () => {
 		counter.reset()
 		expect(effectCount).toBe(3)
 		expect(counter.value).toBe(0)
+	})
+})
+
+describe("non-reactive functionality", () => {
+	describe("markNonReactive", () => {
+		it("should mark individual objects as non-reactive", () => {
+			const obj = { count: 0, name: "test" }
+			markNonReactive(obj)
+
+			expect(isNonReactive(obj)).toBe(true)
+			expect(reactive(obj)).toBe(obj) // Should not create a proxy
+			expect(isReactive(obj)).toBe(false)
+		})
+
+		it("should not affect other objects", () => {
+			const obj1 = { count: 0 }
+			const obj2 = { count: 0 }
+
+			markNonReactive(obj1)
+
+			expect(isNonReactive(obj1)).toBe(true)
+			expect(isNonReactive(obj2)).toBe(false)
+
+			const reactiveObj2 = reactive(obj2)
+			expect(isReactive(reactiveObj2)).toBe(true)
+		})
+
+		it("should work with nested objects", () => {
+			const parent = { child: { count: 0 } }
+			markNonReactive(parent)
+
+			expect(isNonReactive(parent)).toBe(true)
+			expect(isNonReactive(parent.child)).toBe(false) // Only parent is marked
+
+			const reactiveChild = reactive(parent.child)
+			expect(isReactive(reactiveChild)).toBe(true)
+		})
+	})
+
+	describe("markNonReactiveClass", () => {
+		it("should mark entire classes as non-reactive", () => {
+			class TestClass {
+				count = 0
+				name = "test"
+			}
+
+			markNonReactiveClass(TestClass)
+
+			const instance1 = new TestClass()
+			const instance2 = new TestClass()
+
+			expect(isNonReactive(instance1)).toBe(true)
+			expect(isNonReactive(instance2)).toBe(true)
+			expect(reactive(instance1)).toBe(instance1)
+			expect(reactive(instance2)).toBe(instance2)
+		})
+
+		it("should work with inheritance", () => {
+			class BaseClass {
+				baseProp = "base"
+			}
+
+			class DerivedClass extends BaseClass {
+				derivedProp = "derived"
+			}
+
+			markNonReactiveClass(BaseClass)
+
+			const baseInstance = new BaseClass()
+			const derivedInstance = new DerivedClass()
+
+			expect(isNonReactive(baseInstance)).toBe(true)
+			expect(isNonReactive(derivedInstance)).toBe(true) // Inherits non-reactive status
+		})
+
+		it("should not affect other classes", () => {
+			class NonReactiveClass {
+				prop = "non-reactive"
+			}
+
+			class ReactiveClass {
+				prop = "reactive"
+			}
+
+			markNonReactiveClass(NonReactiveClass)
+
+			const nonReactiveInstance = new NonReactiveClass()
+			const reactiveInstance = new ReactiveClass()
+
+			expect(isNonReactive(nonReactiveInstance)).toBe(true)
+			expect(isNonReactive(reactiveInstance)).toBe(false)
+
+			const reactiveReactiveInstance = reactive(reactiveInstance)
+			expect(isReactive(reactiveReactiveInstance)).toBe(true)
+		})
+	})
+
+	describe("NonReactive symbol (internal)", () => {
+		it("should mark objects with symbol as non-reactive", () => {
+			const obj: any = { count: 0 }
+			// Since we can't access the internal symbol, test the behavior indirectly
+			// by using the public markNonReactive function
+			markNonReactive(obj)
+
+			expect(isNonReactive(obj)).toBe(true)
+			expect(reactive(obj)).toBe(obj)
+			expect(isReactive(obj)).toBe(false)
+		})
+
+		it("should work with the Reactive mixin", () => {
+			class TestClass {
+				count = 0
+			}
+
+			// Mark the class as non-reactive using the public API
+			markNonReactiveClass(TestClass)
+
+			const ReactiveTestClass = Reactive(TestClass)
+			const instance = new ReactiveTestClass()
+
+			expect(isNonReactive(instance)).toBe(true)
+			expect(isReactive(instance)).toBe(false)
+		})
+	})
+
+	describe("native objects", () => {
+		it("should not make Date objects reactive", () => {
+			const date = new Date()
+			expect(reactive(date)).toBe(date)
+			expect(isReactive(date)).toBe(false)
+		})
+
+		it("should not make RegExp objects reactive", () => {
+			const regex = /test/
+			expect(reactive(regex)).toBe(regex)
+			expect(isReactive(regex)).toBe(false)
+		})
+
+		it("should not make Error objects reactive", () => {
+			const error = new Error("test")
+			expect(reactive(error)).toBe(error)
+			expect(isReactive(error)).toBe(false)
+		})
+
+		it("should not make Map objects reactive", () => {
+			const map = new Map([["key", "value"]])
+			expect(reactive(map)).toBe(map)
+			expect(isReactive(map)).toBe(false)
+		})
+
+		it("should not make Set objects reactive", () => {
+			const set = new Set([1, 2, 3])
+			expect(reactive(set)).toBe(set)
+			expect(isReactive(set)).toBe(false)
+		})
+
+		it("should not make WeakMap objects reactive", () => {
+			const weakMap = new WeakMap()
+			expect(reactive(weakMap)).toBe(weakMap)
+			expect(isReactive(weakMap)).toBe(false)
+		})
+
+		it("should not make WeakSet objects reactive", () => {
+			const weakSet = new WeakSet()
+			expect(reactive(weakSet)).toBe(weakSet)
+			expect(isReactive(weakSet)).toBe(false)
+		})
+	})
+
+	describe("integration with existing reactive system", () => {
+		it("should work with effects on non-reactive objects", () => {
+			const obj = { count: 0 }
+			markNonReactive(obj)
+
+			let effectCount = 0
+			effect(() => {
+				effectCount++
+				obj.count // Accessing non-reactive object
+			})
+
+			expect(effectCount).toBe(1)
+
+			obj.count = 5
+			expect(effectCount).toBe(1) // Should not trigger effect
+		})
+
+		it("should allow mixing reactive and non-reactive objects", () => {
+			const reactiveObj = reactive({ count: 0 })
+			const nonReactiveObj = { name: "test" }
+			markNonReactive(nonReactiveObj)
+
+			let effectCount = 0
+			effect(() => {
+				effectCount++
+				reactiveObj.count
+				nonReactiveObj.name
+			})
+
+			expect(effectCount).toBe(1)
+
+			reactiveObj.count = 5
+			expect(effectCount).toBe(2) // Should trigger effect
+
+			nonReactiveObj.name = "new name"
+			expect(effectCount).toBe(2) // Should not trigger effect
+		})
+
+		it("should work with the Reactive mixin and non-reactive classes", () => {
+			class NonReactiveClass {
+				count = 0
+			}
+
+			markNonReactiveClass(NonReactiveClass)
+
+			const ReactiveNonReactiveClass = Reactive(NonReactiveClass)
+			const instance = new ReactiveNonReactiveClass()
+
+			expect(isNonReactive(instance)).toBe(true)
+			expect(isReactive(instance)).toBe(false)
+
+			let effectCount = 0
+			effect(() => {
+				effectCount++
+				instance.count
+			})
+
+			expect(effectCount).toBe(1)
+
+			instance.count = 5
+			expect(effectCount).toBe(1) // Should not trigger effect since it's non-reactive
+		})
 	})
 })

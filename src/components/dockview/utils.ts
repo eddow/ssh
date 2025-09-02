@@ -1,5 +1,5 @@
 import type { AddPanelOptions, GroupPanelPartInitParameters, IContentRenderer } from "dockview-core"
-import { type Component, getAllContexts, mount, type Snippet } from "svelte"
+import { type Component, mount, type Snippet } from "svelte"
 import { writable } from "svelte/store"
 
 export interface IDockviewContext {
@@ -8,12 +8,12 @@ export interface IDockviewContext {
 	showUniqueDock: (
 		part: string,
 		params: Record<string, any>,
-		options: (Partial<AddPanelOptions> & { id: string }) | string
+		options: (Partial<AddPanelOptions> & { id: string }) | string,
 	) => void
 	toggleUniqueDock: (
 		part: string,
 		params: Record<string, any>,
-		options: (Partial<AddPanelOptions> & { id: string }) | string
+		options: (Partial<AddPanelOptions> & { id: string }) | string,
 	) => void
 }
 abstract class AbstractRenderer implements IContentRenderer {
@@ -42,7 +42,7 @@ export class ContentRenderer<Parameters extends Record<string, any>> extends Abs
 		mount(this.renderer, {
 			target: this.element,
 			props: { size: this.size, ...this.props, ...parameters.params },
-			context: this.context
+			context: this.context,
 		})
 	}
 

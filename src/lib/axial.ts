@@ -80,6 +80,26 @@ export function fromCartesian({ x, y }: WorldCoord, size: number) {
 	return { q, r }
 }
 
+/**
+ * Test if a world point is inside a hexagonal tile
+ * @param point - World coordinates to test
+ * @param coord - Axial coordinates of the tile
+ * @param size - Size of the hexagon (radius from center to corner)
+ * @returns true if the point is inside the hexagon
+ */
+export function pointInHex(point: WorldCoord, coord: AxialRef, size: number): boolean {
+	// Convert world point to axial coordinates
+	const pointAxial = fromCartesian(point, size)
+	
+	// Get the tile's axial coordinates
+	const { q, r } = axial.access(coord)
+	
+	// Check if the point is within the tile's bounds using axial distance
+	// A point is inside a hexagon if its distance from the center is <= 0.5
+	// (since size represents the radius from center to corner)
+	return axial.distance(pointAxial, { q, r }) <= 0.5
+}
+
 function lerp(a: number, b: number, t: number): number
 function lerp(a: WorldCoord, b: WorldCoord, t: number): WorldCoord
 function lerp(a: number | WorldCoord, b: number | WorldCoord, t: number): number | WorldCoord {

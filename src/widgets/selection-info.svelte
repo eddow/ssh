@@ -1,4 +1,5 @@
 <script lang="ts" module>
+	const game = play('oh yeah')
 	export function title(params: Record<string, any>) {
 		return `Tile`
 	}
@@ -7,10 +8,8 @@
 <script lang="ts">
 	import { Button } from 'flowbite-svelte'
 	import { EyeOutline } from 'flowbite-svelte-icons'
-	import type { InteractiveGameObject } from '$lib/game/object'
 	import { play } from '$lib/globals.svelte'
 	import { HexTile } from '$lib/game'
-	const game = play('oh yeah')
 	let { uid }: { uid: string } = $props()
 	let object = $derived(game.getObject(uid))
 

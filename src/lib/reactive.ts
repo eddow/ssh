@@ -4,7 +4,7 @@ export type UnwatchFunction = () => void
 // Stack of active effects to handle nested effects
 let activeEffect: EffectFunction | undefined
 // Track effects per reactive object and property
-const watchers = new WeakMap<object, Map<PropertyKey, Set<EffectFunction>>>()
+const watchers = new WeakMap<object, Map<any, Set<EffectFunction>>>()
 // Track which effects are watching which reactive objects for cleanup
 const effectToReactiveObjects = new Map<EffectFunction, Set<object>>()
 // Track currently executing effects to prevent re-execution
@@ -13,6 +13,12 @@ const plannedEffects = new Set<EffectFunction>()
 // Track object -> proxy and proxy -> object relationships
 const objectToProxy = new WeakMap<object, object>()
 const proxyToObject = new WeakMap<object, object>()
+
+// Track objects that should never be reactive
+const nonReactiveObjects = new WeakSet<object>()
+
+// Symbol to mark individual objects as non-reactive
+const NonReactive = Symbol("non-reactive")
 
 export class ReactiveError extends Error {
 	constructor(message: string) {
@@ -54,6 +60,59 @@ export const options = {
 	instanceMembers: true,
 } as const
 
+/**
+ * Mark an object as non-reactive. This object and all its properties will never be made reactive.
+ * @param obj - The object to mark as non-reactive
+ */
+export function markNonReactive(...obj: object[]): void {
+	for (const o of obj) nonReactiveObjects.add(o)
+}
+
+/**
+ * Mark a class as non-reactive. All instances of this class will automatically be non-reactive.
+ * @param cls - The class constructor to mark as non-reactive
+ */
+export function markNonReactiveClass<T extends (new (...args: any[]) => any)[]>(...cls: T) {
+	for (const c of cls) if (c) (c.prototype as any)[NonReactive] = true
+}
+
+/**
+ * Check if an object is marked as non-reactive (for testing purposes)
+ * @param obj - The object to check
+ * @returns true if the object is marked as non-reactive
+ */
+export function isNonReactive(obj: any): boolean {
+	// Don't make primitives reactive
+	if (obj === null || obj === undefined) return true
+	if (typeof obj !== "object") return true
+
+	// Don't make functions reactive
+	if (typeof obj === "function") return true
+
+	// Check if the object itself is marked as non-reactive
+	if (nonReactiveObjects.has(obj)) return true
+
+	// Check if the object has the non-reactive symbol
+	if (obj[NonReactive]) return true
+
+	return false
+}
+
+function dependant(obj: any, prop: any) {
+	if (activeEffect) {
+		const objectWatchers = watchers.get(obj) || new Map<PropertyKey, Set<EffectFunction>>()
+		const deps = objectWatchers.get(prop) || new Set<EffectFunction>()
+		deps.add(activeEffect)
+		objectWatchers.set(prop, deps)
+		watchers.set(obj, objectWatchers)
+
+		// Track which reactive objects this effect is watching
+		const effectObjects = effectToReactiveObjects.get(activeEffect) || new Set<object>()
+		effectObjects.add(obj)
+		effectToReactiveObjects.set(activeEffect, effectObjects)
+	}
+}
+
 function hasEffect(effect: EffectFunction) {
 	plannedEffects.add(effect)
 	let effectCount = 0
@@ -73,75 +132,68 @@ function hasEffect(effect: EffectFunction) {
 	} else options?.chain(activeEffect, effect)
 }
 
+function touched(obj: any, prop: any) {
+	const objectWatchers = watchers.get(obj)
+	if (objectWatchers) {
+		const deps = objectWatchers.get(prop)
+		if (deps) {
+			const theseDeps = Array.from(deps)
+			for (const effect of theseDeps) hasEffect(effect)
+		}
+	}
+}
+
 const reactiveHandlers = {
 	get(obj: any, prop: PropertyKey, receiver: any) {
-		function get() {
-			if(!(prop in obj)) return undefined
-			let browser = obj, pD = Object.getOwnPropertyDescriptor(browser, prop)
-			while(!pD && pD !== Object.prototype) {
-				browser = Object.getPrototypeOf(browser)
-				pD = Object.getOwnPropertyDescriptor(browser, prop)
-			}
-			return pD.get ? pD.get.call(receiver) : obj[prop]
-		}
 		// Only track own properties, not inherited methods or properties
-		if (!options.instanceMembers || Object.hasOwn(obj, prop)) {
-			if (activeEffect) {
-				const objectWatchers = watchers.get(receiver) || new Map<PropertyKey, Set<EffectFunction>>()
-				const deps = objectWatchers.get(prop) || new Set<EffectFunction>()
-				deps.add(activeEffect)
-				objectWatchers.set(prop, deps)
-				watchers.set(receiver, objectWatchers)
-
-				// Track which reactive objects this effect is watching
-				const effectObjects = effectToReactiveObjects.get(activeEffect) || new Set<object>()
-				effectObjects.add(receiver)
-				effectToReactiveObjects.set(activeEffect, effectObjects)
-			}
-			return reactive(get())
+		if (!options.instanceMembers || Object.hasOwn(obj, prop))
+			dependant(receiver, prop)
+		if (!(prop in obj)) return undefined
+		let browser = obj
+		let pD = Object.getOwnPropertyDescriptor(browser, prop)
+		while (!pD && pD !== Object.prototype) {
+			browser = Object.getPrototypeOf(browser)
+			pD = Object.getOwnPropertyDescriptor(browser, prop)
 		}
-		return get()
+		return reactive(pD.get ? pD.get.call(receiver) : obj[prop])
 	},
 	set(obj: any, prop: PropertyKey, value: any, receiver: any): boolean {
 		const oldVal = (obj as any)[prop]
-		;(obj as any)[prop] = reactive(value)
-		if (oldVal !== value) {
-			const objectWatchers = watchers.get(receiver)
-			if (objectWatchers) {
-				const deps = objectWatchers.get(prop)
-				if (deps) {
-					const theseDeps = Array.from(deps)
-					for (const effect of theseDeps) hasEffect(effect)
-				}
+		const newValue = reactive(value)
+
+		function set() {
+			if (!(prop in obj)) return false
+			let browser = obj
+			let pD = Object.getOwnPropertyDescriptor(browser, prop)
+			while (!pD && browser !== Object.prototype) {
+				browser = Object.getPrototypeOf(browser)
+				pD = Object.getOwnPropertyDescriptor(browser, prop)
 			}
+			if (!pD?.set) return false
+			pD.set.call(receiver, newValue)
+			return true
 		}
+
+		if (!set()) (obj as any)[prop] = newValue
+		if (oldVal !== newValue) touched(receiver, prop)
 		return true
 	},
 }
 
 export function reactive<T extends Record<PropertyKey, any>>(target: T): T {
 	// If target is already a proxy, return it
-	if (proxyToObject.has(target)) {
-		return target as T
-	}
+	if (proxyToObject.has(target) || isNonReactive(target)) return target as T
 
 	// If we already have a proxy for this object, return it
-	if (objectToProxy.has(target)) {
-		return objectToProxy.get(target) as T
-	}
+	if (objectToProxy.has(target)) return objectToProxy.get(target) as T
 
-	// Don't make reactive objects from already reactive ones
-	if (target && typeof target === "object" && !Array.isArray(target)) {
-		const proxy = new Proxy(target, reactiveHandlers)
+	const proxy = new Proxy(target, reactiveHandlers)
 
-		// Store the relationships
-		objectToProxy.set(target, proxy)
-		proxyToObject.set(proxy, target)
+	// Store the relationships
+	objectToProxy.set(target, proxy)
+	proxyToObject.set(proxy, target)
 
-		return proxy as T
-	}
-
-	return target
+	return proxy as T
 }
 
 export function unwrap<T>(proxy: T): T {
@@ -247,3 +299,9 @@ export const Reactive = <Base extends new (...args: any[]) => any>(Base: Base = 
 			return reactive(this)
 		}
 	}
+
+markNonReactiveClass(Array, Date, RegExp, Error, Map, Set, WeakMap, WeakSet, Promise, Function)
+if (typeof window !== "undefined") markNonReactive(window, document)
+if (typeof Element !== "undefined") markNonReactiveClass(Element, Node)
+
+// TODO: ReactiveArray, ReactiveMap, ...
