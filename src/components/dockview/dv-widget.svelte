@@ -1,9 +1,9 @@
 <script lang="ts" generics="Parameters extends {} = {}">
-	import { getContext, type Snippet } from 'svelte'
-	import { dvContext, type IDockviewContext } from './utils'
+	import { type Snippet } from 'svelte'
+	import { getDockviewContext } from './dockview.svelte'
 
 	const { name, children }: { name: string; children?: Snippet<[Record<string, any>]> } = $props()
-	const ctx = getContext<IDockviewContext>(dvContext)
+	const ctx = getDockviewContext()
 	if (!ctx) throw new Error('DockView: DvComponent must be used inside DockView')
 	console.assert(!!children, 'DockView: DvComponent registers no children')
 	if (children) ctx.registerComponent(name, children)

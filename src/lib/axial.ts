@@ -296,5 +296,5 @@ const neighborIndexes: (AxialDirection | undefined)[] = [
 	undefined, // q+1 r+1
 ]
 
-// @ts-expect-error - this is only for debug purpose anyway
+//@ts-expect-error - this is only for debug purpose anyway
 if (typeof window !== "undefined") window.axial = axial

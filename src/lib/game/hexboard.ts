@@ -1,12 +1,12 @@
-import type Phaser from "phaser"
 import type Board from "phaser3-rex-plugins/plugins/board/board/LogicBoard"
 import type { TileXYType, WorldXYType } from "phaser3-rex-plugins/plugins/board/types/Position"
-import EventEmitter from "phaser3-rex-plugins/plugins/utils/eventemitter/EventEmitter"
+import { resources } from "$assets/game-content"
 import { Eventful } from "$lib/events"
-import { type AxialCoord, type AxialRef, axial } from "../axial"
+import { InteractiveGameObject, renderEffect } from "$lib/game/object"
+import { type Axial, type AxialCoord, type AxialRef, axial, type WorldCoord } from "../axial"
 import { AxialKeyMap } from "../mem"
 import { LCG, type RandGenerator } from "../numbers"
-import type { LevelScene } from "./game"
+import type { Game, LevelScene } from "./game"
 
 export enum TerrainType {
 	WATER = "water",
@@ -15,10 +15,59 @@ export enum TerrainType {
 	ROCKY = "rocky",
 }
 
-export interface HexTile {
-	terrain: TerrainType
-	textureOffset: { x: number; y: number }
+function prototyped<T extends object, U extends object>(object: T, prototype: U): T & U {
+	return Object.setPrototypeOf(object, prototype)
+}
+export class HexTile extends InteractiveGameObject {
+	constructor(public readonly hex: HexBoard) {
+		super(hex.game)
+	}
+	highlight(highlighted: boolean) {}
+	get worldPosition(): WorldCoord {
+		return this.hex.axial2world(this.coord)
+	}
+	get uid(): string {
+		return `tile.${axial.access(this.coord).key}`
+	}
+	render(scene: Phaser.Scene) {
+		const { coord, terrain, textureOffset } = this
+		const { hex } = this
+		// Get hexagonal tile points
+		const gridPoints = hex.board.getGridPoints(cubic2offset(coord), true)
 
+		// Create hexagonal tile filled with texture
+		const textureKey = `terrain-${terrain}`
+		const worldXY = hex.axial2world(coord)
+
+		// Create a regular image that will be masked to hexagon shape
+		const texture = scene.add.image(0, 0, textureKey)
+		texture.setOrigin(0.5)
+
+		// Create a mask in the shape of the hexagon
+		const maskGraphics = scene.add.graphics()
+		maskGraphics.fillPoints(gridPoints, true, true)
+		const mask = maskGraphics.createGeometryMask()
+		texture.setMask(mask)
+
+		// Apply texture offset by adjusting the texture position
+		const offsetX = textureOffset.x * 50 // Adjust scale as needed
+		const offsetY = textureOffset.y * 50
+		texture.setPosition(worldXY.x + offsetX, worldXY.y + offsetY)
+		return texture
+	}
+	root(props: {
+		terrain: TerrainType
+		textureOffset: { x: number; y: number }
+		squares: number
+		coord: AxialCoord
+	}): HexTile {
+		return prototyped(props, this)
+	}
+	declare terrain: TerrainType
+	declare textureOffset: { x: number; y: number }
+	declare squares: number
+	declare deposit?: Ssh.Deposit
+	declare coord: AxialCoord
 	// Future properties can be added here like elevation, resources, etc.
 }
 const stagger = {
@@ -27,13 +76,13 @@ const stagger = {
 } as const
 
 export function preloadTerrains(scene: LevelScene) {
-	scene.load.image("terrain-water", "assets/terrain/water.jpg")
-	scene.load.image("terrain-grass", "assets/terrain/grass.jpg")
-	scene.load.image("terrain-forest", "assets/terrain/forest.jpg")
-	scene.load.image("terrain-rocky", "assets/terrain/stone.jpg")
-	scene.load.atlas("objects", "assets/objects/bushes.png", "assets/objects/bushes.json")
-	scene.load.atlas("objects", "assets/objects/trees.png", "assets/objects/trees.json")
-	scene.load.atlas("objects", "assets/objects/rocks.png", "assets/objects/rocks.json")
+	for (const [name, spec] of Object.entries(resources)) {
+		if (spec.atlas) {
+			scene.load.atlas(name, spec.file, spec.atlas)
+		} else {
+			scene.load.image(name, spec.file)
+		}
+	}
 }
 
 export function cubic2offset(coord: AxialRef): TileXYType {
@@ -61,8 +110,9 @@ export class HexBoard extends Eventful<{
 }> {
 	private tiles: AxialKeyMap<HexTile>
 	private size: number
-	private board: Board
-	private randomGenerator: RandGenerator
+	public board: Board
+	private rnd: RandGenerator
+	private rootTile: HexTile
 
 	axial2world(coord: AxialRef) {
 		const { x, y } = cubic2offset(coord)
@@ -72,11 +122,12 @@ export class HexBoard extends Eventful<{
 		const { x, y } = world
 		return offset2cubic({ x, y })
 	}
-	constructor(scene: LevelScene, size: number = 6) {
+	constructor(public game: Game, scene: LevelScene, size: number = 12) {
 		super()
+		this.rootTile = new HexTile(this)
 		this.size = size
 		this.tiles = new AxialKeyMap()
-		this.randomGenerator = LCG("hexboard-seed") // Use a constant seed for reproducibility
+		this.rnd = LCG("hexboard-seed") // Use a constant seed for reproducibility
 		this.generateBoard()
 
 		const tileForward = (event: string) => {
@@ -101,48 +152,28 @@ export class HexBoard extends Eventful<{
 			.on("tileup", tileForward("tileUp"))
 			.on("tileover", tileForward("tileOver"))
 			.on("tileout", tileForward("tileOut"))
-			.on("gameobjectdown", (_pointer: any, _gameObject: any) => {
-				debugger
-			})
-		for (const coord of this.tiles.coords()) {
-			const tile = this.tiles.get(coord)!
-
-			// Get hexagonal tile points
-			const gridPoints = this.board.getGridPoints(cubic2offset(coord), true)
-
-			// Create hexagonal tile filled with texture
-			const textureKey = `terrain-${tile.terrain}`
-			const worldXY = this.axial2world(coord)
-
-			// Create a regular image that will be masked to hexagon shape
-			const texture = scene.add.image(worldXY.x, worldXY.y, textureKey)
-			texture.setOrigin(0.5)
-
-			// Create a mask in the shape of the hexagon
-			const maskGraphics = scene.add.graphics()
-			maskGraphics.fillPoints(gridPoints, true, true)
-			const mask = maskGraphics.createGeometryMask()
-			texture.setMask(mask)
-
-			// Apply texture offset by adjusting the texture position
-			const offsetX = tile.textureOffset.x * 50 // Adjust scale as needed
-			const offsetY = tile.textureOffset.y * 50
-			texture.setPosition(worldXY.x + offsetX, worldXY.y + offsetY)
-		}
+		for (const tile of this.tiles.values())
+			tile.addToScene(scene)
 	}
 
 	private generateBoard(): void {
+		const { rnd } = this
 		// Generate all tiles within the board radius
 		for (const coord of axial.enum(this.size - 1)) {
 			const terrain = this.generateRandomTerrain(coord)
 			const textureOffset = {
-				x: this.randomGenerator(),
-				y: this.randomGenerator(),
+				x: rnd(),
+				y: rnd(),
 			}
-			this.tiles.set(coord, {
-				terrain,
-				textureOffset,
-			})
+			this.tiles.set(
+				coord,
+				this.rootTile.root({
+					terrain,
+					textureOffset,
+					squares: Math.floor(rnd(2)),
+					coord,
+				}),
+			)
 		}
 	}
 
@@ -152,7 +183,7 @@ export class HexBoard extends Eventful<{
 		const angle = Math.atan2(coord.r, coord.q)
 
 		// Use the reproducible random generator for consistent randomness
-		const random = this.randomGenerator()
+		const random = this.rnd()
 
 		// Adjust probabilities based on distance from center
 		let waterChance = 0.15
@@ -215,10 +246,10 @@ export class HexBoard extends Eventful<{
 		return this.tiles.size
 	}
 
-	*getAllTiles(): Iterable<[{ q: number; r: number }, HexTile]> {
+	*getAllTiles(): Iterable<[Axial, HexTile]> {
 		for (const [key, tile] of this.tiles) {
 			const coord = axial.keyAccess(key)
-			yield [{ q: coord.q, r: coord.r }, tile]
+			yield [coord, tile]
 		}
 	}
 
@@ -232,5 +263,20 @@ export class HexBoard extends Eventful<{
 	isWithinBounds(coord: AxialRef): boolean {
 		const { q, r } = axial.coord(coord)
 		return axial.distance({ q, r }) < this.size
+	}
+
+	// Draw squares on tiles that have them
+	drawSquares(scene: LevelScene): void {
+		for (const [coord, tile] of this.getAllTiles()) {
+			renderEffect(
+				() => !!tile.squares && scene.add.graphics(),
+				(graphics) => {
+					const worldPos = this.axial2world(coord)
+					graphics.clear()
+					graphics.fillStyle(0x00ff00, 0.8) // Green with some transparency
+					graphics.fillRect(worldPos.x - 5, worldPos.y - 5, 10, 10)
+				},
+			)
+		}
 	}
 }

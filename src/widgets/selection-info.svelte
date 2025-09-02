@@ -1,20 +1,30 @@
 <script lang="ts" module>
 	export function title(params: Record<string, any>) {
-		return `Tile ${params.tile.q},${params.tile.r}`
+		return `Tile`
 	}
 </script>
 
 <script lang="ts">
 	import { Button } from 'flowbite-svelte'
 	import { EyeOutline } from 'flowbite-svelte-icons'
+	import type { InteractiveGameObject } from '$lib/game/object'
+	import { play } from '$lib/globals.svelte'
+	import { HexTile } from '$lib/game'
+	const game = play('oh yeah')
+	let { uid }: { uid: string } = $props()
+	let object = $derived(game.getObject(uid))
 
-	//let tile = $derived(land.tile(hKey))
-	const terrainTypeName = 'tile'
 	function goTo() {}
 </script>
 
 <div class="tile-info">
-	<h1>{terrainTypeName}</h1>
+	{#if object instanceof HexTile}
+		<h1>{object.worldPosition}</h1>
+		<h3>{object.terrain}</h3>
+		{object.squares}
+	{:else}
+		<error>Unknown object</error>
+	{/if}
 	<Button onclick={goTo}>
 		<EyeOutline class="w-6 h-6" />
 	</Button>

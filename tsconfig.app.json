@@ -18,8 +18,9 @@
     "moduleDetection": "force",
     "paths": {
       "$lib/*": ["./src/lib/*"],
-      "$components/*": ["./src/components/*"]
+      "$components/*": ["./src/components/*"],
+      "$assets/*": ["./assets/*"]
     }
   },
-  "include": ["src/**/*.ts", "src/**/*.js", "src/**/*.svelte"]
+  "include": ["src/**/*.ts", "src/**/*.js", "src/**/*.svelte", "assets/game-content.ts"]
 }

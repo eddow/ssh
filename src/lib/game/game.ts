@@ -1,15 +1,19 @@
 import Phaser from "phaser"
 import type { TileXYType } from "phaser3-rex-plugins/plugins/board/types/Position"
 import RexBoardPlugin from "phaser3-rex-plugins/plugins/board-plugin.js"
-import type { AxialCoord } from "$lib/axial"
 import { HexBoard, preloadTerrains } from "./hexboard"
+import { getInteractiveObject, type InteractiveGameObject } from "./object"
+import { Eventful } from "$lib/events"
 
+const hexGames = new WeakMap<Phaser.Game, Game>()
+export function hexGame(game: Phaser.Game) {
+	return hexGames.get(game)!
+}
 export class LevelScene extends Phaser.Scene {
 	declare rexBoard: RexBoardPlugin
 	// null! to raise an exception if used before creation
-	board: HexBoard = null!
+	hex: HexBoard = null!
 	tiles: TileXYType[] = null!
-
 	// Panning properties
 	private isPanning = false
 	private panStartPosition = { x: 0, y: 0 }
@@ -24,17 +28,21 @@ export class LevelScene extends Phaser.Scene {
 		preloadTerrains(this)
 	}
 	create() {
-		this.board = new HexBoard(this)
+		this.hex = new HexBoard(hexGames.get(this.game)!, this)
+
+		// Draw squares on tiles that have them
+		this.hex.drawSquares(this)
 
 		// Setup mouse input for zoom and pan
 		this.setupMouseInput()
 		this.cameras.main.centerOn(0, 0)
-		this.game.events.emit("sceneReady")
 	}
 
 	private setupMouseInput() {
+		const Events = Phaser.Input.Events
+		const game = hexGames.get(this.game)!
 		// Middle mouse button for panning
-		this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
+		this.input.on(Events.POINTER_DOWN, (pointer: Phaser.Input.Pointer) => {
 			if (pointer.middleButtonDown()) {
 				this.isPanning = true
 				this.panStartPosition.x = pointer.x
@@ -45,7 +53,18 @@ export class LevelScene extends Phaser.Scene {
 			}
 		})
 
-		this.input.on("pointerup", (pointer: Phaser.Input.Pointer) => {
+		for(const [pEvt, cEvt] of [
+			[Events.GAMEOBJECT_OVER, "objectOver"],
+			[Events.GAMEOBJECT_OUT, "objectOut"],
+			[Events.GAMEOBJECT_DOWN, "objectDown"],
+			[Events.GAMEOBJECT_UP, "objectUp"],
+		] as const)
+			this.input.on(pEvt, (pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.GameObject, event: Phaser.Input.EventData) => {
+				const interactiveObject = getInteractiveObject(gameObject)
+				if(interactiveObject) game.emit(cEvt, pointer, interactiveObject, event.stopPropagation)
+			})
+
+		this.input.on(Events.POINTER_UP, (pointer: Phaser.Input.Pointer) => {
 			if (pointer.middleButtonReleased()) {
 				this.isPanning = false
 				this.input.setDefaultCursor("default")
@@ -54,7 +73,7 @@ export class LevelScene extends Phaser.Scene {
 
 		// Mouse wheel for zooming centered on pointer
 		this.input.on(
-			"wheel",
+			Events.POINTER_WHEEL,
 			(
 				_pointer: Phaser.Input.Pointer,
 				_gameObjects: any[],
@@ -97,15 +116,29 @@ export class LevelScene extends Phaser.Scene {
 	}
 }
 
-export class Game {
+export type GameEvents = {
+	objectOver(pointer: Phaser.Input.Pointer, object: InteractiveGameObject, stopPropagation: () => void): void
+	objectOut(pointer: Phaser.Input.Pointer, object: InteractiveGameObject, stopPropagation: () => void): void
+	objectDown(pointer: Phaser.Input.Pointer, object: InteractiveGameObject, stopPropagation: () => void): void
+	objectUp(pointer: Phaser.Input.Pointer, object: InteractiveGameObject, stopPropagation: () => void): void
+	objectClick(pointer: Phaser.Input.Pointer, object: InteractiveGameObject, stopPropagation: () => void): void
+}
+
+export class Game extends Eventful<GameEvents> {
 	public phaser: Phaser.Game
+
+	private objects = new Map<string, InteractiveGameObject>()
+	getObject(uid: string) {
+		return this.objects.get(uid)
+	}
 	get ground() {
 		return this.phaser.scene.getScene("GroundScene") as LevelScene
 	}
-	get board() {
-		return this.ground.board
+	get hex() {
+		return this.ground.hex
 	}
 	constructor() {
+		super()
 		this.phaser = new Phaser.Game({
 			type: Phaser.AUTO,
 			width: 800,
@@ -115,6 +148,7 @@ export class Game {
 				scene: [{ key: "rexboardPlugin", plugin: RexBoardPlugin, mapping: "rexBoard" }],
 			},
 		})
+		hexGames.set(this.phaser, this)
 	}
 	get camera() {
 		return this.ground.cameras.main

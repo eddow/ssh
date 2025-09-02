@@ -18,7 +18,7 @@ export class Eventful<Events extends Record<string, (...args: any[]) => void>> {
 			}
 			callbacks.push(cb)
 		}
-		// @ts-expect-error Generic case leads to generic case
+		//@ts-expect-error Generic case leads to generic case
 		return () => this.off(eventOrEvents, cb)
 	}
 	public off(events: Partial<Events>): void

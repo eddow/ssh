@@ -1,10 +1,20 @@
-import type { GroupPanelPartInitParameters, IContentRenderer } from "dockview-core"
-import { type Component, mount, type Snippet } from "svelte"
-import { type Writable, writable } from "svelte/store"
+import type { AddPanelOptions, GroupPanelPartInitParameters, IContentRenderer } from "dockview-core"
+import { type Component, getAllContexts, mount, type Snippet } from "svelte"
+import { writable } from "svelte/store"
 
-export const dvContext: unique symbol = Symbol("Dockview dvContext")
 export interface IDockviewContext {
-	registerComponent(name: string, snippet: Snippet<[Record<string, any>]>): Component
+	registerComponent(name: string, snippet: Snippet<[Record<string, any>]>): void
+	addDock: (part: string, params: Record<string, any>, options: Partial<AddPanelOptions>) => void
+	showUniqueDock: (
+		part: string,
+		params: Record<string, any>,
+		options: (Partial<AddPanelOptions> & { id: string }) | string
+	) => void
+	toggleUniqueDock: (
+		part: string,
+		params: Record<string, any>,
+		options: (Partial<AddPanelOptions> & { id: string }) | string
+	) => void
 }
 abstract class AbstractRenderer implements IContentRenderer {
 	readonly element: HTMLElement
@@ -21,7 +31,8 @@ export class ContentRenderer<Parameters extends Record<string, any>> extends Abs
 	constructor(
 		id: string,
 		public readonly renderer: Component<Parameters>,
-		private readonly props: Partial<Parameters> = {},
+		private readonly props: Partial<Parameters>,
+		private readonly context: Map<string, any>,
 	) {
 		super(`iad-${id}`)
 	}
@@ -31,6 +42,7 @@ export class ContentRenderer<Parameters extends Record<string, any>> extends Abs
 		mount(this.renderer, {
 			target: this.element,
 			props: { size: this.size, ...this.props, ...parameters.params },
+			context: this.context
 		})
 	}
 

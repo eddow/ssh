@@ -1,5 +1,4 @@
-//import { createGame } from '$lib/hexClash/game'
-import type { DockviewApi } from "dockview-core"
+import { Game } from "./game"
 
 export interface IConfiguration {
 	darkMode?: boolean
@@ -14,3 +13,9 @@ export const configuration = $state(
 			},
 )
 export const debugInfo = $state({} as Record<string, any>)
+
+const uniqueGame = new Game()
+
+export function play(game: string) {
+	return uniqueGame
+}

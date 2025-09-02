@@ -1,4 +1,4 @@
-import type { Component, Snippet } from "svelte"
+import type { Component } from "svelte"
 
 const widgetsSource = import.meta.glob("./widgets/**/*.svelte", { eager: true })
 /*[

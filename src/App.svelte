@@ -10,6 +10,7 @@
 	import { DockView } from './components/dockview'
 	import { configuration } from '$lib/globals.svelte'
 	import widgets from './widgets'
+	import type { InteractiveGameObject } from './lib/game/object'
 
 	$effect(() => {
 		if (configuration.darkMode) document.documentElement.classList.add('dark')
@@ -27,32 +28,36 @@
 
 	function showSystem(widget: 'configuration' | 'games' | 'debug') {
 		return () => {
-			const id = `system.${widget}`
-			let panel = api!.getPanel(id)
-			if (panel) {
-				if (panel.api.isActive) panel.api.close()
-				else panel.api.setActive()
-			} else {
-				const otherSystem = api!.panels.find((p) => p.id.startsWith('system.'))
-				panel = dockview!.addWidget(
-					widget,
-					{},
-					{
-						id,
-						...(otherSystem
-							? {
-									position: {
-										direction: 'within',
-										referencePanel: otherSystem
-									}
+			const otherSystem = api!.panels.find((p) => p.id.startsWith('system.'))
+			dockview!.toggleUniqueDock(
+				widget,
+				{},
+				{
+					id: `system.${widget}`,
+					...(otherSystem
+						? {
+								position: {
+									direction: 'within',
+									referencePanel: otherSystem
 								}
-							: { floating: true })
-					}
-				)
-			}
+							}
+						: { floating: true })
+				}
+			)
 		}
 	}
-	const layoutJson = location.host.startsWith('localhost') ? localStorage.getItem('layout') : null
+	function showProperties(object: InteractiveGameObject) {
+		dockview!.addDock(
+			'selection-info',
+			{ uid: object.uid },
+			{
+				position: {
+					direction: 'right'
+				}
+			}
+		)
+	}
+	const layoutJson = null // location.host.startsWith('localhost') ? localStorage.getItem('layout') : null
 	let dockview = $state<DockView | undefined>(undefined)
 	let api = $state<DockviewApi | undefined>(undefined)
 	onMount(() => {
@@ -74,19 +79,18 @@
 		}
 	}
 	function addGame() {
-		let panel = api!.getPanel('game')
-		if (panel) panel.api.setActive()
-		else
-			dockview!.addWidget(
-				'game',
-				{
-					game: 'GameX'
-				},
-				{
-					id: 'game'
+		dockview!.showUniqueDock(
+			'game',
+			{ game: 'GameX' },
+			{
+				id: 'game-view',
+				position: {
+					direction: 'within'
 				}
-			)
+			}
+		)
 	}
+	// todo: dockview template #toolbar -> injected API
 </script>
 
 <!-- Prevent default navigation behaviors associated to buttons 3 & 4 -->
