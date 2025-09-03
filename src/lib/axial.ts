@@ -37,10 +37,6 @@ export interface Triangular {
  */
 export type AxialDirection = null | 0 | 1 | 2 | 3 | 4 | 5
 
-export function cube({ q, r }: AxialCoord) {
-	return { q, r, s: -q - r }
-}
-
 export type Rotation = (c: AxialCoord) => AxialCoord
 
 /** Rotations for 0, 60, 120, 180, 240 and 300° */
@@ -90,10 +86,10 @@ export function fromCartesian({ x, y }: WorldCoord, size: number) {
 export function pointInHex(point: WorldCoord, coord: AxialRef, size: number): boolean {
 	// Convert world point to axial coordinates
 	const pointAxial = fromCartesian(point, size)
-	
+
 	// Get the tile's axial coordinates
 	const { q, r } = axial.access(coord)
-	
+
 	// Check if the point is within the tile's bounds using axial distance
 	// A point is inside a hexagon if its distance from the center is <= 0.5
 	// (since size represents the radius from center to corner)
@@ -207,8 +203,8 @@ export const axial = {
 		}
 	},
 
-	toString(aRef: AxialRef) {
-		const { q, r } = axial.coord(aRef)
+	toString(aRef: Axial) {
+		const { q, r } = axial.access(aRef)
 		return `<${q} ${r}>`
 	},
 

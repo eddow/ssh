@@ -57,7 +57,7 @@
 			}
 		)
 	}
-	const layoutJson = location.host.startsWith('localhost') ? localStorage.getItem('layout') : null
+	const layoutJson = null //location.host.startsWith('localhost') ? localStorage.getItem('layout') : null
 	let dockview = $state<DockView | undefined>(undefined)
 	let api = $state<DockviewApi | undefined>(undefined)
 	onMount(() => {

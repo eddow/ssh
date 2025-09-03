@@ -1,0 +1,15 @@
+layers:
+- board -> tiles
+- pop -> char, trees, goods, buildings
+
+hitTest/uid :
+- board -> tiles
+- characters
+- buildings
+
+logical
+- board -> tiles
+	-> deposit -> trees
+	-> building
+- characters
+- goods

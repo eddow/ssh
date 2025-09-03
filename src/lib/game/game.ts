@@ -1,28 +1,45 @@
+import { unreactive } from "mutts"
 import Phaser from "phaser"
+import * as gameContent from "$assets/game-content"
+import { resources } from "$assets/game-content"
 import { Eventful } from "$lib/events"
-import { HexBoard, preloadTerrains } from "./hexboard"
-import type { InteractiveGameObject } from "./object"
+import { HexBoard } from "./hexboard"
+import type { InteractiveGameObject, RenderableObject } from "./object"
+
+unreactive(gameContent)
 
 const hexGames = new WeakMap<Phaser.Game, Game>()
 export function hexGame(game: Phaser.Game) {
 	return hexGames.get(game)!
 }
+
+//@unreactive
 export class LevelScene extends Phaser.Scene {
 	// null! to raise an exception if used before creation
 	hex: HexBoard = null!
 
+	pop: Phaser.GameObjects.Layer = null!
+	board: Phaser.GameObjects.Layer = null!
 	constructor() {
 		super({ key: `GroundScene` })
 	}
 
 	preload() {
 		this.load.setBaseURL(window.location.origin)
-		preloadTerrains(this)
+		for (const [name, spec] of Object.entries(resources)) {
+			if (spec.atlas) {
+				this.load.atlas(name, spec.file, spec.atlas)
+			} else {
+				this.load.image(name, spec.file)
+			}
+		}
 	}
 	create() {
 		const game = hexGames.get(this.game)!
 		this.hex = new HexBoard(game)
 
+		this.pop = this.add.layer()
+		this.board = this.add.layer()
 		// Delegate input setup to Game and attach scene
 		game.attachScene(this)
 		game.setupInput(this)
@@ -37,6 +54,7 @@ export class LevelScene extends Phaser.Scene {
 	}
 }
 
+unreactive(LevelScene)
 export type GameEvents = {
 	objectOver(pointer: any, object: InteractiveGameObject, stopPropagation?: () => void): void
 	objectOut(pointer: any, object: InteractiveGameObject): void
@@ -53,9 +71,20 @@ export class Game extends Eventful<GameEvents> {
 	private panStartCamera = { x: 0, y: 0 }
 	private scene?: LevelScene
 
-	private objects = new Map<string, InteractiveGameObject>()
+	private readonly objects = new Map<string, InteractiveGameObject>()
+
 	getObject(uid: string) {
 		return this.objects.get(uid)
+	}
+	register(object: InteractiveGameObject): string {
+		if (this.scene) object.setScene(this.scene)
+		const uid = crypto.randomUUID()
+		this.objects.set(uid, object)
+		return uid
+	}
+	unregister(object: RenderableObject | InteractiveGameObject) {
+		this.objects.delete(object.uid)
+		object.destroy()
 	}
 	get ground() {
 		return this.scene ?? (this.phaser.scene.getScene("GroundScene") as LevelScene)
@@ -76,19 +105,9 @@ export class Game extends Eventful<GameEvents> {
 	get camera() {
 		return this.ground.cameras.main
 	}
-	public register(object: InteractiveGameObject) {
-		this.objects.set(object.uid, object)
-		if (this.scene) object.addToScene(this.scene)
-	}
-	public unregister(uidOrObject: string | InteractiveGameObject) {
-		const obj = typeof uidOrObject === "string" ? this.objects.get(uidOrObject) : uidOrObject
-		if (!obj) return
-		obj.remove()
-		this.objects.delete(obj.uid)
-	}
 	public attachScene(scene: LevelScene) {
 		this.scene = scene
-		for (const obj of this.objects.values()) obj.addToScene(scene)
+		for (const obj of this.objects.values()) obj.setScene(scene)
 	}
 	public detachScene() {
 		this.scene = undefined
@@ -107,14 +126,8 @@ export class Game extends Eventful<GameEvents> {
 			const p = camera.getWorldPoint(x, y)
 			return { x: p.x, y: p.y }
 		}
-		const objects = () => Array.from(this.objects.values())
 		const topmostInteractiveAt = (worldX: number, worldY: number) => {
-			const list = objects()
-			for (let i = list.length - 1; i >= 0; i--) {
-				const interactive = list[i]
-				const obj = interactive.getRenderedObject()
-				if (!obj || !(obj as any).visible || !(obj as any).active) continue
-
+			for (const interactive of this.objects.values()) {
 				// Use the object's own hitTest method
 				const hit = interactive.hitTest(worldX, worldY)
 				if (hit) return hit

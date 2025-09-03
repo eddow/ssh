@@ -1,5 +1,11 @@
-import { resources } from "$assets/game-content"
-import { ContainerClass, renderEffect, SelectableGameObject } from "$lib/game/object"
+import Diamond from "flat-diamond"
+import { effect } from "mutts"
+import {
+	GeneratorObject,
+	InteractiveGameObject,
+	RenderableContainer,
+	SelectableGameObject,
+} from "$lib/game/object"
 import {
 	type Axial,
 	type AxialCoord,
@@ -14,6 +20,9 @@ import { AxialKeyMap } from "../mem"
 import { LCG, type RandGenerator } from "../numbers"
 import type { Game, LevelScene } from "./game"
 
+export interface Deposit extends Ssh.DepositDefinition {
+	amount: number
+}
 export enum TerrainType {
 	WATER = "water",
 	GRASS = "grass",
@@ -21,11 +30,15 @@ export enum TerrainType {
 	ROCKY = "rocky",
 }
 
-function prototyped<T extends object, U extends object>(object: T, prototype: U): T & U {
-	return Object.setPrototypeOf(object, prototype)
-}
-export class HexTile extends SelectableGameObject {
-	constructor(public readonly hex: HexBoard) {
+export class HexTile extends Diamond(SelectableGameObject, GeneratorObject) {
+	constructor(
+		public readonly hex: HexBoard,
+		//declare deposit?: Ssh.Deposit
+		readonly coord: AxialCoord,
+
+		public terrain: TerrainType,
+		public squares: number,
+	) {
 		super(hex.game)
 	}
 
@@ -43,15 +56,10 @@ export class HexTile extends SelectableGameObject {
 	hitTest(worldX: number, worldY: number): SelectableGameObject | false {
 		return pointInHex({ x: worldX, y: worldY }, this.coord, this.hex.tileSize) && this
 	}
-
-	private maskGraphics?: Phaser.GameObjects.Graphics
 	get worldPosition(): WorldCoord {
 		return this.hex.axial2world(this.coord)
 	}
-	get uid(): string {
-		return `tile.${axial.access(this.coord).key}`
-	}
-	render(scene: Phaser.Scene) {
+	render(scene: LevelScene) {
 		const { terrain } = this
 		const { hex, worldPosition } = this
 		const { x: wpx, y: wpy } = worldPosition
@@ -78,50 +86,18 @@ export class HexTile extends SelectableGameObject {
 		const mask = maskGraphics.createGeometryMask()
 		tile.setMask(mask)
 		tile.on("destroy", () => {
-			this.maskGraphics?.destroy()
-			this.maskGraphics = undefined
+			maskGraphics.destroy()
 		})
-		return maskGraphics
+		return [tile]
 	}
-	root(props: {
-		terrain: TerrainType
-		squares: number
-		coord: AxialCoord
-	}): HexTile {
-		return prototyped(props, this)
-	}
-	declare terrain: TerrainType
-	declare squares: number
-	declare deposit?: Ssh.Deposit
-	declare coord: AxialCoord
-	// Future properties can be added here like elevation, resources, etc.
-}
-
-export function preloadTerrains(scene: LevelScene) {
-	for (const [name, spec] of Object.entries(resources)) {
-		if (spec.atlas) {
-			scene.load.atlas(name, spec.file, spec.atlas)
-		} else {
-			scene.load.image(name, spec.file)
-		}
+	manage(scene: LevelScene, [tile]: [Phaser.GameObjects.TileSprite]) {
+		scene.board.add(tile)
 	}
 }
 
-export class HexBoard extends ContainerClass {
+export class HexBoard extends Diamond(RenderableContainer, InteractiveGameObject) {
 	private tiles: AxialKeyMap<HexTile>
-	private size: number
 	private rnd: RandGenerator
-	private rootTile: HexTile
-	public readonly tileSize: number = 30
-	// TODO: check if uid and worldPosition are needed (they are not) and how to restructure
-	get uid(): string {
-		return "hexboard"
-	}
-
-	get worldPosition(): WorldCoord {
-		return { x: 0, y: 0 } // Board is centered at origin
-	}
-
 	axial2world(coord: AxialRef): WorldCoord {
 		return cartesian(coord, this.tileSize)
 	}
@@ -130,11 +106,10 @@ export class HexBoard extends ContainerClass {
 	}
 	constructor(
 		public game: Game,
-		size: number = 12,
+		public readonly boardSize: number = 12,
+		public readonly tileSize: number = 30,
 	) {
 		super(game)
-		this.rootTile = new HexTile(this)
-		this.size = size
 		this.tiles = new AxialKeyMap()
 		this.rnd = LCG("hexboard-seed") // Use a constant seed for reproducibility
 		this.generateBoard()
@@ -142,23 +117,21 @@ export class HexBoard extends ContainerClass {
 
 	hitTest(worldX: number, worldY: number): SelectableGameObject | false {
 		const coord = this.world2axial({ x: worldX, y: worldY })
-		if(axial.distance(coord, { q: 0, r: 0 }) > this.size) return false
+		if (axial.distance(coord, { q: 0, r: 0 }) > this.boardSize) return false
 		return this.getTile(coord) ?? false
 	}
 
 	private generateBoard(): void {
 		const { rnd } = this
 		// Generate all tiles within the board radius
-		for (const coord of axial.enum(this.size - 1)) {
+		for (const coord of axial.enum(this.boardSize - 1)) {
 			const terrain = this.generateRandomTerrain(coord)
-			const tile = this.rootTile.root({
-				terrain,
-				squares: Math.floor(rnd(2)),
-				coord,
-			})
+			const tile = new HexTile(this, coord, terrain, Math.floor(rnd(2)))
 			this.tiles.set(coord, tile)
 		}
+		this.add(...this.tiles.values())
 		// Register the board itself with the game, not individual tiles
+		// @ts-expect-error Diamond typing failure
 		this.game.register(this)
 	}
 
@@ -177,7 +150,7 @@ export class HexBoard extends ContainerClass {
 		let rockyChance = 0.15
 
 		// More water near edges
-		if (distance > this.size * 0.7) {
+		if (distance > this.boardSize * 0.7) {
 			waterChance += 0.2
 			grassChance -= 0.1
 			forestChance -= 0.05
@@ -224,7 +197,7 @@ export class HexBoard extends ContainerClass {
 	}
 
 	getSize(): number {
-		return this.size
+		return this.boardSize
 	}
 
 	getTileCount(): number {
@@ -247,31 +220,20 @@ export class HexBoard extends ContainerClass {
 	// Check if a coordinate is within the board bounds
 	isWithinBounds(coord: AxialRef): boolean {
 		const { q, r } = axial.coord(coord)
-		return axial.distance({ q, r }) < this.size
+		return axial.distance({ q, r }) < this.boardSize
 	}
-
-	/**
-	 * Render the hex board as a container with all tiles as children
-	 */
-	render(scene: Phaser.Scene): Phaser.GameObjects.Container {
-		// Create the main container
-		this.container = scene.add.container(0, 0)
-
-		// Render all tiles and add them to the container
-		for (const [_coord, tile] of this.getAllTiles()) {
-			const renderedTile = tile.render(scene)
-			this.container.add(renderedTile)
-		}
-
-		return this.container
+	tune(container: Phaser.GameObjects.Container) {
+		this.container = container
+		return super.tune(container)
 	}
 
 	// Draw squares on tiles that have them
 	drawSquares(scene: LevelScene): void {
 		for (const [coord, tile] of this.getAllTiles()) {
-			renderEffect(
+			effect(
 				() => !!tile.squares && scene.add.graphics(),
 				(graphics) => {
+					if (!graphics) return
 					const worldPos = this.axial2world(coord)
 					graphics.clear()
 					graphics.fillStyle(0x00ff00, 0.8) // Green with some transparency

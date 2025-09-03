@@ -1,73 +1,80 @@
-import type Phaser from "phaser"
-import type { WorldCoord } from "../axial"
-import { effect, Reactive, type UnwatchFunction } from "../reactive"
-import type { Game } from "./game"
+import Diamond from "flat-diamond"
+import { effect, Reactive, type ScopedCallback, unreactive } from "mutts"
+import Phaser from "phaser"
+import type { Game, LevelScene } from "./game"
 
-export function renderEffect<T extends Phaser.GameObjects.GameObject>(
-	render: () => T | undefined | false,
-	tune: (object: T) => void = () => {},
-) {
-	let rendered: T | undefined | false
-	const cleanup = effect(
-		() => {
-			if (rendered) {
-				rendered.destroy()
-				rendered = undefined
-			}
-			rendered = render()
-		},
-		() => effect(() => rendered && tune(rendered)),
-	)
-	return () => {
-		if (rendered) {
-			rendered.destroy()
-			rendered = undefined
-		}
-		cleanup()
-	}
-}
-
+unreactive(Phaser.GameObjects.GameObject)
 export type Positionable = Phaser.GameObjects.GameObject & {
 	setPosition(x: number, y: number): void
 }
-export abstract class RenderableObject<T extends Positionable = Positionable> extends Reactive() {
-	abstract readonly worldPosition: WorldCoord
-	abstract render(scene: Phaser.Scene): T
-	// POC
-	protected renderedObject?: T
-	tune(object: T) {
-		this.renderedObject = object
-		/*const { x, y } = this.worldPosition
-		object.setPosition(x, y)*/
-		object.on("destroy", () => {
-			this.remove()
-		})
-		return () => {
-			if (this.renderedObject === object) this.renderedObject = undefined
-		}
-	}
-	private renderCleanup?: UnwatchFunction
-	addToScene(scene: Phaser.Scene) {
-		this.renderCleanup = renderEffect(
+
+export abstract class RenderableObject extends Diamond(Reactive()) {
+	setScene(scene: LevelScene) {}
+	destroy() {}
+}
+
+export abstract class GeneratorObject<T extends Phaser.GameObjects.GameObject[]> extends Diamond(
+	RenderableObject,
+) {
+	private renderCleanup?: ScopedCallback
+	abstract render(scene: LevelScene): T
+	abstract manage(scene: LevelScene, objects: T): ScopedCallback
+	setScene(scene: LevelScene) {
+		this.renderCleanup?.()
+		this.renderCleanup = effect(
 			() => this.render(scene),
-			(o) => this.tune(o),
+			(objs) => {
+				this.manage(scene, objs)
+				return () => {
+					for (const obj of objs) obj.destroy()
+				}
+			},
 		)
+		super.setScene(scene)
 	}
-	remove() {
+	destroy() {
 		this.renderCleanup?.()
 		this.renderCleanup = undefined
-		this.renderedObject = undefined
-	}
-	getRenderedObject(): T | undefined {
-		return this.renderedObject
+		super.destroy()
 	}
 }
 
-export abstract class InteractiveGameObject extends RenderableObject {
+export class RenderableContainer extends Diamond(RenderableObject) {
+	public scene?: LevelScene
+	protected readonly children = new Set<RenderableObject>()
+	setScene(scene: LevelScene) {
+		this.scene = scene
+		super.setScene(scene)
+		for (const child of this.children)
+			if (!(child instanceof InteractiveGameObject)) child.setScene(scene)
+	}
+	destroy() {
+		for (const child of this.children.values()) child.destroy()
+		this.children.clear()
+		super.destroy()
+	}
+	add(...children: RenderableObject[]) {
+		if (this.scene) {
+			for (const child of children) {
+				if (!(child instanceof InteractiveGameObject)) child.setScene(this.scene)
+				this.children.add(child)
+			}
+		} else for (const child of children) this.children.add(child)
+	}
+	remove(...children: RenderableObject[]) {
+		for (const child of children) {
+			this.children.delete(child)
+			child.destroy()
+		}
+	}
+}
+
+export abstract class InteractiveGameObject extends Diamond(RenderableObject) {
 	constructor(public readonly game: Game) {
 		super()
+		this.uid = game.register(this)
 	}
-	abstract readonly uid: string
+	public readonly uid: string
 	/**
 	 * Test if a world point is inside this interactive object
 	 * @param worldX - World X coordinate
@@ -75,53 +82,16 @@ export abstract class InteractiveGameObject extends RenderableObject {
 	 * @returns true if the point is inside the object
 	 */
 	abstract hitTest(worldX: number, worldY: number): SelectableGameObject | false
+	destroy(): void {
+		this.game.unregister(this)
+		super.destroy()
+	}
 }
 
-export abstract class SelectableGameObject extends InteractiveGameObject {
+export abstract class SelectableGameObject extends Diamond(InteractiveGameObject) {
 	/**
 	 * Highlight or unhighlight this object
 	 * @param highlighted - Whether to highlight or unhighlight
 	 */
 	abstract highlight(highlighted: boolean): void
-}
-
-export abstract class ContainerClass extends InteractiveGameObject {
-	protected container?: Phaser.GameObjects.Container
-
-	/**
-	 * Default hitTest behavior: iterate through children and return the first interactive one that passes hitTest
-	 */
-	hitTest(worldX: number, worldY: number): SelectableGameObject | false {
-		if (!this.container) return false
-
-		// Iterate through children in reverse order (topmost first)
-		for (let i = this.container.length - 1; i >= 0; i--) {
-			const child = this.container.getAt(i)
-			if (!child || !(child instanceof InteractiveGameObject)) continue
-			const hit = child.hitTest(worldX, worldY)
-			if (hit) return hit
-		}
-		return false
-	}
-
-	/**
-	 * Add a child to the container
-	 */
-	addChild(child: Phaser.GameObjects.GameObject): void {
-		this.container?.add(child)
-	}
-
-	/**
-	 * Remove a child from the container
-	 */
-	removeChild(child: Phaser.GameObjects.GameObject): void {
-		this.container?.remove(child)
-	}
-
-	/**
-	 * Clear all children from the container
-	 */
-	clearChildren(): void {
-		this.container?.removeAll()
-	}
 }

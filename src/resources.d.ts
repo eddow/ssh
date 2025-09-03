@@ -12,9 +12,6 @@ declare namespace Ssh {
 		regenerate?: number
 		sprites: Sprite[]
 	}
-	interface Deposit extends DepositDefinition {
-		amount: number
-	}
 
 	interface HarvestingAction {
 		type: "harvesting"
