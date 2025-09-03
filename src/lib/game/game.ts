@@ -1,4 +1,4 @@
-import { unreactive } from "mutts"
+import { reactive, unreactive } from "mutts"
 import Phaser from "phaser"
 import * as gameContent from "$assets/game-content"
 import { resources } from "$assets/game-content"
@@ -71,16 +71,14 @@ export class Game extends Eventful<GameEvents> {
 	private panStartCamera = { x: 0, y: 0 }
 	private scene?: LevelScene
 
-	private readonly objects = new Map<string, InteractiveGameObject>()
+	private readonly objects = reactive(new Map<string, InteractiveGameObject>())
 
 	getObject(uid: string) {
 		return this.objects.get(uid)
 	}
-	register(object: InteractiveGameObject): string {
+	register(object: InteractiveGameObject, uid?: string) {
 		if (this.scene) object.setScene(this.scene)
-		const uid = crypto.randomUUID()
-		this.objects.set(uid, object)
-		return uid
+		this.objects.set(uid ?? crypto.randomUUID(), object)
 	}
 	unregister(object: RenderableObject | InteractiveGameObject) {
 		this.objects.delete(object.uid)
@@ -103,7 +101,7 @@ export class Game extends Eventful<GameEvents> {
 		hexGames.set(this.phaser, this)
 	}
 	get camera() {
-		return this.ground.cameras.main
+		return this.ground.cameras.main as Phaser.Cameras.Scene2D.BaseCamera
 	}
 	public attachScene(scene: LevelScene) {
 		this.scene = scene

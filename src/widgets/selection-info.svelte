@@ -9,11 +9,18 @@
 	import { Button } from 'flowbite-svelte'
 	import { EyeOutline } from 'flowbite-svelte-icons'
 	import { play } from '$lib/globals.svelte'
-	import { HexTile } from '$lib/game'
+	import { HexTile, InteractiveGameObject } from '$lib/game'
+	import { effect } from 'mutts'
 	let { uid }: { uid: string } = $props()
-	let object = $derived(game.getObject(uid))
+	let object: InteractiveGameObject | undefined = $state(undefined)
+	effect(() => {
+		object = game.getObject(uid)
+	})
 
-	function goTo() {}
+	function goTo() {
+		const { x, y } = object!.worldPosition
+		game.camera.centerOn(x, y)
+	}
 </script>
 
 <div class="tile-info">

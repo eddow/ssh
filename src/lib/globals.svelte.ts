@@ -1,3 +1,4 @@
+import { effect } from "mutts"
 import { Game } from "./game"
 
 export interface IConfiguration {

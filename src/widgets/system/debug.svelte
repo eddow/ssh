@@ -15,7 +15,9 @@
 	} from 'flowbite-svelte'
 	import { debugInfo } from '$lib/globals.svelte'
 	function ownEntries(value: any) {
-		return Object.getOwnPropertyNames(value).map((k) => [k, value[k]])
+		return Object.entries(Object.getOwnPropertyDescriptors(value))
+			.filter(([_, v]) => v.enumerable)
+			.map(([k, v]) => [k, v.value])
 	}
 
 	function debugged(value: any, already = new Set<any>()) {

@@ -47,8 +47,7 @@ export class Eventful<Events extends Record<string, (...args: any[]) => void>> {
 	) {
 		const callbacks = this.events.get(event)
 		if (callbacks)
-			for (const cb of callbacks) {
+			for (const cb of callbacks)
 				cb(...args)
-			}
 	}
 }

@@ -70,11 +70,10 @@ export class RenderableContainer extends Diamond(RenderableObject) {
 }
 
 export abstract class InteractiveGameObject extends Diamond(RenderableObject) {
-	constructor(public readonly game: Game) {
+	constructor(public readonly game: Game, public readonly uid: string) {
 		super()
-		this.uid = game.register(this)
+		game.register(this, uid)
 	}
-	public readonly uid: string
 	/**
 	 * Test if a world point is inside this interactive object
 	 * @param worldX - World X coordinate

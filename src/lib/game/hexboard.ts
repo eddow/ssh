@@ -39,9 +39,8 @@ export class HexTile extends Diamond(SelectableGameObject, GeneratorObject) {
 		public terrain: TerrainType,
 		public squares: number,
 	) {
-		super(hex.game)
+		super(hex.game, `hex-tile-${coord.q}-${coord.r}`)
 	}
-
 	highlight(highlighted: boolean) {
 		// TODO: Implement highlighting logic
 		// This could change the tile's appearance, add a border, etc.
@@ -109,7 +108,7 @@ export class HexBoard extends Diamond(RenderableContainer, InteractiveGameObject
 		public readonly boardSize: number = 12,
 		public readonly tileSize: number = 30,
 	) {
-		super(game)
+		super(game, `hex-board`)
 		this.tiles = new AxialKeyMap()
 		this.rnd = LCG("hexboard-seed") // Use a constant seed for reproducibility
 		this.generateBoard()
@@ -131,8 +130,6 @@ export class HexBoard extends Diamond(RenderableContainer, InteractiveGameObject
 		}
 		this.add(...this.tiles.values())
 		// Register the board itself with the game, not individual tiles
-		// @ts-expect-error Diamond typing failure
-		this.game.register(this)
 	}
 
 	private generateRandomTerrain(coord: { q: number; r: number }): TerrainType {

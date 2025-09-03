@@ -1,5 +1,5 @@
 <script lang="ts" module>
-	import { Button } from 'flowbite-svelte'
+	import { unwrap } from 'mutts'
 	export function title(params: Record<string, any>) {
 		return `Game ${params.game}`
 	}
@@ -34,7 +34,9 @@
 
 	const gameEvents = {
 		objectOver(event: any, object: InteractiveGameObject) {
-			debugInfo.hover = object
+			debugInfo.hover = {
+				type: object.constructor.name
+			}
 		},
 		objectOut(event: any, object: InteractiveGameObject) {
 			delete debugInfo.hover
