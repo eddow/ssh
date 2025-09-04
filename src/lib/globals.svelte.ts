@@ -1,5 +1,5 @@
-import { Eventful } from "mutts"
-import { Game, type GameEvents } from "./game"
+import { Eventful, reactive } from "mutts"
+import { Game, InteractiveGameObject, type GameEvents } from "./game"
 
 export interface IConfiguration {
 	darkMode?: boolean
@@ -39,3 +39,10 @@ class Games extends Eventful<GamedEvents> {
 	}
 }
 export const games = new Games()
+
+/**
+ * Mutts Reactive Globals
+ */
+export const mrg = reactive({
+	hoveredObject: undefined as InteractiveGameObject | undefined,
+})

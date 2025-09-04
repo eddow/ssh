@@ -1,15 +1,22 @@
-import { Eventful, reactive, unreactive, zip } from "mutts"
+import { Eventful, Reactive, reactive, unreactive, zip } from "mutts"
 import { Application, Assets, Container, Point, Spritesheet, Texture } from "pixi.js"
 import * as gameContent from "$assets/game-content"
 import { HexBoard } from "./hexboard"
 import type { HittableGameObject, InteractiveGameObject } from "./object"
+import { mrg } from "$lib/globals.svelte"
 
 unreactive(gameContent)
 
 const assetsToLoad = Object.entries(gameContent.resources)
-
+export const assetUrls = Object.fromEntries(
+	assetsToLoad.map(([key, resource]) => [key, `${gameContent.prefix}${resource}`]),
+)
 const assetsLoading = Promise.all(
-	assetsToLoad.map(([_, resource]) => Assets.load(`${gameContent.prefix}${resource}`)),
+	assetsToLoad.map(async ([_, resource]) => {
+		const texture = await Assets.load(`${gameContent.prefix}${resource}`)
+		if ("defaultAnchor" in texture) texture.defaultAnchor = { x: 0.5, y: 0.5 }
+		return texture
+	}),
 ).then((assets) =>
 	Object.fromEntries(
 		zip(
@@ -26,6 +33,7 @@ export type GameEvents = {
 	objectUp(pointer: any, object: InteractiveGameObject): void
 	objectClick(pointer: any, object: InteractiveGameObject): void
 }
+
 export class Game extends Eventful<GameEvents> {
 	public get name() {
 		return "GameX"
@@ -36,7 +44,6 @@ export class Game extends Eventful<GameEvents> {
 	public effectLayer: Container
 	public resources: Record<string, Texture | Spritesheet> = null!
 	getTexture(spec: Ssh.Sprite): Texture {
-		if(!spec.startsWith("terrain-")) console.log("getTexture", spec)
 		const rsc = this.resources[spec]
 		const ci = /(.*)\/(.*)/.exec(spec)
 
@@ -137,7 +144,6 @@ export class GameView {
 	private panStartPosition = { x: 0, y: 0 }
 	private panStartCamera = { x: 0, y: 0 }
 	public setupInput(game: Game, canvas: HTMLCanvasElement) {
-		let hoveredObject: InteractiveGameObject | undefined
 		let mouseDownObject: InteractiveGameObject | undefined
 
 		const getCanvasPoint = (e: MouseEvent | WheelEvent) => {
@@ -159,14 +165,14 @@ export class GameView {
 		}
 
 		const emitOverOutIfNeeded = (nextHover: InteractiveGameObject | undefined, ev: MouseEvent) => {
-			if (hoveredObject !== nextHover) {
-				if (hoveredObject) {
-					game.emit("objectOut", ev as any, hoveredObject)
+			if (mrg.hoveredObject !== nextHover) {
+				if (mrg.hoveredObject) {
+					game.emit("objectOut", ev as any, mrg.hoveredObject)
 				}
 				if (nextHover) {
 					game.emit("objectOver", ev as any, nextHover, () => {})
 				}
-				hoveredObject = nextHover
+				mrg.hoveredObject = nextHover
 			}
 		}
 
@@ -198,9 +204,9 @@ export class GameView {
 		})
 
 		const clearHover = (e: Event) => {
-			if (hoveredObject) {
-				game.emit("objectOut", e as any, hoveredObject)
-				hoveredObject = undefined
+			if (mrg.hoveredObject) {
+				game.emit("objectOut", e as any, mrg.hoveredObject)
+				mrg.hoveredObject = undefined
 			}
 		}
 

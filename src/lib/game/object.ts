@@ -3,13 +3,15 @@ import { effect, Reactive, type ScopedCallback, unreactive } from "mutts"
 import { Container } from "pixi.js"
 import type { WorldCoord } from "$lib/axial"
 import type { Game } from "./game"
+// Library used by Pixi
+import EventEmitter from "eventemitter3"
 
-unreactive(Container)
+unreactive(EventEmitter)
 export type Positionable = Container & {
 	setPosition(x: number, y: number): void
 }
 
-export abstract class RenderableObject extends D(Reactive()) {
+export abstract class RenderableObject extends D() {
 	destroy() {}
 }
 
@@ -35,13 +37,14 @@ class InitEmptySet<T> extends Set<T> {
 }
 export class RenderableContainer extends D(RenderableObject, InitEmptySet<RenderableObject>) {
 	destroy() {
-		for (const child of this.children.values()) child.destroy()
+		for (const child of this.values()) child.destroy()
 		this.clear()
 		super.destroy()
 	}
 
-	delete(child: RenderableObject) {
+	delete = (child: RenderableObject) => {
 		child.destroy()
+		return super.delete(child)
 	}
 }
 
@@ -68,10 +71,9 @@ export abstract class HittableGameObject extends D(RenderableObject) {
 
 export abstract class InteractiveGameObject extends D(RenderableObject) {
 	/**
-	 * Highlight or unhighlight this object
-	 * @param highlighted - Whether to highlight or unhighlight
+	 * Highlights of the object (selected/hover/attention/etc.)
 	 */
-	abstract highlight(highlighted: boolean): void
+	public readonly highlight = new Set<string>()
 	abstract readonly title: string
 	abstract readonly debugInfo?: Record<string, any>
 	abstract readonly worldPosition: WorldCoord

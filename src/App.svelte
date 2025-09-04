@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { DockviewApi } from 'dockview-core'
-	import { Toolbar, ToolbarButton, ToolbarGroup } from 'flowbite-svelte'
+	import { Toolbar, ToolbarButton, ToolbarGroup, RadioButton, ButtonGroup } from 'flowbite-svelte'
 	import {
 		AdjustmentsHorizontalOutline,
 		BugOutline,
@@ -8,9 +8,10 @@
 	} from 'flowbite-svelte-icons'
 	import { onMount } from 'svelte'
 	import { DockView } from './components/dockview'
-	import { configuration } from '$lib/globals.svelte'
+	import { configuration, debugInfo, games } from '$lib/globals.svelte'
+	import * as gameContent from '$assets/game-content'
 	import widgets from './widgets'
-	import type { InteractiveGameObject } from './lib/game/object'
+	import ResourceImage from './lib/resourceImage.svelte'
 
 	$effect(() => {
 		if (configuration.darkMode) document.documentElement.classList.add('dark')
@@ -46,17 +47,7 @@
 			)
 		}
 	}
-	function showProperties(object: InteractiveGameObject) {
-		dockview!.addDock(
-			'selection-info',
-			{ uid: object.uid },
-			{
-				position: {
-					direction: 'right'
-				}
-			}
-		)
-	}
+	const game = games.game('GameX')
 	const layoutJson = location.host.startsWith('localhost') ? localStorage.getItem('layout') : null
 	let dockview = $state<DockView | undefined>(undefined)
 	let api = $state<DockviewApi | undefined>(undefined)
@@ -78,6 +69,11 @@
 			event.preventDefault()
 		}
 	}
+	// Toolbar: building selection (radio behavior)
+	let selectedAction = $state<string>('')
+	$effect(() => {
+		debugInfo.selectedAction = selectedAction
+	})
 	function addGame() {
 		dockview!.showUniqueDock(
 			'game',
@@ -107,6 +103,40 @@
 			<ToolbarButton onclick={showSystem('debug')} title="Debug">
 				<BugOutline class="w-6 h-6" />
 			</ToolbarButton>
+		</ToolbarGroup>
+		<ToolbarGroup>
+			<ButtonGroup>
+				<RadioButton
+					name="action-selection"
+					value=""
+					bind:group={selectedAction}
+					title="Select"
+					outline
+				>
+					<ResourceImage {game} sprite="select" width={24} height={24} alt="Select" />
+				</RadioButton>
+			</ButtonGroup>
+		</ToolbarGroup>
+		<ToolbarGroup>
+			<ButtonGroup>
+				{#each Object.entries(gameContent.buildings) as [b, building]}
+					<RadioButton
+						name="action-selection"
+						value={`building-${b}`}
+						bind:group={selectedAction}
+						title={building.name}
+						outline
+					>
+						<ResourceImage
+							{game}
+							sprite={building.sprites[0]}
+							width={24}
+							height={24}
+							alt={building.name}
+						/>
+					</RadioButton>
+				{/each}
+			</ButtonGroup>
 		</ToolbarGroup>
 	</Toolbar>
 	<DockView

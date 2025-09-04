@@ -11,7 +11,8 @@
 	import { Button } from 'flowbite-svelte'
 	import { EyeOutline } from 'flowbite-svelte-icons'
 	import { HexTile, InteractiveGameObject } from '$lib/game'
-	import { effect } from 'mutts'
+	import { mrg } from '$lib/globals.svelte'
+	import { effect, unwrap } from 'mutts'
 	let { uid }: { uid: string } = $props()
 	let object: InteractiveGameObject | undefined = $state(undefined)
 	effect(() => {
@@ -22,9 +23,15 @@
 		const { x, y } = object!.worldPosition
 		game.stage.position.set(-x, -y)
 	}
+	function mouseIn() {
+		mrg.hoveredObject = object
+	}
+	function mouseOut() {
+		if (mrg.hoveredObject === object) mrg.hoveredObject = undefined
+	}
 </script>
 
-<div class="tile-info">
+<div class="tile-info" role="presentation" onmouseenter={mouseIn} onmouseleave={mouseOut}>
 	{#if object instanceof HexTile}
 		<h1>{object.coord.q}, {object.coord.r}</h1>
 		<h3>{object.terrain}</h3>
@@ -35,3 +42,10 @@
 		<EyeOutline class="w-6 h-6" />
 	</Button>
 </div>
+
+<style>
+	.tile-info {
+		width: 100%;
+		height: 100%;
+	}
+</style>

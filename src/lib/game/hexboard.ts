@@ -1,5 +1,5 @@
 import D from "flat-diamond"
-import { effect } from "mutts"
+import { effect, Reactive, unwrap } from "mutts"
 import { Container, Graphics, Point, Sprite, TilingSprite } from "pixi.js"
 import { deposits } from "$assets/game-content"
 import {
@@ -18,21 +18,17 @@ import {
 	type WorldCoord,
 } from "../axial"
 import { AxialKeyMap } from "../mem"
-import { LCG, type RandGenerator } from "../numbers"
+import { LCG } from "../numbers"
 import type { Game } from "./game"
+import { mrg } from "$lib/globals.svelte"
 
 export interface Deposit extends Ssh.DepositDefinition {
 	amount: number
 }
 
-export enum TerrainType {
-	WATER = "water",
-	GRASS = "grass",
-	FOREST = "forest",
-	ROCKY = "rocky",
-}
+export type TerrainType = 'water' | 'grass' | 'forest' | 'rocky'
 
-export class HexTile extends D(InteractiveGameObject, GeneratorObject) {
+export class HexTile extends Reactive(D(InteractiveGameObject, GeneratorObject)) {
 	constructor(
 		public readonly hex: HexBoard,
 		public deposit: Deposit | undefined,
@@ -57,16 +53,15 @@ export class HexTile extends D(InteractiveGameObject, GeneratorObject) {
 		return info
 	}
 
-	highlight(highlighted: boolean) {
-		// TODO: Implement highlighting logic
-		// This could change the tile's appearance, add a border, etc.
+	get walkable(): number {
+		return this.terrain === 'water' ? 0 : 1
 	}
 
 	get worldPosition(): WorldCoord {
 		return this.hex.axial2world(this.coord)
 	}
 
-	render() {
+	render = () => {
 		const { terrain } = this
 		const { hex, worldPosition, game } = this
 		const { x: wpx, y: wpy } = worldPosition
@@ -101,9 +96,17 @@ export class HexTile extends D(InteractiveGameObject, GeneratorObject) {
 				game.objectLayer.addChild(depositSprite)
 			}
 		})
+		const mouseoverEffect = effect(() => {
+			if (mrg.hoveredObject === this) {
+				tileSprite.tint = 0xaaaaff
+			} else {
+				tileSprite.tint = 0xffffff
+			}
+		})
 		this.game.backgroundLayer.addChild(tileContainer)
 		return () => {
 			depositEffect()
+			mouseoverEffect()
 			for (const child of [...tileContainer.children]) child.destroy({ children: true })
 			this.game.backgroundLayer.removeChild(tileContainer)
 			tileContainer.destroy({ children: true })
@@ -132,7 +135,7 @@ export class HexBoard extends D(RenderableContainer, HittableGameObject) {
 		this.generateBoard()
 	}
 
-	hitTest(worldX: number, worldY: number): InteractiveGameObject | false {
+	hitTest = (worldX: number, worldY: number): InteractiveGameObject | false => {
 		const coord = this.world2axial({ x: worldX, y: worldY })
 		if (axial.distance(coord, { q: 0, r: 0 }) > this.boardSize) return false
 		return this.getTile(coord) ?? false
@@ -160,14 +163,14 @@ export class HexBoard extends D(RenderableContainer, HittableGameObject) {
 				)
 		}
 		switch (terrain) {
-			case TerrainType.WATER:
+			case 'water':
 				return undefined
-			case TerrainType.FOREST:
+			case 'forest':
 				return genDeposit(deposits.tree, 0.7)
-			case TerrainType.ROCKY: {
+			case 'rocky': {
 				return genDeposit(deposits.rock, 0.6)
 			}
-			case TerrainType.GRASS:
+			case 'grass':
 				return genDeposit(deposits.berry_bush, 0.1)
 		}
 	}
@@ -211,13 +214,13 @@ export class HexBoard extends D(RenderableContainer, HittableGameObject) {
 
 		// Determine terrain based on random value and probabilities
 		if (random < waterChance) {
-			return TerrainType.WATER
+			return 'water'
 		} else if (random < waterChance + grassChance) {
-			return TerrainType.GRASS
+			return 'grass'
 		} else if (random < waterChance + grassChance + forestChance) {
-			return TerrainType.FOREST
+			return 'forest'
 		} else {
-			return TerrainType.ROCKY
+			return 'rocky'
 		}
 	}
 

@@ -30,11 +30,13 @@ declare namespace Ssh {
 		restEase: number
 		goodsCapacity: Record<string, number>
 		actions: Action[]
+		icon: Sprite
 		sprites: Sprite[]
 	}
 	interface GoodsDefinition {
 		name: string
 		feedingValue: number
+		icon: Sprite
 		sprites: Sprite[]
 	}
 }

@@ -13,7 +13,8 @@
 		TableBodyRow,
 		TableHeadCell
 	} from 'flowbite-svelte'
-	import { debugInfo } from '$lib/globals.svelte'
+	import { debugInfo, mrg } from '$lib/globals.svelte'
+	import { effect } from 'mutts'
 	function ownEntries(value: any) {
 		return Object.entries(Object.getOwnPropertyDescriptors(value))
 			.filter(([_, v]) => v.enumerable)
@@ -45,19 +46,40 @@
 			.map(([k, v]) => [k, debugged(v)])
 			.join(' | ')
 	}
+	let mrgHoveredObject = $state(mrg.hoveredObject)
+	effect(() => {
+		mrgHoveredObject = mrg.hoveredObject
+	})
 </script>
 
 <Button class="w-full" onclick={resetLayout}>Reset layout</Button>
-{#each dDebugInfo as content}
-	<h2>{content[0]}</h2>
+<h1>Selection : {mrgHoveredObject?.title ?? 'None'}</h1>
+{#if mrgHoveredObject}
 	<Table>
 		<TableBody title="Debug info">
-			{#each ownEntries(content[1]) as kvp}
+			{#each ownEntries(mrgHoveredObject.debugInfo) as kvp}
 				<TableBodyRow>
 					<TableHeadCell>{kvp[0]}</TableHeadCell>
 					<TableBodyCell>{displayed(kvp[1])}</TableBodyCell>
 				</TableBodyRow>
 			{/each}
 		</TableBody>
+	</Table>
+{/if}
+{#each dDebugInfo as content}
+	<h2>{content[0]}</h2>
+	<Table>
+		{#if typeof content[1] === 'object'}
+			<TableBody title="Debug info">
+				{#each ownEntries(content[1]) as kvp}
+					<TableBodyRow>
+						<TableHeadCell>{kvp[0]}</TableHeadCell>
+						<TableBodyCell>{displayed(kvp[1])}</TableBodyCell>
+					</TableBodyRow>
+				{/each}
+			</TableBody>
+		{:else}
+			{content[1]}
+		{/if}
 	</Table>
 {/each}
