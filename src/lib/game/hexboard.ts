@@ -1,10 +1,11 @@
-import Diamond from "flat-diamond"
-import { effect } from "mutts"
+import D from "flat-diamond"
+import type { ScopedCallback } from "mutts"
+import { Container, Graphics, Point, TilingSprite } from "pixi.js"
 import {
 	GeneratorObject,
+	HittableGameObject,
 	InteractiveGameObject,
 	RenderableContainer,
-	SelectableGameObject,
 } from "$lib/game/object"
 import {
 	type Axial,
@@ -13,16 +14,16 @@ import {
 	axial,
 	cartesian,
 	fromCartesian,
-	pointInHex,
 	type WorldCoord,
 } from "../axial"
 import { AxialKeyMap } from "../mem"
 import { LCG, type RandGenerator } from "../numbers"
-import type { Game, LevelScene } from "./game"
+import type { Game } from "./game"
 
 export interface Deposit extends Ssh.DepositDefinition {
 	amount: number
 }
+
 export enum TerrainType {
 	WATER = "water",
 	GRASS = "grass",
@@ -30,106 +31,104 @@ export enum TerrainType {
 	ROCKY = "rocky",
 }
 
-export class HexTile extends Diamond(SelectableGameObject, GeneratorObject) {
+export class HexTile extends D(InteractiveGameObject, GeneratorObject) {
 	constructor(
 		public readonly hex: HexBoard,
 		//declare deposit?: Ssh.Deposit
 		readonly coord: AxialCoord,
 
 		public terrain: TerrainType,
-		public squares: number,
 	) {
 		super(hex.game, `hex-tile-${coord.q}-${coord.r}`)
 	}
+
 	highlight(highlighted: boolean) {
 		// TODO: Implement highlighting logic
 		// This could change the tile's appearance, add a border, etc.
 	}
 
-	/**
-	 * Test if a world point is inside this hexagonal tile
-	 * @param worldX - World X coordinate
-	 * @param worldY - World Y coordinate
-	 * @returns true if the point is inside the hexagon
-	 */
-	hitTest(worldX: number, worldY: number): SelectableGameObject | false {
-		return pointInHex({ x: worldX, y: worldY }, this.coord, this.hex.tileSize) && this
-	}
 	get worldPosition(): WorldCoord {
 		return this.hex.axial2world(this.coord)
 	}
-	render(scene: LevelScene) {
+
+	render(): Container[] {
 		const { terrain } = this
-		const { hex, worldPosition } = this
+		const { hex, worldPosition, game } = this
 		const { x: wpx, y: wpy } = worldPosition
-		const textureKey = `terrain-${terrain}`
 
-		// Use TileSprite so the texture repeats seamlessly
+		// Container for this tile
+		const tileContainer = new Container()
+		tileContainer.position.set(wpx, wpy)
+
+		// Create tiling sprite from terrain texture
 		const size = hex.tileSize
-		const tile = scene.add.tileSprite(wpx, wpy, size * 2, size * 2, textureKey)
-		tile.setOrigin(0.5)
-		const src = scene.textures.get(textureKey).getSourceImage() as HTMLImageElement
-		const texW = src?.width ?? tile.width
-		const texH = src?.height ?? tile.height
-		tile.tilePositionX = wpx % texW
-		tile.tilePositionY = wpy % texH
+		const texture = this.game.resources[`terrain-${terrain}`]
+		const tileSprite = new TilingSprite({ texture, width: size * 2, height: size * 2 })
+		tileSprite.anchor.set(0.5)
+		// Align tile offset so it scrolls seamlessly with world
+		tileSprite.tilePosition.set(-wpx % (texture.width || size), -wpy % (texture.height || size))
 
-		// Create a hex mask centered on the tile
-		const maskGraphics = scene.add.graphics(this.worldPosition)
-		this.maskGraphics = maskGraphics
+		// Hex mask
+		const mask = new Graphics()
 		const points = Array.from({ length: 6 }, (_, i) => {
 			const angle = (Math.PI / 3) * (i + 0.5)
-			return new Phaser.Math.Vector2(Math.cos(angle) * size, Math.sin(angle) * size)
+			return new Point(Math.cos(angle) * size, Math.sin(angle) * size)
 		})
-		maskGraphics.fillPoints(points, true, true)
-		const mask = maskGraphics.createGeometryMask()
-		tile.setMask(mask)
-		tile.on("destroy", () => {
-			maskGraphics.destroy()
-		})
-		return [tile]
+		mask.poly(points).fill(0xffffff)
+		tileSprite.mask = mask
+
+		tileContainer.addChild(tileSprite, mask)
+		game.backgroundLayer.addChild(tileContainer)
+
+		return [tileContainer]
 	}
-	manage(scene: LevelScene, [tile]: [Phaser.GameObjects.TileSprite]) {
-		scene.board.add(tile)
+	manage([tileContainer]: [Container]): ScopedCallback {
+		this.game.backgroundLayer.addChild(tileContainer)
+		return () => {
+			// Cleanup
+			for (const child of [...tileContainer.children]) child.destroy({ children: true })
+			this.game.backgroundLayer.removeChild(tileContainer)
+			tileContainer.destroy({ children: true })
+		}
 	}
 }
 
-export class HexBoard extends Diamond(RenderableContainer, InteractiveGameObject) {
+export class HexBoard extends D(RenderableContainer, HittableGameObject) {
 	private tiles: AxialKeyMap<HexTile>
 	private rnd: RandGenerator
+
 	axial2world(coord: AxialRef): WorldCoord {
 		return cartesian(coord, this.tileSize)
 	}
+
 	world2axial(world: WorldCoord): AxialCoord {
 		return axial.round(fromCartesian(world, this.tileSize))
 	}
+
 	constructor(
 		public game: Game,
 		public readonly boardSize: number = 12,
 		public readonly tileSize: number = 30,
 	) {
-		super(game, `hex-board`)
+		super(game, "hexboard")
 		this.tiles = new AxialKeyMap()
 		this.rnd = LCG("hexboard-seed") // Use a constant seed for reproducibility
 		this.generateBoard()
 	}
 
-	hitTest(worldX: number, worldY: number): SelectableGameObject | false {
+	hitTest(worldX: number, worldY: number): InteractiveGameObject | false {
 		const coord = this.world2axial({ x: worldX, y: worldY })
 		if (axial.distance(coord, { q: 0, r: 0 }) > this.boardSize) return false
 		return this.getTile(coord) ?? false
 	}
 
 	private generateBoard(): void {
-		const { rnd } = this
 		// Generate all tiles within the board radius
 		for (const coord of axial.enum(this.boardSize - 1)) {
 			const terrain = this.generateRandomTerrain(coord)
-			const tile = new HexTile(this, coord, terrain, Math.floor(rnd(2)))
+			const tile = new HexTile(this, coord, terrain)
 			this.tiles.set(coord, tile)
 		}
-		this.add(...this.tiles.values())
-		// Register the board itself with the game, not individual tiles
 	}
 
 	private generateRandomTerrain(coord: { q: number; r: number }): TerrainType {
@@ -193,10 +192,6 @@ export class HexBoard extends Diamond(RenderableContainer, InteractiveGameObject
 		return this.tiles.has(coord)
 	}
 
-	getSize(): number {
-		return this.boardSize
-	}
-
 	getTileCount(): number {
 		return this.tiles.size
 	}
@@ -218,25 +213,5 @@ export class HexBoard extends Diamond(RenderableContainer, InteractiveGameObject
 	isWithinBounds(coord: AxialRef): boolean {
 		const { q, r } = axial.coord(coord)
 		return axial.distance({ q, r }) < this.boardSize
-	}
-	tune(container: Phaser.GameObjects.Container) {
-		this.container = container
-		return super.tune(container)
-	}
-
-	// Draw squares on tiles that have them
-	drawSquares(scene: LevelScene): void {
-		for (const [coord, tile] of this.getAllTiles()) {
-			effect(
-				() => !!tile.squares && scene.add.graphics(),
-				(graphics) => {
-					if (!graphics) return
-					const worldPos = this.axial2world(coord)
-					graphics.clear()
-					graphics.fillStyle(0x00ff00, 0.8) // Green with some transparency
-					graphics.fillRect(worldPos.x - 5, worldPos.y - 5, 10, 10)
-				},
-			)
-		}
 	}
 }

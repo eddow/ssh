@@ -1,78 +1,70 @@
-import Diamond from "flat-diamond"
+import D from "flat-diamond"
 import { effect, Reactive, type ScopedCallback, unreactive } from "mutts"
-import Phaser from "phaser"
-import type { Game, LevelScene } from "./game"
+import { Container } from "pixi.js"
+import type { Game } from "./game"
 
-unreactive(Phaser.GameObjects.GameObject)
-export type Positionable = Phaser.GameObjects.GameObject & {
+unreactive(Container)
+export type Positionable = Container & {
 	setPosition(x: number, y: number): void
 }
 
-export abstract class RenderableObject extends Diamond(Reactive()) {
-	setScene(scene: LevelScene) {}
+export abstract class RenderableObject extends D(Reactive()) {
 	destroy() {}
 }
 
-export abstract class GeneratorObject<T extends Phaser.GameObjects.GameObject[]> extends Diamond(
-	RenderableObject,
-) {
+export abstract class GeneratorObject<T extends Container[]> extends D(RenderableObject) {
 	private renderCleanup?: ScopedCallback
-	abstract render(scene: LevelScene): T
-	abstract manage(scene: LevelScene, objects: T): ScopedCallback
-	setScene(scene: LevelScene) {
-		this.renderCleanup?.()
-		this.renderCleanup = effect(
-			() => this.render(scene),
-			(objs) => {
-				this.manage(scene, objs)
-				return () => {
-					for (const obj of objs) obj.destroy()
-				}
-			},
-		)
-		super.setScene(scene)
+	abstract render(): T
+	abstract manage(objects: T): ScopedCallback
+	constructor(game: Game) {
+		super()
+		game.loaded.then(() => {
+			if (!this.renderCleanup)
+				this.renderCleanup = effect(
+					() => this.render(),
+					(objs) => {
+						this.manage(objs)
+						return () => {
+							for (const obj of objs) obj.destroy()
+						}
+					},
+				)
+		})
 	}
 	destroy() {
 		this.renderCleanup?.()
-		this.renderCleanup = undefined
+		this.renderCleanup = () => {}
 		super.destroy()
 	}
 }
-
-export class RenderableContainer extends Diamond(RenderableObject) {
-	public scene?: LevelScene
-	protected readonly children = new Set<RenderableObject>()
-	setScene(scene: LevelScene) {
-		this.scene = scene
-		super.setScene(scene)
-		for (const child of this.children)
-			if (!(child instanceof InteractiveGameObject)) child.setScene(scene)
+class InitEmptySet<T> extends Set<T> {
+	constructor(...args: any[]) {
+		super()
 	}
+}
+export class RenderableContainer extends D(RenderableObject, InitEmptySet<RenderableObject>) {
 	destroy() {
 		for (const child of this.children.values()) child.destroy()
-		this.children.clear()
+		this.clear()
 		super.destroy()
 	}
-	add(...children: RenderableObject[]) {
-		if (this.scene) {
-			for (const child of children) {
-				if (!(child instanceof InteractiveGameObject)) child.setScene(this.scene)
-				this.children.add(child)
-			}
-		} else for (const child of children) this.children.add(child)
-	}
-	remove(...children: RenderableObject[]) {
-		for (const child of children) {
-			this.children.delete(child)
-			child.destroy()
-		}
+
+	delete(child: RenderableObject) {
+		child.destroy()
 	}
 }
 
-export abstract class InteractiveGameObject extends Diamond(RenderableObject) {
-	constructor(public readonly game: Game, public readonly uid: string) {
-		super()
-		game.register(this, uid)
+export abstract class HittableGameObject extends D(RenderableObject) {
+	constructor(
+		public readonly game: Game,
+		...args: any[]
+	) {
+		super(game, ...args)
+		game.registerHittable(this)
+	}
+	destroy(): void {
+		this.game.unregisterHittable(this)
+		super.destroy()
 	}
 	/**
 	 * Test if a world point is inside this interactive object
@@ -80,17 +72,25 @@ export abstract class InteractiveGameObject extends Diamond(RenderableObject) {
 	 * @param worldY - World Y coordinate
 	 * @returns true if the point is inside the object
 	 */
-	abstract hitTest(worldX: number, worldY: number): SelectableGameObject | false
-	destroy(): void {
-		this.game.unregister(this)
-		super.destroy()
-	}
+	abstract hitTest(worldX: number, worldY: number): InteractiveGameObject | false
 }
 
-export abstract class SelectableGameObject extends Diamond(InteractiveGameObject) {
+export abstract class InteractiveGameObject extends D(RenderableObject) {
 	/**
 	 * Highlight or unhighlight this object
 	 * @param highlighted - Whether to highlight or unhighlight
 	 */
 	abstract highlight(highlighted: boolean): void
+	constructor(
+		public readonly game: Game,
+		public readonly uid: string,
+		...args: any[]
+	) {
+		super(game, uid, ...args)
+		game.register(this, uid)
+	}
+	destroy(): void {
+		this.game.unregister(this)
+		super.destroy()
+	}
 }

@@ -1,118 +1,128 @@
-import { reactive, unreactive } from "mutts"
-import Phaser from "phaser"
+import { Eventful, reactive, unreactive, zip } from "mutts"
+import { Application, Assets, Container, Point, type Texture } from "pixi.js"
 import * as gameContent from "$assets/game-content"
-import { resources } from "$assets/game-content"
-import { Eventful } from "$lib/events"
 import { HexBoard } from "./hexboard"
-import type { InteractiveGameObject, RenderableObject } from "./object"
+import type { HittableGameObject, InteractiveGameObject } from "./object"
 
 unreactive(gameContent)
 
-const hexGames = new WeakMap<Phaser.Game, Game>()
-export function hexGame(game: Phaser.Game) {
-	return hexGames.get(game)!
-}
+const assetsToLoad = Object.values(gameContent.resources).map((resource) => resource.file)
 
-//@unreactive
-export class LevelScene extends Phaser.Scene {
-	// null! to raise an exception if used before creation
-	hex: HexBoard = null!
-
-	pop: Phaser.GameObjects.Layer = null!
-	board: Phaser.GameObjects.Layer = null!
-	constructor() {
-		super({ key: `GroundScene` })
-	}
-
-	preload() {
-		this.load.setBaseURL(window.location.origin)
-		for (const [name, spec] of Object.entries(resources)) {
-			if (spec.atlas) {
-				this.load.atlas(name, spec.file, spec.atlas)
-			} else {
-				this.load.image(name, spec.file)
-			}
-		}
-	}
-	create() {
-		const game = hexGames.get(this.game)!
-		this.hex = new HexBoard(game)
-
-		this.pop = this.add.layer()
-		this.board = this.add.layer()
-		// Delegate input setup to Game and attach scene
-		game.attachScene(this)
-		game.setupInput(this)
-
-		// Draw squares on tiles that have them
-		this.hex.drawSquares(this)
-		this.cameras.main.centerOn(0, 0)
-	}
-
-	update(_time: number, _delta: number) {
-		// Input panning handled in setupInput mousemove handler
-	}
-}
-
-unreactive(LevelScene)
-export type GameEvents = {
-	objectOver(pointer: any, object: InteractiveGameObject, stopPropagation?: () => void): void
-	objectOut(pointer: any, object: InteractiveGameObject): void
-	objectDown(pointer: any, object: InteractiveGameObject, stopPropagation: () => void): void
-	objectUp(pointer: any, object: InteractiveGameObject): void
-	objectClick(pointer: any, object: InteractiveGameObject): void
-}
-
+const assetsLoading = Promise.all(
+	assetsToLoad.map((resource) => Assets.load(`${gameContent.prefix}${resource}`)),
+).then((assets) => Object.fromEntries(zip(assetsToLoad, assets)))
 export class Game extends Eventful<GameEvents> {
-	public phaser: Phaser.Game
-	// Panning properties (managed at Game-level)
-	private isPanning = false
-	private panStartPosition = { x: 0, y: 0 }
-	private panStartCamera = { x: 0, y: 0 }
-	private scene?: LevelScene
+	public get name() {
+		return "GameX"
+	}
+	public stage: Container
+	public backgroundLayer: Container
+	public objectLayer: Container
+	public effectLayer: Container
+	public resources: Record<string, Texture> = null!
 
-	private readonly objects = reactive(new Map<string, InteractiveGameObject>())
+	public readonly objects = reactive(new Map<string, InteractiveGameObject>())
+	public readonly hittableObjects = new Set<HittableGameObject>()
+	private hex?: HexBoard
+	public loaded: Promise<void>
+	private async load() {
+		const files = await assetsLoading
+		this.resources = Object.fromEntries(
+			Object.entries(gameContent.resources).map(([key, value]) => [key, files[value.file]]),
+		)
+	}
 
 	getObject(uid: string) {
 		return this.objects.get(uid)
 	}
+
+	registerHittable(object: HittableGameObject) {
+		this.hittableObjects.add(object)
+	}
+	unregisterHittable(object: HittableGameObject) {
+		this.hittableObjects.delete(object)
+	}
+
 	register(object: InteractiveGameObject, uid?: string) {
-		if (this.scene) object.setScene(this.scene)
 		this.objects.set(uid ?? crypto.randomUUID(), object)
 	}
-	unregister(object: RenderableObject | InteractiveGameObject) {
+
+	unregister(object: InteractiveGameObject) {
 		this.objects.delete(object.uid)
 		object.destroy()
 	}
-	get ground() {
-		return this.scene ?? (this.phaser.scene.getScene("GroundScene") as LevelScene)
+
+	get hexBoard() {
+		return this.hex
 	}
-	get hex() {
-		return this.ground.hex
-	}
+
 	constructor() {
 		super()
-		this.phaser = new Phaser.Game({
-			type: Phaser.AUTO,
-			width: 800,
-			height: 600,
-			scene: LevelScene,
-		})
-		hexGames.set(this.phaser, this)
+		this.loaded = this.load()
+
+		// Create layer structure
+		this.stage = new Container()
+		this.backgroundLayer = new Container()
+		this.objectLayer = new Container()
+		this.effectLayer = new Container()
+
+		// Disable sorting for background layer (tiles stay in fixed order)
+		this.backgroundLayer.sortableChildren = false
+		// Enable sorting for object layer (objects sort by Y position)
+		this.objectLayer.sortableChildren = true
+
+		// Add layers to stage
+		this.stage.addChild(this.backgroundLayer)
+		this.stage.addChild(this.objectLayer)
+		this.stage.addChild(this.effectLayer)
+
+		// Create hex board
+		this.hex = new HexBoard(this)
 	}
-	get camera() {
-		return this.ground.cameras.main as Phaser.Cameras.Scene2D.BaseCamera
+}
+
+export type GameEvents = {
+	objectOver(pointer: any, object: InteractiveGameObject, stopPropagation?: () => void): void
+	objectOut(pointer: any, object: InteractiveGameObject): void
+	objectDown(pointer: any, object: InteractiveGameObject, stopPropagation?: () => void): void
+	objectUp(pointer: any, object: InteractiveGameObject): void
+	objectClick(pointer: any, object: InteractiveGameObject): void
+}
+
+export class GameView {
+	public pixi: Application
+	public stage: Container
+	constructor(
+		public game: Game,
+		into: HTMLElement,
+	) {
+		// Create PixiJS application
+		this.pixi = new Application()
+		this.stage = this.pixi.stage
+		this.pixi
+			.init({
+				backgroundColor: 0x1099bb,
+				resolution: window.devicePixelRatio || 1,
+				autoDensity: true,
+				//preference: "webgpu",
+				resizeTo: into,
+			})
+			.then(() => {
+				const canvas = this.pixi.canvas
+				into.appendChild(canvas)
+				this.setupInput(game, canvas)
+			})
+		this.stage.addChild(this.game.stage)
+		//@ts-expect-error
+		globalThis.__PIXI_APP__ = this.pixi
+		//new Stats(this.pixi.renderer, document.body)
 	}
-	public attachScene(scene: LevelScene) {
-		this.scene = scene
-		for (const obj of this.objects.values()) obj.setScene(scene)
-	}
-	public detachScene() {
-		this.scene = undefined
-	}
-	public setupInput(scene: LevelScene) {
-		const canvas = this.phaser.canvas
-		const camera = scene.cameras.main
+
+	// Panning properties
+	private isPanning = false
+	private panStartPosition = { x: 0, y: 0 }
+	private panStartCamera = { x: 0, y: 0 }
+	public setupInput(game: Game, canvas: HTMLCanvasElement) {
 		let hoveredObject: InteractiveGameObject | undefined
 		let mouseDownObject: InteractiveGameObject | undefined
 
@@ -120,40 +130,44 @@ export class Game extends Eventful<GameEvents> {
 			const rect = canvas.getBoundingClientRect()
 			return { x: e.clientX - rect.left, y: e.clientY - rect.top }
 		}
+
 		const getWorldPoint = (x: number, y: number) => {
-			const p = camera.getWorldPoint(x, y)
-			return { x: p.x, y: p.y }
+			const p = new Point(x, y)
+			return this.stage.worldTransform.applyInverse(p)
 		}
+
 		const topmostInteractiveAt = (worldX: number, worldY: number) => {
-			for (const interactive of this.objects.values()) {
-				// Use the object's own hitTest method
+			for (const interactive of game.hittableObjects) {
 				const hit = interactive.hitTest(worldX, worldY)
 				if (hit) return hit
 			}
 			return undefined
 		}
+
 		const emitOverOutIfNeeded = (nextHover: InteractiveGameObject | undefined, ev: MouseEvent) => {
 			if (hoveredObject !== nextHover) {
 				if (hoveredObject) {
-					this.emit("objectOut", ev as any, hoveredObject)
+					game.emit("objectOut", ev as any, hoveredObject)
 				}
 				if (nextHover) {
-					this.emit("objectOver", ev as any, nextHover, () => {})
+					game.emit("objectOver", ev as any, nextHover, () => {})
 				}
 				hoveredObject = nextHover
 			}
 		}
 
 		canvas.addEventListener("mousemove", (e) => {
+			if (this.isPanning && !(e.buttons & 4)) {
+				// 4 = middle button
+				this.isPanning = false
+				canvas.style.cursor = "default"
+			}
 			// Pan while middle button down
 			if (this.isPanning) {
-				const pointer = scene.input.activePointer
-				const deltaX = this.panStartPosition.x - pointer.x
-				const deltaY = this.panStartPosition.y - pointer.y
-				camera.setScroll(
-					this.panStartCamera.x + deltaX / camera.zoom,
-					this.panStartCamera.y + deltaY / camera.zoom,
-				)
+				const deltaX = this.panStartPosition.x - e.offsetX
+				const deltaY = this.panStartPosition.y - e.offsetY
+				this.stage.x = this.panStartCamera.x - deltaX
+				this.stage.y = this.panStartCamera.y - deltaY
 			} else {
 				const { x, y } = getCanvasPoint(e)
 				const { x: wx, y: wy } = getWorldPoint(x, y)
@@ -168,12 +182,14 @@ export class Game extends Eventful<GameEvents> {
 			const hit = topmostInteractiveAt(wx, wy)
 			emitOverOutIfNeeded(hit, e)
 		})
+
 		const clearHover = (e: Event) => {
 			if (hoveredObject) {
-				this.emit("objectOut", e as any, hoveredObject)
+				game.emit("objectOut", e as any, hoveredObject)
 				hoveredObject = undefined
 			}
 		}
+
 		canvas.addEventListener("mouseleave", clearHover)
 		window.addEventListener("blur", clearHover)
 		window.addEventListener("mouseout", (e) => {
@@ -185,8 +201,8 @@ export class Game extends Eventful<GameEvents> {
 				this.isPanning = true
 				this.panStartPosition.x = e.offsetX
 				this.panStartPosition.y = e.offsetY
-				this.panStartCamera.x = camera.scrollX
-				this.panStartCamera.y = camera.scrollY
+				this.panStartCamera.x = this.stage.x
+				this.panStartCamera.y = this.stage.y
 				canvas.style.cursor = "grab"
 				return
 			}
@@ -199,7 +215,7 @@ export class Game extends Eventful<GameEvents> {
 				const stop = () => {
 					stopped = true
 				}
-				this.emit("objectDown", e as any, hit, stop)
+				game.emit("objectDown", e as any, hit, stop)
 				if (stopped) e.stopPropagation()
 			}
 		})
@@ -214,10 +230,10 @@ export class Game extends Eventful<GameEvents> {
 			const { x: wx, y: wy } = getWorldPoint(x, y)
 			const hit = topmostInteractiveAt(wx, wy)
 			if (hit) {
-				this.emit("objectUp", e as any, hit)
+				game.emit("objectUp", e as any, hit)
 			}
 			if (hit && hit === mouseDownObject) {
-				this.emit("objectClick", e as any, hit)
+				game.emit("objectClick", e as any, hit)
 			}
 			mouseDownObject = undefined
 		})
@@ -226,17 +242,13 @@ export class Game extends Eventful<GameEvents> {
 			const deltaY = e.deltaY
 			const zoomSpeed = 0.9
 			const zoomDelta = zoomSpeed ** (deltaY / 120)
-			const newZoom = Math.max(0.1, Math.min(3, camera.zoom * zoomDelta))
-			camera.setZoom(newZoom)
+			const newZoom = Math.max(0.1, Math.min(3, this.stage.scale.x * zoomDelta))
+			this.stage.scale.set(newZoom)
 		})
 
 		// Prevent default context menu on right-click
 		canvas.addEventListener("contextmenu", (e) => {
 			e.preventDefault()
 		})
-	}
-	public destroy() {
-		this.phaser.destroy(true)
-		this.phaser = null!
 	}
 }

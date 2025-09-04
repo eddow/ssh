@@ -1,23 +1,24 @@
+export const prefix = "/assets/"
 export const resources: Record<string, Ssh.SpriteDefinition> = {
 	rocks: {
-		file: "assets/objects/rocks.png",
-		atlas: "assets/objects/rocks.json",
+		file: "objects/rocks.png",
+		atlas: "objects/rocks.json",
 	},
 	trees: {
-		file: "assets/objects/trees.png",
-		atlas: "assets/objects/trees.json",
+		file: "objects/trees.png",
+		atlas: "objects/trees.json",
 	},
 	"terrain-rocky": {
-		file: "assets/terrain/stone.jpg",
+		file: "terrain/stone.jpg",
 	},
 	"terrain-grass": {
-		file: "assets/terrain/grass.jpg",
+		file: "terrain/grass.jpg",
 	},
 	"terrain-forest": {
-		file: "assets/terrain/forest.jpg",
+		file: "terrain/forest.jpg",
 	},
 	"terrain-water": {
-		file: "assets/terrain/water.jpg",
+		file: "terrain/water.jpg",
 	},
 }
 export const deposits: Record<string, Ssh.DepositDefinition> = {

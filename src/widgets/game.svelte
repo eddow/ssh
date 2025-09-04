@@ -1,5 +1,4 @@
 <script lang="ts" module>
-	import { unwrap } from 'mutts'
 	export function title(params: Record<string, any>) {
 		return `Game ${params.game}`
 	}
@@ -8,9 +7,8 @@
 <script lang="ts">
 	import type { Writable } from 'svelte/store'
 	import { onMount } from 'svelte'
-	import { debugInfo } from '$lib/globals.svelte'
-	import { play } from '$lib/globals.svelte'
-	import type { InteractiveGameObject } from '$lib/game'
+	import { debugInfo, games } from '$lib/globals.svelte'
+	import { type InteractiveGameObject, GameView } from '$lib/game'
 	import { getDockviewContext } from '$components/dockview/dockview.svelte'
 
 	const dvContext = getDockviewContext()
@@ -19,17 +17,20 @@
 		game: gameName
 	}: { size: Writable<{ width: number; height: number }>; game: string } = $props()
 
-	const game = play(gameName)
-	const phaser = game.phaser
-
-	let container = $state<HTMLDivElement>()
-	size.subscribe(({ width, height }) => {
-		phaser.scale.resize(width, height)
+	const game = games.game(gameName)
+	let gameView = $state<GameView | undefined>(undefined)
+	size.subscribe((size) => {
+		if (gameView) {
+			gameView.stage.pivot.set(-size.width / 2, -size.height / 2)
+			if (gameView.pixi?.renderer) gameView.pixi.renderer.resize(size.width, size.height)
+		}
 	})
 
+	let container = $state<HTMLDivElement>()
+
 	onMount(() => {
-		phaser.canvas.remove()
-		container!.appendChild(phaser.canvas)
+		// Remove the canvas from wherever it might be
+		gameView = new GameView(game, container!)
 	})
 
 	const gameEvents = {

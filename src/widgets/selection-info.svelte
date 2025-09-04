@@ -1,14 +1,14 @@
 <script lang="ts" module>
-	const game = play('oh yeah')
+	const game = games.game('GameX')
 	export function title(params: Record<string, any>) {
 		return `Tile`
 	}
 </script>
 
 <script lang="ts">
+	import { games } from '$lib/globals.svelte'
 	import { Button } from 'flowbite-svelte'
 	import { EyeOutline } from 'flowbite-svelte-icons'
-	import { play } from '$lib/globals.svelte'
 	import { HexTile, InteractiveGameObject } from '$lib/game'
 	import { effect } from 'mutts'
 	let { uid }: { uid: string } = $props()
@@ -19,7 +19,7 @@
 
 	function goTo() {
 		const { x, y } = object!.worldPosition
-		game.camera.centerOn(x, y)
+		game.stage.position.set(-x, -y)
 	}
 </script>
 

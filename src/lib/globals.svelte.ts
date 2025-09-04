@@ -1,5 +1,5 @@
-import { effect } from "mutts"
-import { Game } from "./game"
+import { Eventful } from "mutts"
+import { Game, type GameEvents } from "./game"
 
 export interface IConfiguration {
 	darkMode?: boolean
@@ -15,8 +15,27 @@ export const configuration = $state(
 )
 export const debugInfo = $state({} as Record<string, any>)
 
-const uniqueGame = new Game()
-
-export function play(game: string) {
-	return uniqueGame
+type GamedEvents = {
+	[key in keyof GameEvents]: (game: Game, ...args: Parameters<GameEvents[key]>) => void
 }
+
+class Games extends Eventful<GamedEvents> {
+	private games = new Map<string, Game>()
+
+	game(name: string) {
+		const game = this.games.get(name)
+		if (!game) {
+			const game = new Game()
+			// Load game here
+			this.games.set(name, game)
+			/*game.hook(
+				<Event extends keyof GameEvents>(event: Event, ...args: Parameters<GameEvents[Event]>) => {
+					this.emit(event, ...([game, ...args] as Parameters<GamedEvents[Event]>))
+				},
+			)*/
+			return game
+		}
+		return game
+	}
+}
+export const games = new Games()
