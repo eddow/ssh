@@ -1,39 +1,55 @@
 import D from "flat-diamond"
-import { effect, Reactive, unwrap } from "mutts"
-import { Container, Graphics, Point, Sprite, TilingSprite } from "pixi.js"
-import { deposits } from "$assets/game-content"
+import { effect, Reactive, type ScopedCallback } from "mutts"
+import { ColorMatrixFilter, Container, Graphics, Point, Sprite, TilingSprite } from "pixi.js"
+import { buildings, deposits, goods } from "$assets/game-content"
 import {
 	GeneratorObject,
 	HittableGameObject,
 	InteractiveGameObject,
 	RenderableContainer,
 } from "$lib/game/object"
+import { mrg } from "$lib/globals.svelte"
 import {
-	type Axial,
 	type AxialCoord,
 	type AxialRef,
 	axial,
 	cartesian,
+	findNearest,
+	findPath,
 	fromCartesian,
+	type NeighborInfo,
 	type WorldCoord,
-} from "../axial"
+} from "../hex"
 import { AxialKeyMap } from "../mem"
 import { LCG } from "../numbers"
 import type { Game } from "./game"
-import { mrg } from "$lib/globals.svelte"
+
+function resizeSprite(sprite: Sprite, size: number) {
+	const scale = Math.max(sprite.width, sprite.height) / size
+	sprite.scale.x /= scale
+	sprite.scale.y /= scale
+}
 
 export interface Deposit extends Ssh.DepositDefinition {
 	amount: number
 }
 
-export type TerrainType = 'water' | 'grass' | 'forest' | 'rocky'
+export interface Building extends Ssh.BuildingDefinition {
+	// Activity weights for each action (0 to 1)
+	activityWeights: number[]
+}
+
+export type TerrainType = "water" | "grass" | "forest" | "rocky"
+const nbrGoodsSlotsPerTile = 3
 
 export class HexTile extends Reactive(D(InteractiveGameObject, GeneratorObject)) {
+	public building: Building | undefined
+	public goods: (string | undefined)[] = new Array(nbrGoodsSlotsPerTile).fill(undefined)
+
 	constructor(
 		public readonly hex: HexBoard,
 		public deposit: Deposit | undefined,
 		readonly coord: AxialCoord,
-
 		public terrain: TerrainType,
 	) {
 		super(hex.game, `hex-tile-${coord.q}-${coord.r}`)
@@ -50,15 +66,66 @@ export class HexTile extends Reactive(D(InteractiveGameObject, GeneratorObject))
 		if (this.deposit) {
 			info[this.deposit.name] = this.deposit.amount
 		}
+		if (this.building) {
+			info.building = this.building.name
+		}
 		return info
 	}
 
-	get walkable(): number {
-		return this.terrain === 'water' ? 0 : 1
+	get walkTime(): number {
+		// Buildings make tiles unwalkable
+		if (this.building) return 5
+		// Water is unwalkable
+		if (this.terrain === "water") return Number.POSITIVE_INFINITY
+		// All other terrain is walkable
+		return 1
 	}
 
 	get worldPosition(): WorldCoord {
 		return this.hex.axial2world(this.coord)
+	}
+
+	// MultipleSet-like interface for goods
+	addGood(goodType: string): boolean {
+		// Find first empty slot
+		for (let i = 0; i < this.goods.length; i++) {
+			if (this.goods[i] === undefined) {
+				this.goods[i] = goodType
+				return true
+			}
+		}
+		return false // No empty slots
+	}
+
+	removeGood(goodType: string): boolean {
+		// Find and remove the good
+		for (let i = 0; i < this.goods.length; i++) {
+			if (this.goods[i] === goodType) {
+				this.goods[i] = undefined
+				return true
+			}
+		}
+		return false // Good not found
+	}
+
+	hasGood(goodType: string): boolean {
+		return this.goods.includes(goodType)
+	}
+
+	getGoodCount(goodType: string): number {
+		return this.goods.filter((good) => good === goodType).length
+	}
+
+	getAllGoods(): string[] {
+		return this.goods.filter((good) => good !== undefined) as string[]
+	}
+
+	isFull(): boolean {
+		return this.goods.every((good) => good !== undefined)
+	}
+
+	getEmptySlots(): number {
+		return this.goods.filter((good) => good === undefined).length
 	}
 
 	render = () => {
@@ -86,28 +153,85 @@ export class HexTile extends Reactive(D(InteractiveGameObject, GeneratorObject))
 		})
 		mask.poly(points).fill(0xffffff)
 		tileSprite.mask = mask
+		const brightnessFilter = new ColorMatrixFilter()
+		tileSprite.filters = [brightnessFilter]
 
 		tileContainer.addChild(tileSprite, mask)
 		game.backgroundLayer.addChild(tileContainer)
+		let depositSprite: Sprite | undefined
+		let buildingSprite: Sprite | undefined
 		const depositEffect = effect(() => {
-			if (this.deposit) {
-				const depositSprite = new Sprite(game.getTexture(this.deposit.sprites[0]))
+			if (depositSprite && !this.deposit) {
+				depositSprite.destroy()
+				depositSprite = undefined
+			} else if (this.deposit && !depositSprite) {
+				depositSprite = new Sprite(game.getTexture(this.deposit.sprites[0]))
 				depositSprite.position.set(wpx, wpy)
+				resizeSprite(depositSprite, size)
 				game.objectLayer.addChild(depositSprite)
 			}
 		})
+		const buildingEffect = effect(() => {
+			if (buildingSprite && !this.building) {
+				buildingSprite.destroy()
+				buildingSprite = undefined
+			} else if (this.building && !buildingSprite) {
+				buildingSprite = new Sprite(game.getTexture(this.building.sprites[0]))
+				buildingSprite.position.set(wpx, wpy)
+				resizeSprite(buildingSprite, size * 1.5)
+				game.objectLayer.addChild(buildingSprite)
+			}
+		})
+
+		// Goods rendering in triangular pattern
+		const goodsSprites: (Sprite | undefined)[] = []
+		const goodsEffects: ScopedCallback[] = []
+		for (let i = 0; i < this.goods.length; i++) {
+			goodsEffects.push(
+				effect((_dep, i) => {
+					const good = this.goods[i]
+					const sprite = goodsSprites[i]
+					if (sprite && !good) {
+						sprite.destroy()
+						goodsSprites[i] = undefined
+					} else if (good && !goodsSprites[i]) {
+						const goodsSprite = new Sprite(game.getTexture(goods[good].sprites[0]))
+						resizeSprite(goodsSprite, size * 0.5)
+
+						// Position in triangular pattern (de-centered)
+						const angle = (i * 2 * Math.PI) / 3 // 120 degrees apart
+						const radius = size * 0.4 // Distance from center
+						const offsetX = Math.cos(angle) * radius
+						const offsetY = Math.sin(angle) * radius
+
+						goodsSprite.position.set(wpx + offsetX, wpy + offsetY)
+						game.objectLayer.addChild(goodsSprite)
+						goodsSprites[i] = goodsSprite
+					}
+				}, i),
+			)
+		}
 		const mouseoverEffect = effect(() => {
 			if (mrg.hoveredObject === this) {
 				tileSprite.tint = 0xaaaaff
+				brightnessFilter.brightness(1.2, false)
 			} else {
 				tileSprite.tint = 0xffffff
+				brightnessFilter.brightness(1, false)
 			}
 		})
 		this.game.backgroundLayer.addChild(tileContainer)
 		return () => {
 			depositEffect()
+			buildingEffect()
+			for (const goodsEffect of goodsEffects) goodsEffect()
 			mouseoverEffect()
-			for (const child of [...tileContainer.children]) child.destroy({ children: true })
+			tileContainer.destroy({ children: true })
+			depositSprite?.destroy()
+			buildingSprite?.destroy()
+			goodsSprites.forEach((sprite) => {
+				sprite?.destroy()
+			})
 			this.game.backgroundLayer.removeChild(tileContainer)
 			tileContainer.destroy({ children: true })
 		}
@@ -148,9 +272,71 @@ export class HexBoard extends D(RenderableContainer, HittableGameObject) {
 			const terrain = this.generateRandomTerrain(seed, coord)
 			const deposit = this.generateRandomDeposit(seed, terrain)
 			const tile = new HexTile(this, deposit, coord, terrain)
+			this.generateRandomGoods(tile, seed, terrain, deposit)
 			this.tiles.set(coord, tile)
 		}
+		const shackPath = this.findNearest(
+			{ q: 0, r: 0 },
+			(c) => {
+				const tile = this.getTile(c)
+				return (
+					!!tile &&
+					tile.terrain !== "water" &&
+					tile.building === undefined &&
+					tile.deposit === undefined
+				)
+			},
+			5,
+			true,
+		)
+		if (shackPath) {
+			const shackCoord = shackPath.pop()!
+			const tile = this.getTile(shackCoord)
+			const building = Object.setPrototypeOf({}, buildings.shack) as Building
+			// Initialize activity weights for all actions (default to 1.0)
+			building.activityWeights = new Array(building.actions.length).fill(0.5)
+			tile!.building = building
+		}
 	}
+
+	private generateRandomGoods(
+		tile: HexTile,
+		seed: number,
+		terrain: TerrainType,
+		deposit: Deposit | undefined,
+	): void {
+		const rnd = LCG(`goods-${seed}`)
+
+		// Generate goods based on deposit type
+		if (deposit) {
+			switch (deposit.name) {
+				case "Tree":
+					// 70% chance for wood under trees
+					if (rnd() < 0.7) {
+						tile.addGood("wood")
+					}
+					break
+				case "Rock":
+					// 60% chance for stone under rocks
+					if (rnd() < 0.6) {
+						tile.addGood("stone")
+					}
+					break
+				case "Berry Bush":
+					// 80% chance for berries under bushes
+					if (rnd() < 0.8) {
+						tile.addGood("berries")
+					}
+					break
+			}
+		}
+
+		// Generate mushrooms in forests (independent of deposits)
+		if (terrain === "forest" && rnd() < 0.3) {
+			tile.addGood("mushrooms")
+		}
+	}
+
 	private generateRandomDeposit(seed: number, terrain: TerrainType): Deposit | undefined {
 		const rnd = LCG(`deposit+${seed}`)
 		function genDeposit(type: Ssh.DepositDefinition, chance: number) {
@@ -163,14 +349,14 @@ export class HexBoard extends D(RenderableContainer, HittableGameObject) {
 				)
 		}
 		switch (terrain) {
-			case 'water':
+			case "water":
 				return undefined
-			case 'forest':
+			case "forest":
 				return genDeposit(deposits.tree, 0.7)
-			case 'rocky': {
+			case "rocky": {
 				return genDeposit(deposits.rock, 0.6)
 			}
-			case 'grass':
+			case "grass":
 				return genDeposit(deposits.berry_bush, 0.1)
 		}
 	}
@@ -214,13 +400,13 @@ export class HexBoard extends D(RenderableContainer, HittableGameObject) {
 
 		// Determine terrain based on random value and probabilities
 		if (random < waterChance) {
-			return 'water'
+			return "water"
 		} else if (random < waterChance + grassChance) {
-			return 'grass'
+			return "grass"
 		} else if (random < waterChance + grassChance + forestChance) {
-			return 'forest'
+			return "forest"
 		} else {
-			return 'rocky'
+			return "rocky"
 		}
 	}
 
@@ -229,34 +415,48 @@ export class HexBoard extends D(RenderableContainer, HittableGameObject) {
 		return this.tiles.get(coord)
 	}
 
-	setTile(coord: AxialRef, tile: HexTile): void {
-		this.tiles.set(coord, tile)
-	}
-
-	hasTile(coord: AxialRef): boolean {
-		return this.tiles.has(coord)
-	}
-
-	getTileCount(): number {
-		return this.tiles.size
-	}
-
-	*getAllTiles(): Iterable<[Axial, HexTile]> {
-		for (const [key, tile] of this.tiles) {
-			const coord = axial.keyAccess(key)
-			yield [coord, tile]
-		}
-	}
-
-	// Get neighbors of a tile
-	getNeighbors(coord: AxialRef): Array<[AxialRef, HexTile | undefined]> {
+	// Get neighbors of a tile with walk time information
+	getNeighbors(coord: AxialRef): NeighborInfo[] {
 		const neighbors = axial.neighbors(coord)
-		return neighbors.map((neighbor: AxialRef) => [neighbor, this.getTile(neighbor)])
+		return neighbors
+			.map((neighbor: AxialRef) => {
+				const tile = this.getTile(neighbor)
+				return tile
+					? {
+							coord: axial.coord(neighbor),
+							walkTime: tile.walkTime,
+						}
+					: null
+			})
+			.filter((neighbor): neighbor is NeighborInfo => neighbor !== null)
 	}
 
-	// Check if a coordinate is within the board bounds
-	isWithinBounds(coord: AxialRef): boolean {
-		const { q, r } = axial.coord(coord)
-		return axial.distance({ q, r }) < this.boardSize
+	/**
+	 * A* pathfinding algorithm with time-based costs and maxTime limit
+	 * @param start Starting coordinate
+	 * @param goal Target coordinate
+	 * @param maxTime Maximum walking time allowed for the path
+	 * @param punctual Whether to aim for the exact goal or allow nearby coordinates
+	 * @returns A path if found within maxTime, undefined otherwise
+	 */
+	findPath(start: AxialRef, goal: AxialRef, maxTime: number, punctual: boolean = false) {
+		return findPath((c) => this.getNeighbors(c), start, goal, maxTime, punctual)
+	}
+
+	/**
+	 * Find the nearest coordinate that satisfies a condition within maxTime
+	 * @param start Starting coordinate
+	 * @param isGoal Function that returns true if the coordinate is a valid goal
+	 * @param maxTime Maximum walking time allowed for the path
+	 * @param punctual Whether to aim for the exact goal or allow nearby coordinates
+	 * @returns Path to the nearest valid goal if found within maxTime, undefined otherwise
+	 */
+	findNearest(
+		start: AxialRef,
+		isGoal: (coord: AxialRef) => boolean,
+		maxTime: number,
+		punctual: boolean = false,
+	) {
+		return findNearest((c) => this.getNeighbors(c), start, isGoal, maxTime, punctual)
 	}
 }

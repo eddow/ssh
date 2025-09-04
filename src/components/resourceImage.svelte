@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { setContext } from 'svelte'
 	import { assetUrls, type Game } from '$lib/game'
 
 	const props = $props<{
@@ -16,10 +17,7 @@
 	const computeStyleFromTexture = (texture: any) => {
 		if (!texture) return ''
 		// Source URL (resource.src doesn't work, resource._sourceOrigin is well set but "private", label seems to work)
-		const src: string | undefined =
-			texture?.source?.resource?.src ??
-			texture?.baseTexture?.resource?.src ??
-			texture?.baseTexture?.source?.label
+		const src: string | undefined = texture?.source?.resource?.src ?? texture?.source?.label
 		if (!src) return ''
 		const frame = texture?.frame ?? {
 			x: 0,
@@ -31,15 +29,10 @@
 		const targetW = width ?? frame?.width ?? texture?.width ?? 0
 		const targetH = height ?? frame?.height ?? texture?.height ?? 0
 		// Source image pixel size and resolution
-		const res: number = texture?.source?.resolution ?? texture?.baseTexture?.resolution ?? 1
-		const sourcePixelW: number =
-			texture?.source?.pixelWidth ??
-			texture?.baseTexture?.pixelWidth ??
-			(texture?.source?.width ?? 0) * res
+		const res: number = texture?.source?.resolution ?? 1
+		const sourcePixelW: number = texture?.source?.pixelWidth ?? (texture?.source?.width ?? 0) * res
 		const sourcePixelH: number =
-			texture?.source?.pixelHeight ??
-			texture?.baseTexture?.pixelHeight ??
-			(texture?.source?.height ?? 0) * res
+			texture?.source?.pixelHeight ?? (texture?.source?.height ?? 0) * res
 		// Fit scale so frame fits inside target maintaining aspect ratio
 		const fitScale = Math.min(
 			targetW / Math.max(1, frame?.width || 0),

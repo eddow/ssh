@@ -12,10 +12,11 @@ export const resources: Record<string, string> = {
 	chopper: "buildings/chopper.png",
 	cutter: "buildings/cutter.png",
 	sawmill: "buildings/sawmill.png",
-	berry: "goods/berry.png",
-	mushroom: "goods/mushroom.png",
+	berries: "goods/berries.png",
+	mushrooms: "goods/mushrooms.png",
 	planks: "goods/planks.png",
 	wood: "goods/wood.png",
+	stone: "goods/stone.png",
 	select: "commands/click.png",
 }
 export const deposits: Record<string, Ssh.DepositDefinition> = {
@@ -44,7 +45,7 @@ export const buildings: Record<string, Ssh.BuildingDefinition> = {
 		maxWorkers: 1,
 		carryingCapacity: 2,
 		restEase: 5,
-		goodsCapacity: { berries: 8, wood: 6, planks: 8, stone: 6 },
+		goodsCapacity: { berries: 3, wood: 3, planks: 3, stone: 3 },
 		actions: [
 			{ type: "transformation", inputs: { wood: 1 }, outputs: { planks: 1 }, time: 6 },
 			{ type: "harvesting", deposit: "tree", output: { wood: 1 }, time: 5 },
@@ -59,7 +60,7 @@ export const buildings: Record<string, Ssh.BuildingDefinition> = {
 		maxWorkers: 2,
 		carryingCapacity: 1,
 		restEase: 10,
-		goodsCapacity: { wood: 12 },
+		goodsCapacity: { wood: 6 },
 		actions: [{ type: "harvesting", deposit: "tree", output: { wood: 1 }, time: 3 }],
 		sprites: ["chopper"],
 		icon: "chopper",
@@ -69,7 +70,7 @@ export const buildings: Record<string, Ssh.BuildingDefinition> = {
 		maxWorkers: 2,
 		carryingCapacity: 1,
 		restEase: 10,
-		goodsCapacity: { stone: 12 },
+		goodsCapacity: { stone: 6 },
 		actions: [{ type: "harvesting", deposit: "rock", output: { stone: 1 }, time: 4 }],
 		sprites: ["cutter"],
 		icon: "cutter",
@@ -79,7 +80,7 @@ export const buildings: Record<string, Ssh.BuildingDefinition> = {
 		maxWorkers: 3,
 		carryingCapacity: 1,
 		restEase: 50,
-		goodsCapacity: { wood: 6, planks: 12 },
+		goodsCapacity: { wood: 3, planks: 6 },
 		actions: [
 			{
 				type: "transformation",
@@ -97,14 +98,14 @@ export const goods: Record<string, Ssh.GoodsDefinition> = {
 	berries: {
 		name: "Berries",
 		feedingValue: 72,
-		sprites: ["berry"],
-		icon: "berry",
+		sprites: ["berries"],
+		icon: "berries",
 	},
 	mushrooms: {
 		name: "Mushrooms",
 		feedingValue: 60,
-		sprites: ["mushroom"],
-		icon: "mushroom",
+		sprites: ["mushrooms"],
+		icon: "mushrooms",
 	},
 	planks: {
 		name: "Planks",
@@ -115,8 +116,8 @@ export const goods: Record<string, Ssh.GoodsDefinition> = {
 	stone: {
 		name: "Stone",
 		feedingValue: 0,
-		sprites: ["rocks/stone1"],
-		icon: "rocks/stone1",
+		sprites: ["stone"],
+		icon: "stone",
 	},
 	wood: {
 		name: "Wood",

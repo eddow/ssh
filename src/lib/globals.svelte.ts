@@ -1,5 +1,5 @@
 import { Eventful, reactive } from "mutts"
-import { Game, InteractiveGameObject, type GameEvents } from "./game"
+import { Game, type GameEvents, type InteractiveGameObject } from "./game"
 
 export interface IConfiguration {
 	darkMode?: boolean

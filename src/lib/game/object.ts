@@ -1,10 +1,10 @@
-import D from "flat-diamond"
-import { effect, Reactive, type ScopedCallback, unreactive } from "mutts"
-import { Container } from "pixi.js"
-import type { WorldCoord } from "$lib/axial"
-import type { Game } from "./game"
 // Library used by Pixi
 import EventEmitter from "eventemitter3"
+import D from "flat-diamond"
+import { effect, type ScopedCallback, unreactive } from "mutts"
+import type { Container } from "pixi.js"
+import type { WorldCoord } from "$lib/hex"
+import type { Game } from "./game"
 
 unreactive(EventEmitter)
 export type Positionable = Container & {
@@ -17,7 +17,7 @@ export abstract class RenderableObject extends D() {
 
 export abstract class GeneratorObject extends D(RenderableObject) {
 	private renderCleanup?: ScopedCallback
-	abstract render(): ScopedCallback | undefined | void
+	abstract render(): ScopedCallback | undefined
 	constructor(game: Game) {
 		super()
 		game.loaded.then(() => {

@@ -9,7 +9,7 @@
 	//https://boxy-svg.com/
 
 	import { Alert } from 'flowbite-svelte'
-	import DarkMode from '$lib/dark-mode.svelte'
+	import DarkMode from '$components/dark-mode.svelte'
 	import { configuration } from '$lib/globals.svelte'
 
 	let darkMode = $state(configuration.darkMode)

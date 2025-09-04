@@ -1,4 +1,4 @@
-import { type Axial, type AxialKey, type AxialRef, axial } from "./axial"
+import { type Axial, type AxialKey, type AxialRef, axial } from "./hex"
 
 export interface AxialKeyDictionary<T> {
 	get(key: AxialRef): T | undefined

@@ -11,7 +11,7 @@
 	import { configuration, debugInfo, games } from '$lib/globals.svelte'
 	import * as gameContent from '$assets/game-content'
 	import widgets from './widgets'
-	import ResourceImage from './lib/resourceImage.svelte'
+	import ResourceImage from '$components/resourceImage.svelte'
 
 	$effect(() => {
 		if (configuration.darkMode) document.documentElement.classList.add('dark')
@@ -86,7 +86,7 @@
 			}
 		)
 	}
-	// todo: dockview template #toolbar -> injected API
+	// todo: dockview template #toolbar -> injected API ?
 </script>
 
 <!-- Prevent default navigation behaviors associated to buttons 3 & 4 -->
@@ -140,6 +140,7 @@
 		</ToolbarGroup>
 	</Toolbar>
 	<DockView
+		singleTabMode="fullwidth"
 		class="content"
 		theme={configuration.darkMode ? 'dracula' : 'light'}
 		bind:api

@@ -1,9 +1,9 @@
-import { Eventful, Reactive, reactive, unreactive, zip } from "mutts"
+import { Eventful, reactive, unreactive, zip } from "mutts"
 import { Application, Assets, Container, Point, Spritesheet, Texture } from "pixi.js"
 import * as gameContent from "$assets/game-content"
+import { mrg } from "$lib/globals.svelte"
 import { HexBoard } from "./hexboard"
 import type { HittableGameObject, InteractiveGameObject } from "./object"
-import { mrg } from "$lib/globals.svelte"
 
 unreactive(gameContent)
 
@@ -44,7 +44,6 @@ export class Game extends Eventful<GameEvents> {
 	public effectLayer: Container
 	public resources: Record<string, Texture | Spritesheet> = null!
 	getTexture(spec: Ssh.Sprite): Texture {
-		const rsc = this.resources[spec]
 		const ci = /(.*)\/(.*)/.exec(spec)
 
 		if (!ci && this.resources[spec] instanceof Texture) return this.resources[spec] as Texture
