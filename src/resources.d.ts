@@ -1,11 +1,6 @@
 declare namespace Ssh {
-	interface SpriteDefinition {
-		file: string
-		atlas?: string
-	}
-	type FileSprite = { image: string }
-	type AtlasSprite = { atlas: string; frame?: string }
-	type Sprite = FileSprite | AtlasSprite
+	type SpriteDefinition = string
+	type Sprite = string
 	interface DepositDefinition {
 		name: string
 		maxAmount: number

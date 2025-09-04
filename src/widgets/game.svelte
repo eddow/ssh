@@ -35,12 +35,11 @@
 
 	const gameEvents = {
 		objectOver(event: any, object: InteractiveGameObject) {
-			debugInfo.hover = {
-				type: object.constructor.name
-			}
+			const di = object.debugInfo
+			if (di) debugInfo[object.title] = di
 		},
 		objectOut(event: any, object: InteractiveGameObject) {
-			delete debugInfo.hover
+			delete debugInfo[object.title]
 		},
 		objectDown(event: any, object: InteractiveGameObject, stopPropagation: () => void) {
 			if (event.button === 0) {

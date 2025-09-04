@@ -1,42 +1,29 @@
 export const prefix = "/assets/"
-export const resources: Record<string, Ssh.SpriteDefinition> = {
-	rocks: {
-		file: "objects/rocks.png",
-		atlas: "objects/rocks.json",
-	},
-	trees: {
-		file: "objects/trees.png",
-		atlas: "objects/trees.json",
-	},
-	"terrain-rocky": {
-		file: "terrain/stone.jpg",
-	},
-	"terrain-grass": {
-		file: "terrain/grass.jpg",
-	},
-	"terrain-forest": {
-		file: "terrain/forest.jpg",
-	},
-	"terrain-water": {
-		file: "terrain/water.jpg",
-	},
+export const resources: Record<string, string> = {
+	rocks: "objects/rocks.json",
+	trees: "objects/trees.json",
+	bushes: "objects/bushes.json",
+	"terrain-rocky": "terrain/stone.jpg",
+	"terrain-grass": "terrain/grass.jpg",
+	"terrain-forest": "terrain/forest.jpg",
+	"terrain-water": "terrain/water.jpg",
 }
 export const deposits: Record<string, Ssh.DepositDefinition> = {
-	/*
 	berry_bush: {
 		name: 'Berry Bush',
 		maxAmount: 18,
-		regenerateRate: .01
-	},*/
+		regenerate: .01,
+		sprites: ["bushes/bush1"],
+	},
 	rock: {
 		name: "Rock",
 		maxAmount: 18,
-		sprites: [{ atlas: "rocks" }],
+		sprites: ["rocks/rock1", "rocks/rock2", "rocks/rock3", "rocks/rock4", "rocks/rock5", "rocks/rock6"],
 	},
 	tree: {
 		name: "Tree",
 		maxAmount: 12,
-		sprites: [{ atlas: "trees" }],
+		sprites: ["trees/tree1", "trees/tree2", "trees/tree3", "trees/tree4", "trees/tree5", "trees/tree6", "trees/tree7", "trees/tree8", "trees/tree9", "trees/tree10", "trees/tree11"],
 		regenerate: 0.01,
 	},
 }
@@ -56,7 +43,7 @@ export const buildings: Record<string, Ssh.BuildingDefinition> = {
 				time: 2,
 			},
 		],
-		sprites: [{ atlas: "buildings", frame: "sawmill" }],
+		sprites: ["buildings/sawmill"],
 	},
 	shack: {
 		name: "Shack",
@@ -70,7 +57,7 @@ export const buildings: Record<string, Ssh.BuildingDefinition> = {
 			{ type: "harvesting", deposit: "berry_bush", output: { berries: 1 }, time: 4 },
 			{ type: "harvesting", deposit: "rock", output: { stone: 1 }, time: 6 },
 		],
-		sprites: [{ atlas: "buildings", frame: "shack" }],
+		sprites: ["buildings/shack"],
 	},
 	stonecutter: {
 		name: "Stone Cutter",
@@ -79,7 +66,7 @@ export const buildings: Record<string, Ssh.BuildingDefinition> = {
 		restEase: 10,
 		goodsCapacity: { stone: 12 },
 		actions: [{ type: "harvesting", deposit: "rock", output: { stone: 1 }, time: 4 }],
-		sprites: [{ atlas: "buildings", frame: "stonecutter" }],
+		sprites: ["buildings/stonecutter"],
 	},
 	tree_chopper: {
 		name: "Tree Chopper",
@@ -88,7 +75,7 @@ export const buildings: Record<string, Ssh.BuildingDefinition> = {
 		restEase: 10,
 		goodsCapacity: { wood: 12 },
 		actions: [{ type: "harvesting", deposit: "tree", output: { wood: 1 }, time: 3 }],
-		sprites: [{ atlas: "buildings", frame: "tree_chopper" }],
+		sprites: ["buildings/tree_chopper"],
 	},
 }
 
@@ -96,26 +83,26 @@ export const goods: Record<string, Ssh.GoodsDefinition> = {
 	berries: {
 		name: "Berries",
 		feedingValue: 72,
-		sprites: [{ atlas: "goods", frame: "berries" }],
+		sprites: ["goods/berries"],
 	},
 	mushrooms: {
 		name: "Mushrooms",
 		feedingValue: 60,
-		sprites: [{ atlas: "goods", frame: "mushrooms" }],
+		sprites: ["goods/mushrooms"],
 	},
 	planks: {
 		name: "Planks",
 		feedingValue: 0,
-		sprites: [{ atlas: "goods", frame: "planks" }],
+		sprites: ["goods/planks"],
 	},
 	stone: {
 		name: "Stone",
 		feedingValue: 0,
-		sprites: [{ atlas: "goods", frame: "stone" }],
+		sprites: ["goods/stone"],
 	},
 	wood: {
 		name: "Wood",
 		feedingValue: 0,
-		sprites: [{ atlas: "goods", frame: "wood" }],
+		sprites: ["goods/wood"],
 	},
 }

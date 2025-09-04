@@ -1,6 +1,7 @@
 import D from "flat-diamond"
 import { effect, Reactive, type ScopedCallback, unreactive } from "mutts"
 import { Container } from "pixi.js"
+import type { WorldCoord } from "$lib/axial"
 import type { Game } from "./game"
 
 unreactive(Container)
@@ -12,23 +13,13 @@ export abstract class RenderableObject extends D(Reactive()) {
 	destroy() {}
 }
 
-export abstract class GeneratorObject<T extends Container[]> extends D(RenderableObject) {
+export abstract class GeneratorObject extends D(RenderableObject) {
 	private renderCleanup?: ScopedCallback
-	abstract render(): T
-	abstract manage(objects: T): ScopedCallback
+	abstract render(): ScopedCallback | undefined | void
 	constructor(game: Game) {
 		super()
 		game.loaded.then(() => {
-			if (!this.renderCleanup)
-				this.renderCleanup = effect(
-					() => this.render(),
-					(objs) => {
-						this.manage(objs)
-						return () => {
-							for (const obj of objs) obj.destroy()
-						}
-					},
-				)
+			if (!this.renderCleanup) this.renderCleanup = effect(() => this.render())
 		})
 	}
 	destroy() {
@@ -81,6 +72,9 @@ export abstract class InteractiveGameObject extends D(RenderableObject) {
 	 * @param highlighted - Whether to highlight or unhighlight
 	 */
 	abstract highlight(highlighted: boolean): void
+	abstract readonly title: string
+	abstract readonly debugInfo?: Record<string, any>
+	abstract readonly worldPosition: WorldCoord
 	constructor(
 		public readonly game: Game,
 		public readonly uid: string,

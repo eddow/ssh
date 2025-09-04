@@ -1,7 +1,8 @@
 <script lang="ts" module>
 	const game = games.game('GameX')
-	export function title(params: Record<string, any>) {
-		return `Tile`
+	export function title({ uid }: Record<string, any>) {
+		const obj = game.getObject(uid)
+		return obj?.title ?? `Unknown object ${uid}`
 	}
 </script>
 
@@ -25,9 +26,8 @@
 
 <div class="tile-info">
 	{#if object instanceof HexTile}
-		<h1>{object.worldPosition}</h1>
+		<h1>{object.coord.q}, {object.coord.r}</h1>
 		<h3>{object.terrain}</h3>
-		{object.squares}
 	{:else}
 		<error>Unknown object</error>
 	{/if}

@@ -1,6 +1,7 @@
 import D from "flat-diamond"
-import type { ScopedCallback } from "mutts"
-import { Container, Graphics, Point, TilingSprite } from "pixi.js"
+import { effect } from "mutts"
+import { Container, Graphics, Point, Sprite, TilingSprite } from "pixi.js"
+import { deposits } from "$assets/game-content"
 import {
 	GeneratorObject,
 	HittableGameObject,
@@ -34,12 +35,26 @@ export enum TerrainType {
 export class HexTile extends D(InteractiveGameObject, GeneratorObject) {
 	constructor(
 		public readonly hex: HexBoard,
-		//declare deposit?: Ssh.Deposit
+		public deposit: Deposit | undefined,
 		readonly coord: AxialCoord,
 
 		public terrain: TerrainType,
 	) {
 		super(hex.game, `hex-tile-${coord.q}-${coord.r}`)
+	}
+
+	get title(): string {
+		return `Tile ${this.coord.q}, ${this.coord.r}`
+	}
+
+	get debugInfo(): Record<string, any> {
+		const info: any = {
+			terrain: this.terrain,
+		}
+		if (this.deposit) {
+			info[this.deposit.name] = this.deposit.amount
+		}
+		return info
 	}
 
 	highlight(highlighted: boolean) {
@@ -51,7 +66,7 @@ export class HexTile extends D(InteractiveGameObject, GeneratorObject) {
 		return this.hex.axial2world(this.coord)
 	}
 
-	render(): Container[] {
+	render() {
 		const { terrain } = this
 		const { hex, worldPosition, game } = this
 		const { x: wpx, y: wpy } = worldPosition
@@ -62,7 +77,7 @@ export class HexTile extends D(InteractiveGameObject, GeneratorObject) {
 
 		// Create tiling sprite from terrain texture
 		const size = hex.tileSize
-		const texture = this.game.resources[`terrain-${terrain}`]
+		const texture = this.game.getTexture(`terrain-${terrain}`)
 		const tileSprite = new TilingSprite({ texture, width: size * 2, height: size * 2 })
 		tileSprite.anchor.set(0.5)
 		// Align tile offset so it scrolls seamlessly with world
@@ -79,13 +94,16 @@ export class HexTile extends D(InteractiveGameObject, GeneratorObject) {
 
 		tileContainer.addChild(tileSprite, mask)
 		game.backgroundLayer.addChild(tileContainer)
-
-		return [tileContainer]
-	}
-	manage([tileContainer]: [Container]): ScopedCallback {
+		const depositEffect = effect(() => {
+			if (this.deposit) {
+				const depositSprite = new Sprite(game.getTexture(this.deposit.sprites[0]))
+				depositSprite.position.set(wpx, wpy)
+				game.objectLayer.addChild(depositSprite)
+			}
+		})
 		this.game.backgroundLayer.addChild(tileContainer)
 		return () => {
-			// Cleanup
+			depositEffect()
 			for (const child of [...tileContainer.children]) child.destroy({ children: true })
 			this.game.backgroundLayer.removeChild(tileContainer)
 			tileContainer.destroy({ children: true })
@@ -95,7 +113,6 @@ export class HexTile extends D(InteractiveGameObject, GeneratorObject) {
 
 export class HexBoard extends D(RenderableContainer, HittableGameObject) {
 	private tiles: AxialKeyMap<HexTile>
-	private rnd: RandGenerator
 
 	axial2world(coord: AxialRef): WorldCoord {
 		return cartesian(coord, this.tileSize)
@@ -112,7 +129,6 @@ export class HexBoard extends D(RenderableContainer, HittableGameObject) {
 	) {
 		super(game, "hexboard")
 		this.tiles = new AxialKeyMap()
-		this.rnd = LCG("hexboard-seed") // Use a constant seed for reproducibility
 		this.generateBoard()
 	}
 
@@ -125,19 +141,45 @@ export class HexBoard extends D(RenderableContainer, HittableGameObject) {
 	private generateBoard(): void {
 		// Generate all tiles within the board radius
 		for (const coord of axial.enum(this.boardSize - 1)) {
-			const terrain = this.generateRandomTerrain(coord)
-			const tile = new HexTile(this, coord, terrain)
+			const seed = axial.access(coord).key
+			const terrain = this.generateRandomTerrain(seed, coord)
+			const deposit = this.generateRandomDeposit(seed, terrain)
+			const tile = new HexTile(this, deposit, coord, terrain)
 			this.tiles.set(coord, tile)
 		}
 	}
+	private generateRandomDeposit(seed: number, terrain: TerrainType): Deposit | undefined {
+		const rnd = LCG(`deposit+${seed}`)
+		function genDeposit(type: Ssh.DepositDefinition, chance: number) {
+			if (rnd() < chance)
+				return Object.setPrototypeOf(
+					{
+						amount: Math.floor(((1 + rnd() * 2) * type.maxAmount) / 3),
+					},
+					type,
+				)
+		}
+		switch (terrain) {
+			case TerrainType.WATER:
+				return undefined
+			case TerrainType.FOREST:
+				return genDeposit(deposits.tree, 0.7)
+			case TerrainType.ROCKY: {
+				return genDeposit(deposits.rock, 0.6)
+			}
+			case TerrainType.GRASS:
+				return genDeposit(deposits.berry_bush, 0.1)
+		}
+	}
 
-	private generateRandomTerrain(coord: { q: number; r: number }): TerrainType {
+	private generateRandomTerrain(seed: number, coord: AxialCoord): TerrainType {
+		const rnd = LCG(`deposit-${seed}`)
 		// Create some randomness based on position for more interesting generation
 		const distance = axial.distance(coord)
 		const angle = Math.atan2(coord.r, coord.q)
 
 		// Use the reproducible random generator for consistent randomness
-		const random = this.rnd()
+		const random = rnd()
 
 		// Adjust probabilities based on distance from center
 		let waterChance = 0.15

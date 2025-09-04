@@ -1,16 +1,31 @@
 import { Eventful, reactive, unreactive, zip } from "mutts"
-import { Application, Assets, Container, Point, type Texture } from "pixi.js"
+import { Application, Assets, Container, Point, Spritesheet, Texture } from "pixi.js"
 import * as gameContent from "$assets/game-content"
 import { HexBoard } from "./hexboard"
 import type { HittableGameObject, InteractiveGameObject } from "./object"
 
 unreactive(gameContent)
 
-const assetsToLoad = Object.values(gameContent.resources).map((resource) => resource.file)
+const assetsToLoad = Object.entries(gameContent.resources)
 
 const assetsLoading = Promise.all(
-	assetsToLoad.map((resource) => Assets.load(`${gameContent.prefix}${resource}`)),
-).then((assets) => Object.fromEntries(zip(assetsToLoad, assets)))
+	assetsToLoad.map(([_, resource]) => Assets.load(`${gameContent.prefix}${resource}`)),
+).then((assets) =>
+	Object.fromEntries(
+		zip(
+			assetsToLoad.map(([key]) => key),
+			assets,
+		),
+	),
+)
+
+export type GameEvents = {
+	objectOver(pointer: any, object: InteractiveGameObject, stopPropagation?: () => void): void
+	objectOut(pointer: any, object: InteractiveGameObject): void
+	objectDown(pointer: any, object: InteractiveGameObject, stopPropagation?: () => void): void
+	objectUp(pointer: any, object: InteractiveGameObject): void
+	objectClick(pointer: any, object: InteractiveGameObject): void
+}
 export class Game extends Eventful<GameEvents> {
 	public get name() {
 		return "GameX"
@@ -19,17 +34,25 @@ export class Game extends Eventful<GameEvents> {
 	public backgroundLayer: Container
 	public objectLayer: Container
 	public effectLayer: Container
-	public resources: Record<string, Texture> = null!
+	public resources: Record<string, Texture | Spritesheet> = null!
+	getTexture(spec: Ssh.Sprite): Texture {
+		if(!spec.startsWith("terrain-")) console.log("getTexture", spec)
+		const rsc = this.resources[spec]
+		const ci = /(.*)\/(.*)/.exec(spec)
 
+		if (!ci && this.resources[spec] instanceof Texture) return this.resources[spec] as Texture
+		if (ci && this.resources[ci[1]] instanceof Spritesheet) {
+			const ss = this.resources[ci[1]] as Spritesheet
+			return ss.textures[ci[2]]
+		}
+		throw new Error(`Unknown sprite spec: ${JSON.stringify(spec)}`)
+	}
 	public readonly objects = reactive(new Map<string, InteractiveGameObject>())
 	public readonly hittableObjects = new Set<HittableGameObject>()
 	private hex?: HexBoard
 	public loaded: Promise<void>
 	private async load() {
-		const files = await assetsLoading
-		this.resources = Object.fromEntries(
-			Object.entries(gameContent.resources).map(([key, value]) => [key, files[value.file]]),
-		)
+		this.resources = await assetsLoading
 	}
 
 	getObject(uid: string) {
@@ -81,14 +104,6 @@ export class Game extends Eventful<GameEvents> {
 	}
 }
 
-export type GameEvents = {
-	objectOver(pointer: any, object: InteractiveGameObject, stopPropagation?: () => void): void
-	objectOut(pointer: any, object: InteractiveGameObject): void
-	objectDown(pointer: any, object: InteractiveGameObject, stopPropagation?: () => void): void
-	objectUp(pointer: any, object: InteractiveGameObject): void
-	objectClick(pointer: any, object: InteractiveGameObject): void
-}
-
 export class GameView {
 	public pixi: Application
 	public stage: Container
@@ -117,7 +132,6 @@ export class GameView {
 		globalThis.__PIXI_APP__ = this.pixi
 		//new Stats(this.pixi.renderer, document.body)
 	}
-
 	// Panning properties
 	private isPanning = false
 	private panStartPosition = { x: 0, y: 0 }
