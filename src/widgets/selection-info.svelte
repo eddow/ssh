@@ -10,11 +10,12 @@
 	import { games } from '$lib/globals.svelte'
 	import { Button } from 'flowbite-svelte'
 	import { EyeOutline } from 'flowbite-svelte-icons'
-	import { HexTile, InteractiveGameObject } from '$lib/game'
+	import { HexTile, InteractiveGameObject, Character } from '$lib/game'
 	import { mrg } from '$lib/globals.svelte'
 	import { effect, unwrap } from 'mutts'
 	import TileProperties from '$components/TileProperties.svelte'
 	import BuildingProperties from '$components/BuildingProperties.svelte'
+	import CharacterProperties from '$components/CharacterProperties.svelte'
 
 	let { uid }: { uid: string } = $props()
 	let object: InteractiveGameObject | undefined = $state(undefined)
@@ -23,7 +24,7 @@
 	})
 
 	function goTo() {
-		const { x, y } = object!.worldPosition
+		const { x, y } = object!.position
 		game.stage.position.set(-x, -y)
 	}
 	function mouseIn() {
@@ -43,11 +44,12 @@
 	</div>
 
 	<div class="content">
-		{#if object instanceof HexTile}
+		{#if object instanceof Character}
+			<CharacterProperties character={object} />
+		{:else if object instanceof HexTile}
+			<TileProperties tile={object} />
 			{#if object.building}
 				<BuildingProperties tile={object} />
-			{:else}
-				<TileProperties tile={object} />
 			{/if}
 		{:else}
 			<div class="error">

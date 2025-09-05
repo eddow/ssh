@@ -18,6 +18,7 @@ export const resources: Record<string, string> = {
 	wood: "goods/wood.png",
 	stone: "goods/stone.png",
 	select: "commands/click.png",
+	character: "character.png",
 }
 export const deposits: Record<string, Ssh.DepositDefinition> = {
 	berry_bush: {

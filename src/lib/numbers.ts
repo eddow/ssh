@@ -40,3 +40,46 @@ export function numbers(maxP: number, min = 0, step = 1) {
 export function subSeed(...seeds: (number | string)[]) {
 	return seeds.reduce<number>((acc, seed) => acc ^ (numeric(seed) * c), 0)
 }
+
+export function uuid(rnd: RandGenerator) {
+	// Generate a proper UUID v4 format: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
+	// where x is any hexadecimal digit and y is one of 8, 9, A, or B
+
+	// Generate 32 random hex digits
+	const hex = "0123456789abcdef"
+	let result = ""
+
+	// Generate 8 hex digits
+	for (let i = 0; i < 8; i++) {
+		result += hex[Math.floor(rnd(16))]
+	}
+	result += "-"
+
+	// Generate 4 hex digits
+	for (let i = 0; i < 4; i++) {
+		result += hex[Math.floor(rnd(16))]
+	}
+	result += "-"
+
+	// Version 4 identifier (4xxx)
+	result += "4"
+	for (let i = 0; i < 3; i++) {
+		result += hex[Math.floor(rnd(16))]
+	}
+	result += "-"
+
+	// Variant identifier (yxxx where y is 8, 9, A, or B)
+	const variantChars = ["8", "9", "a", "b"]
+	result += variantChars[Math.floor(rnd(4))]
+	for (let i = 0; i < 3; i++) {
+		result += hex[Math.floor(rnd(16))]
+	}
+	result += "-"
+
+	// Generate remaining 12 hex digits
+	for (let i = 0; i < 12; i++) {
+		result += hex[Math.floor(rnd(16))]
+	}
+
+	return result
+}

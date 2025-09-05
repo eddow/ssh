@@ -1,5 +1,5 @@
 import D from "flat-diamond"
-import { effect, Reactive, type ScopedCallback } from "mutts"
+import { effect, reactive, Reactive, type ScopedCallback } from "mutts"
 import { ColorMatrixFilter, Container, Graphics, Point, Sprite, TilingSprite } from "pixi.js"
 import { buildings, deposits, goods } from "$assets/game-content"
 import {
@@ -21,15 +21,9 @@ import {
 	type WorldCoord,
 } from "../hex"
 import { AxialKeyMap } from "../mem"
-import { LCG } from "../numbers"
+import type { Character } from "./character"
 import type { Game } from "./game"
-
-function resizeSprite(sprite: Sprite, size: number) {
-	const scale = Math.max(sprite.width, sprite.height) / size
-	sprite.scale.x /= scale
-	sprite.scale.y /= scale
-}
-
+// TODO: check container.cacheAsTexture() for background
 export interface Deposit extends Ssh.DepositDefinition {
 	amount: number
 }
@@ -37,6 +31,8 @@ export interface Deposit extends Ssh.DepositDefinition {
 export interface Building extends Ssh.BuildingDefinition {
 	// Activity weights for each action (0 to 1)
 	activityWeights: number[]
+	// Assigned workers (characters)
+	assignedWorkers: Character[] // Character objects
 }
 
 export type TerrainType = "water" | "grass" | "forest" | "rocky"
@@ -74,14 +70,14 @@ export class HexTile extends Reactive(D(InteractiveGameObject, GeneratorObject))
 
 	get walkTime(): number {
 		// Buildings make tiles unwalkable
-		if (this.building) return 5
+		if (this.building) return 6
 		// Water is unwalkable
 		if (this.terrain === "water") return Number.POSITIVE_INFINITY
 		// All other terrain is walkable
 		return 1
 	}
 
-	get worldPosition(): WorldCoord {
+	get position(): WorldCoord {
 		return this.hex.axial2world(this.coord)
 	}
 
@@ -130,8 +126,8 @@ export class HexTile extends Reactive(D(InteractiveGameObject, GeneratorObject))
 
 	render = () => {
 		const { terrain } = this
-		const { hex, worldPosition, game } = this
-		const { x: wpx, y: wpy } = worldPosition
+		const { hex, position, game } = this
+		const { x: wpx, y: wpy } = position
 
 		// Container for this tile
 		const tileContainer = new Container()
@@ -167,7 +163,7 @@ export class HexTile extends Reactive(D(InteractiveGameObject, GeneratorObject))
 			} else if (this.deposit && !depositSprite) {
 				depositSprite = new Sprite(game.getTexture(this.deposit.sprites[0]))
 				depositSprite.position.set(wpx, wpy)
-				resizeSprite(depositSprite, size)
+				hex.resizeSprite(depositSprite, 1)
 				game.objectLayer.addChild(depositSprite)
 			}
 		})
@@ -178,7 +174,7 @@ export class HexTile extends Reactive(D(InteractiveGameObject, GeneratorObject))
 			} else if (this.building && !buildingSprite) {
 				buildingSprite = new Sprite(game.getTexture(this.building.sprites[0]))
 				buildingSprite.position.set(wpx, wpy)
-				resizeSprite(buildingSprite, size * 1.5)
+				hex.resizeSprite(buildingSprite, 1.5)
 				game.objectLayer.addChild(buildingSprite)
 			}
 		})
@@ -196,7 +192,7 @@ export class HexTile extends Reactive(D(InteractiveGameObject, GeneratorObject))
 						goodsSprites[i] = undefined
 					} else if (good && !goodsSprites[i]) {
 						const goodsSprite = new Sprite(game.getTexture(goods[good].sprites[0]))
-						resizeSprite(goodsSprite, size * 0.5)
+						hex.resizeSprite(goodsSprite, 0.5)
 
 						// Position in triangular pattern (de-centered)
 						const angle = (i * 2 * Math.PI) / 3 // 120 degrees apart
@@ -256,7 +252,7 @@ export class HexBoard extends D(RenderableContainer, HittableGameObject) {
 	) {
 		super(game, "hexboard")
 		this.tiles = new AxialKeyMap()
-		this.generateBoard()
+		this.zIndex = -1 // Background layer - tiles should be hit-tested last
 	}
 
 	hitTest = (worldX: number, worldY: number): InteractiveGameObject | false => {
@@ -265,7 +261,13 @@ export class HexBoard extends D(RenderableContainer, HittableGameObject) {
 		return this.getTile(coord) ?? false
 	}
 
-	private generateBoard(): void {
+	resizeSprite(sprite: Sprite, size: number) {
+		size *= this.tileSize
+		const scale = Math.max(sprite.width, sprite.height) / size
+		sprite.scale.x /= scale
+		sprite.scale.y /= scale
+	}
+	public generateBoard(): void {
 		// Generate all tiles within the board radius
 		for (const coord of axial.enum(this.boardSize - 1)) {
 			const seed = axial.access(coord).key
@@ -283,7 +285,8 @@ export class HexBoard extends D(RenderableContainer, HittableGameObject) {
 					!!tile &&
 					tile.terrain !== "water" &&
 					tile.building === undefined &&
-					tile.deposit === undefined
+					tile.deposit === undefined &&
+					tile.goods.every((good) => good === undefined)
 				)
 			},
 			5,
@@ -291,11 +294,13 @@ export class HexBoard extends D(RenderableContainer, HittableGameObject) {
 		)
 		if (shackPath) {
 			const shackCoord = shackPath.pop()!
-			const tile = this.getTile(shackCoord)
+			const tile = this.getTile(shackCoord)!
 			const building = Object.setPrototypeOf({}, buildings.shack) as Building
 			// Initialize activity weights for all actions (default to 1.0)
 			building.activityWeights = new Array(building.actions.length).fill(0.5)
-			tile!.building = building
+			// Initialize assigned workers array
+			building.assignedWorkers = []
+			tile.building = reactive(building)
 		}
 	}
 
@@ -305,7 +310,7 @@ export class HexBoard extends D(RenderableContainer, HittableGameObject) {
 		terrain: TerrainType,
 		deposit: Deposit | undefined,
 	): void {
-		const rnd = LCG(`goods-${seed}`)
+		const rnd = this.game.lcg(`goods-${seed}`)
 
 		// Generate goods based on deposit type
 		if (deposit) {
@@ -338,7 +343,7 @@ export class HexBoard extends D(RenderableContainer, HittableGameObject) {
 	}
 
 	private generateRandomDeposit(seed: number, terrain: TerrainType): Deposit | undefined {
-		const rnd = LCG(`deposit+${seed}`)
+		const rnd = this.game.lcg(`deposit+${seed}`)
 		function genDeposit(type: Ssh.DepositDefinition, chance: number) {
 			if (rnd() < chance)
 				return Object.setPrototypeOf(
@@ -362,7 +367,7 @@ export class HexBoard extends D(RenderableContainer, HittableGameObject) {
 	}
 
 	private generateRandomTerrain(seed: number, coord: AxialCoord): TerrainType {
-		const rnd = LCG(`deposit-${seed}`)
+		const rnd = this.game.lcg(`deposit-${seed}`)
 		// Create some randomness based on position for more interesting generation
 		const distance = axial.distance(coord)
 		const angle = Math.atan2(coord.r, coord.q)
@@ -439,7 +444,7 @@ export class HexBoard extends D(RenderableContainer, HittableGameObject) {
 	 * @param punctual Whether to aim for the exact goal or allow nearby coordinates
 	 * @returns A path if found within maxTime, undefined otherwise
 	 */
-	findPath(start: AxialRef, goal: AxialRef, maxTime: number, punctual: boolean = false) {
+	findPath(start: AxialRef, goal: AxialRef, maxTime: number, punctual: boolean = true) {
 		return findPath((c) => this.getNeighbors(c), start, goal, maxTime, punctual)
 	}
 
@@ -455,7 +460,7 @@ export class HexBoard extends D(RenderableContainer, HittableGameObject) {
 		start: AxialRef,
 		isGoal: (coord: AxialRef) => boolean,
 		maxTime: number,
-		punctual: boolean = false,
+		punctual: boolean = true,
 	) {
 		return findNearest((c) => this.getNeighbors(c), start, isGoal, maxTime, punctual)
 	}

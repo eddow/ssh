@@ -1,18 +1,62 @@
 <script lang="ts">
 	import { unwrap } from 'mutts'
 	import type { HexTile } from '$lib/game'
-	import { Badge, Range } from 'flowbite-svelte'
+	import { Badge, Range, Button } from 'flowbite-svelte'
+	import { games, muttsArray } from '$lib/globals.svelte'
 
 	let { tile }: { tile: HexTile } = $props()
-
-	let building = $derived(tile.building)
-	let weights = $state<number[]>([])
+	const game = games.game('GameX')
+	let building = $derived(tile.building) //mutts2svelte(tile, 'building')
+	//let assignedWorkers = $derived(tile.building?.assignedWorkers ?? [])
+	let assignedWorkers = $derived(muttsArray(tile.building?.assignedWorkers ?? []))
+	let weights = $derived(muttsArray(tile.building?.activityWeights ?? []))
+	//let weights = $state<number[]>([])
 	// TODO: mutts array reactivity interacts badly with svelte
-	weights = (() => unwrap(building?.activityWeights ?? []))()
+	//weights = (() => unwrap(building?.activityWeights ?? []))()
 	function updateActivityWeight(actionIndex: number, value: number) {
 		if (building && building.activityWeights) {
 			building.activityWeights[actionIndex] = value
-			weights[actionIndex] = value
+			//weights[actionIndex] = value
+		}
+	}
+
+	function assignWorker() {
+		if (!building || !building.assignedWorkers) return
+
+		// Check if building has capacity for more workers
+		if (building.assignedWorkers.length >= building.maxWorkers) {
+			alert(`Building is at maximum capacity (${building.maxWorkers} workers)`)
+			return
+		}
+
+		// Find nearest unemployed character
+		const nearestCharacter = game.population.findNearestUnemployed(tile.coord)
+		if (!nearestCharacter) {
+			alert('No unemployed characters available')
+			return
+		}
+
+		// Assign character to building
+		nearestCharacter.assignedBuilding = building
+		building.assignedWorkers.push(nearestCharacter)
+		assignedWorkers = assignedWorkers
+	}
+
+	function freeWorker() {
+		if (!building || building.assignedWorkers.length === 0) return
+
+		// Get the first assigned character
+		const assignedCharacter = building.assignedWorkers[0]
+
+		if (assignedCharacter) {
+			// Free the character
+			assignedCharacter.assignedBuilding = undefined
+			// Remove from array
+			const index = building.assignedWorkers.indexOf(assignedCharacter)
+			if (index > -1) {
+				building.assignedWorkers.splice(index, 1)
+			}
+			assignedWorkers = assignedWorkers
 		}
 	}
 </script>
@@ -39,6 +83,29 @@
 			<div class="flex items-center gap-2">
 				<span class="font-medium">Rest Ease:</span>
 				<Badge color="yellow">{building.restEase}</Badge>
+			</div>
+
+			<div class="flex items-center gap-2">
+				<span class="font-medium">Assigned Workers:</span>
+				<Badge color="purple">{assignedWorkers?.length ?? 0} / {building.maxWorkers}</Badge>
+			</div>
+
+			<div class="flex items-center gap-2 mt-3">
+				<Button
+					size="sm"
+					onclick={assignWorker}
+					disabled={(assignedWorkers?.length ?? 0) >= building.maxWorkers}
+				>
+					Assign Worker
+				</Button>
+				<Button
+					size="sm"
+					color="red"
+					onclick={freeWorker}
+					disabled={(assignedWorkers?.length ?? 0) === 0}
+				>
+					Free Worker
+				</Button>
 			</div>
 
 			{#if Object.keys(building.goodsCapacity).length > 0}

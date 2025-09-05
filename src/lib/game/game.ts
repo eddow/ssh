@@ -2,6 +2,8 @@ import { Eventful, reactive, unreactive, zip } from "mutts"
 import { Application, Assets, Container, Point, Spritesheet, Texture } from "pixi.js"
 import * as gameContent from "$assets/game-content"
 import { mrg } from "$lib/globals.svelte"
+import { LCG } from "$lib/numbers"
+import { Population } from "./character"
 import { HexBoard } from "./hexboard"
 import type { HittableGameObject, InteractiveGameObject } from "./object"
 
@@ -38,11 +40,15 @@ export class Game extends Eventful<GameEvents> {
 	public get name() {
 		return "GameX"
 	}
+	public lcg(seed: string | number) {
+		return LCG("gameSeed", seed)
+	}
 	public stage: Container
 	public backgroundLayer: Container
 	public objectLayer: Container
 	public effectLayer: Container
 	public resources: Record<string, Texture | Spritesheet> = null!
+	public readonly population: Population
 	getTexture(spec: Ssh.Sprite): Texture {
 		const ci = /(.*)\/(.*)/.exec(spec)
 
@@ -55,7 +61,7 @@ export class Game extends Eventful<GameEvents> {
 	}
 	public readonly objects = reactive(new Map<string, InteractiveGameObject>())
 	public readonly hittableObjects = new Set<HittableGameObject>()
-	private hex?: HexBoard
+	public readonly hex: HexBoard
 	public loaded: Promise<void>
 	private async load() {
 		this.resources = await assetsLoading
@@ -81,10 +87,6 @@ export class Game extends Eventful<GameEvents> {
 		object.destroy()
 	}
 
-	get hexBoard() {
-		return this.hex
-	}
-
 	constructor() {
 		super()
 		this.loaded = this.load()
@@ -107,6 +109,15 @@ export class Game extends Eventful<GameEvents> {
 
 		// Create hex board
 		this.hex = new HexBoard(this)
+
+		// Create population singleton
+		this.population = new Population(this)
+
+		this.generate()
+	}
+	generate(state: any = {}) {
+		this.hex?.generateBoard()
+		this.population.generateCharacters()
 	}
 }
 
@@ -156,7 +167,10 @@ export class GameView {
 		}
 
 		const topmostInteractiveAt = (worldX: number, worldY: number) => {
-			for (const interactive of game.hittableObjects) {
+			// Sort hittable objects by zIndex (highest first)
+			const sortedHittables = Array.from(game.hittableObjects).sort((a, b) => b.zIndex - a.zIndex)
+
+			for (const interactive of sortedHittables) {
 				const hit = interactive.hitTest(worldX, worldY)
 				if (hit) return hit
 			}

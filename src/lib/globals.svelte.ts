@@ -1,4 +1,4 @@
-import { Eventful, reactive } from "mutts"
+import { Eventful, effect as mEffect, reactive, unwrap } from "mutts"
 import { Game, type GameEvents, type InteractiveGameObject } from "./game"
 
 export interface IConfiguration {
@@ -46,3 +46,16 @@ export const games = new Games()
 export const mrg = reactive({
 	hoveredObject: undefined as InteractiveGameObject | undefined,
 })
+
+export function muttsArray<T>(muttsArray: T[]): T[] {
+	let svelteArray = $state([...muttsArray])
+	
+	$effect(() =>
+		mEffect(() => {
+			// Replace entire array to trigger Svelte reactivity
+			svelteArray.splice(0, svelteArray.length, ...muttsArray)
+			//svelteArray = [...muttsArray]
+		}))
+	
+	return svelteArray
+}

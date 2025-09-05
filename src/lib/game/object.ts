@@ -18,8 +18,8 @@ export abstract class RenderableObject extends D() {
 export abstract class GeneratorObject extends D(RenderableObject) {
 	private renderCleanup?: ScopedCallback
 	abstract render(): ScopedCallback | undefined
-	constructor(game: Game) {
-		super()
+	constructor(game: Game, ...args: any[]) {
+		super(game, ...args)
 		game.loaded.then(() => {
 			if (!this.renderCleanup) this.renderCleanup = effect(() => this.render())
 		})
@@ -30,25 +30,42 @@ export abstract class GeneratorObject extends D(RenderableObject) {
 		super.destroy()
 	}
 }
-class InitEmptySet<T> extends Set<T> {
-	constructor(...args: any[]) {
-		super()
-	}
-}
-export class RenderableContainer extends D(RenderableObject, InitEmptySet<RenderableObject>) {
+export class RenderableContainer extends D(RenderableObject) {
+	public readonly children = new Set<RenderableObject>()
+
 	destroy() {
-		for (const child of this.values()) child.destroy()
-		this.clear()
+		for (const child of this.children) child.destroy()
+		this.children.clear()
 		super.destroy()
 	}
 
-	delete = (child: RenderableObject) => {
+	add(child: RenderableObject) {
+		this.children.add(child)
+		return this
+	}
+
+	delete(child: RenderableObject) {
 		child.destroy()
-		return super.delete(child)
+		return this.children.delete(child)
+	}
+
+	has(child: RenderableObject) {
+		return this.children.has(child)
+	}
+
+	clear() {
+		for (const child of this.children) child.destroy()
+		this.children.clear()
 	}
 }
 
 export abstract class HittableGameObject extends D(RenderableObject) {
+	/**
+	 * Z-index for hit testing priority. Higher values are tested first.
+	 * Default is 0. Objects with higher zIndex will be hit-tested first.
+	 */
+	public zIndex: number = 0
+
 	constructor(
 		public readonly game: Game,
 		...args: any[]
@@ -76,7 +93,7 @@ export abstract class InteractiveGameObject extends D(RenderableObject) {
 	public readonly highlight = new Set<string>()
 	abstract readonly title: string
 	abstract readonly debugInfo?: Record<string, any>
-	abstract readonly worldPosition: WorldCoord
+	abstract readonly position: WorldCoord
 	constructor(
 		public readonly game: Game,
 		public readonly uid: string,
