@@ -1,9 +1,12 @@
 import D from "flat-diamond"
-import { effect, type ScopedCallback } from "mutts"
+import { computed, effect, Reactive, untracked, watch, type ScopedCallback } from "mutts"
 import { ColorMatrixFilter, Sprite } from "pixi.js"
+import { mrg } from "$lib/globals.svelte"
 import { type AxialCoord, axial, type WorldCoord } from "$lib/hex"
 import { AxialSet } from "$lib/mem"
 import { type RandGenerator, uuid } from "$lib/numbers"
+import ActivityManager, { CancelledError } from "./activities/manager"
+import { goEat, goRest, goSleep } from "./activities/self-care"
 import type { Game } from "./game"
 import type { Building } from "./hexboard"
 import {
@@ -11,11 +14,60 @@ import {
 	HittableGameObject,
 	InteractiveGameObject,
 	RenderableContainer,
+	TickedGameObject,
 } from "./object"
-import { mrg } from "$lib/globals.svelte"
 
-export class Character extends D(GeneratorObject, InteractiveGameObject) {
+export class Character extends Reactive(
+	D(GeneratorObject, InteractiveGameObject, TickedGameObject),
+) {
+	readonly triggerLevels = {
+		hunger: {
+			high: 700,
+			critical: 1000,
+			satisfied: 100,
+		},
+		sleepiness: {
+			high: 2100,
+			critical: 2500,
+			satisfied: 100,
+		},
+		fatigue: {
+			high: 140,
+			critical: 180,
+			satisfied: 10,
+		},
+	} as const
+	readonly evolutionRates = {
+		idle: {
+			hunger: 2,
+			sleepiness: 2,
+			fatigue: 0,
+		},
+		walking: {
+			hunger: 8,
+			sleepiness: 5,
+			fatigue: 10,
+		},
+		active: {
+			hunger: 12,
+			sleepiness: 8,
+			fatigue: 15,
+		},
+	} as const
+
 	public assignedBuilding: Building | undefined = undefined
+	public activityManager = new ActivityManager<Character>(this)
+
+	// Character needs levels (starting at 0, incrementing 1 per second)
+	public hunger: number = 0
+	public sleepiness: number = 0
+	public fatigue: number = 0
+
+	// Character inventory
+	// TODO Rename
+	public carried_goods: string = ""
+	public carried_amount: number = 0
+	public carrying_capacity: number = 10
 
 	constructor(
 		public readonly game: Game,
@@ -24,6 +76,15 @@ export class Character extends D(GeneratorObject, InteractiveGameObject) {
 		public coord: AxialCoord,
 	) {
 		super(game, uid)
+		watch(() => this.assignedBuilding, () => {
+			untracked(() => {
+			if (this.assignedBuilding !== undefined) {
+				this.fatigue = this.triggerLevels.fatigue.high
+				// TODO: remove me when urgency is working
+				goRest(this.activityManager.plan)
+			}
+			})
+		})
 	}
 
 	get title(): string {
@@ -37,6 +98,7 @@ export class Character extends D(GeneratorObject, InteractiveGameObject) {
 		}
 	}
 
+	@computed
 	get position(): WorldCoord {
 		return this.game.hex.axial2world(this.coord)
 	}
@@ -44,7 +106,32 @@ export class Character extends D(GeneratorObject, InteractiveGameObject) {
 	hitTest(coord: AxialCoord): boolean {
 		// Simple circular hit test for character
 
-		return axial.distance(coord, this.coord) <= 0.7
+		return axial.distance(coord, this.coord) <= 0.3
+	}
+
+	// Update character needs levels based on time elapsed
+	// @ts-expect-error Diamond member
+	update(deltaTime: number) {
+		this.hunger += deltaTime
+		this.sleepiness += deltaTime
+		this.fatigue += deltaTime
+
+		if (!this.activityManager.activity)
+			this.findAction().catch((error) => {
+				if (!(error instanceof CancelledError)) console.error(error.stack)
+			})
+		this.activityManager.evolve(deltaTime)
+	}
+
+	findAction() {
+		if (this.hunger > this.triggerLevels.hunger.high) return goEat(this.activityManager.plan)
+		if (this.sleepiness > this.triggerLevels.sleepiness.high)
+			return goSleep(this.activityManager.plan)
+		if (
+			this.fatigue > this.triggerLevels.fatigue.high &&
+			this.assignedBuilding !== undefined
+		) return goRest(this.activityManager.plan)
+		return this.activityManager.idle(100)
 	}
 
 	render = (): ScopedCallback | undefined => {
@@ -180,18 +267,10 @@ export class Population extends D(HittableGameObject, RenderableContainer) {
 
 		return nearestCharacter
 	}
-
-	// Get all unemployed characters
-	getUnemployedCharacters(): Character[] {
-		return Array.from(this.characters.values()).filter(
-			(character) => character.assignedBuilding === undefined,
-		)
-	}
-
-	// Get all employed characters
-	getEmployedCharacters(): Character[] {
-		return Array.from(this.characters.values()).filter(
-			(character) => character.assignedBuilding !== undefined,
+	get nbrFree(): number {
+		return Array.from(this.characters.values()).reduce(
+			(acc, character) => (character.assignedBuilding === undefined ? acc + 1 : acc),
+			0,
 		)
 	}
 }

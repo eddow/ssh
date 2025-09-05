@@ -218,7 +218,7 @@ export function findNearest(
 			}
 
 			// Skip if tile is unwalkable
-			if (walkTime === Number.POSITIVE_INFINITY) continue
+			if (!Number.isFinite(walkTime)) continue
 
 			// Calculate tentative gCost
 			const tentativeGCost = currentNode.gCost + walkTime

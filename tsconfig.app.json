@@ -4,6 +4,7 @@
     "composite": true,
     "target": "ES2022",
     "useDefineForClassFields": true,
+    "experimentalDecorators": true,
     "module": "ESNext",
     "resolveJsonModule": true,
     /**

@@ -1,8 +1,8 @@
 // Library used by Pixi
 import EventEmitter from "eventemitter3"
 import D from "flat-diamond"
-import { effect, type ScopedCallback, unreactive } from "mutts"
-import type { Container } from "pixi.js"
+import { effect, reactive, type ScopedCallback, unreactive } from "mutts"
+import { type Container, Ticker } from "pixi.js"
 import type { WorldCoord } from "$lib/hex"
 import type { Game } from "./game"
 
@@ -88,9 +88,22 @@ export abstract class HittableGameObject extends D(RenderableObject) {
 
 export abstract class InteractiveGameObject extends D(RenderableObject) {
 	/**
-	 * Highlights of the object (selected/hover/attention/etc.)
+	 * Log messages associated with the object. Intended for UI display.
 	 */
-	public readonly highlight = new Set<string>()
+	public readonly logs: string[] = []
+
+	/**
+	 * Append a log line to this object's logs
+	 */
+	log(...args: any[]) {
+		try {
+			const line = args.map((a) => a.toString()).join(" ")
+			this.logs.push(line)
+		} catch {
+			// Fallback if JSON serialization fails
+			this.logs.push(String(args))
+		}
+	}
 	abstract readonly title: string
 	abstract readonly debugInfo?: Record<string, any>
 	abstract readonly position: WorldCoord
@@ -104,6 +117,21 @@ export abstract class InteractiveGameObject extends D(RenderableObject) {
 	}
 	destroy(): void {
 		this.game.unregister(this)
+		super.destroy()
+	}
+}
+
+export abstract class TickedGameObject extends D(RenderableObject) {
+	constructor(...args: any[]) {
+		super(...args)
+		Ticker.shared.add(this.updateCallback)
+	}
+	private updateCallback = (timer: Ticker) => {
+		reactive(this).update(timer.elapsedMS / 1000)
+	}
+	abstract update(deltaTime: number): void
+	destroy(): void {
+		Ticker.shared.remove(this.updateCallback)
 		super.destroy()
 	}
 }

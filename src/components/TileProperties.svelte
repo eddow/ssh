@@ -6,14 +6,7 @@
 </script>
 
 <div class="tile-properties">
-	<h2 class="text-lg font-semibold mb-2">Tile Properties</h2>
-
 	<div class="space-y-2">
-		<div class="flex items-center gap-2">
-			<span class="font-medium">Coordinates:</span>
-			<Badge color="blue">{tile.coord.q}, {tile.coord.r}</Badge>
-		</div>
-
 		<div class="flex items-center gap-2">
 			<span class="font-medium">Terrain:</span>
 			<Badge color="green">{tile.terrain}</Badge>
@@ -31,13 +24,6 @@
 				<span class="font-medium">Deposit:</span>
 				<Badge color="purple">{tile.deposit.name}</Badge>
 				<Badge color="blue">{tile.deposit.amount}</Badge>
-			</div>
-		{/if}
-
-		{#if tile.building}
-			<div class="flex items-center gap-2">
-				<span class="font-medium">Building:</span>
-				<Badge color="indigo">{tile.building.name}</Badge>
 			</div>
 		{/if}
 

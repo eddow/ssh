@@ -1,5 +1,5 @@
 import D from "flat-diamond"
-import { effect, reactive, Reactive, type ScopedCallback } from "mutts"
+import { effect, Reactive, reactive, type ScopedCallback } from "mutts"
 import { ColorMatrixFilter, Container, Graphics, Point, Sprite, TilingSprite } from "pixi.js"
 import { buildings, deposits, goods } from "$assets/game-content"
 import {
@@ -124,6 +124,32 @@ export class HexTile extends Reactive(D(InteractiveGameObject, GeneratorObject))
 		return this.goods.filter((good) => good === undefined).length
 	}
 
+	canStoreGoods(goodType: string): boolean {
+		return this.getEmptySlots() > 0
+	}
+
+	storeGoods(goodType: string, amount: number): number {
+		let stored = 0
+		for (let i = 0; i < this.goods.length && stored < amount; i++) {
+			if (this.goods[i] === undefined) {
+				this.goods[i] = goodType
+				stored++
+			}
+		}
+		return stored
+	}
+
+	takeGoods(goodType: string, amount: number): number {
+		let taken = 0
+		for (let i = 0; i < this.goods.length && taken < amount; i++) {
+			if (this.goods[i] === goodType) {
+				this.goods[i] = undefined
+				taken++
+			}
+		}
+		return taken
+	}
+
 	render = () => {
 		const { terrain } = this
 		const { hex, position, game } = this
@@ -242,7 +268,7 @@ export class HexBoard extends D(RenderableContainer, HittableGameObject) {
 	}
 
 	world2axial(world: WorldCoord): AxialCoord {
-		return axial.round(fromCartesian(world, this.tileSize))
+		return fromCartesian(world, this.tileSize)
 	}
 
 	constructor(
@@ -256,7 +282,7 @@ export class HexBoard extends D(RenderableContainer, HittableGameObject) {
 	}
 
 	hitTest = (worldX: number, worldY: number): InteractiveGameObject | false => {
-		const coord = this.world2axial({ x: worldX, y: worldY })
+		const coord = axial.round(this.world2axial({ x: worldX, y: worldY }))
 		if (axial.distance(coord, { q: 0, r: 0 }) > this.boardSize) return false
 		return this.getTile(coord) ?? false
 	}
