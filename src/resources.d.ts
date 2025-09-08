@@ -1,3 +1,4 @@
+
 declare namespace Ssh {
 	type SpriteDefinition = string
 	type Sprite = string
@@ -6,30 +7,29 @@ declare namespace Ssh {
 		maxAmount: number
 		regenerate?: number
 		sprites: Sprite[]
+		terrain: string
 	}
 
 	interface HarvestingAction {
-		type: "harvesting"
+		type: "harvest"
 		deposit: string
-		output: Record<string, number>
-		time: number
 	}
 
 	interface TransformationAction {
-		type: "transformation"
+		type: "transform"
 		inputs: Record<string, number>
-		outputs: Record<string, number>
-		time: number
 	}
 	type Action = HarvestingAction | TransformationAction
 
-	interface BuildingDefinition {
+	interface ModuleDefinition {
 		name: string
 		maxWorkers: number
 		carryingCapacity: number
 		restEase: number
-		goodsCapacity: Record<string, number>
-		actions: Action[]
+		goodsCapacity: number
+		action: Action
+		output: string
+		time: number
 		icon: Sprite
 		sprites: Sprite[]
 	}
@@ -38,5 +38,9 @@ declare namespace Ssh {
 		feedingValue: number
 		icon: Sprite
 		sprites: Sprite[]
+	}
+	interface TerrainDefinition {
+		deposits: Record<string, number>
+		goods: Record<string, number>
 	}
 }

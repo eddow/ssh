@@ -8,6 +8,9 @@ export const resources: Record<string, string> = {
 	"terrain-grass": "terrain/grass.jpg",
 	"terrain-forest": "terrain/forest.jpg",
 	"terrain-water": "terrain/water.jpg",
+	"terrain-sand": "terrain/sand.jpg",
+	"terrain-snow": "terrain/snow.jpg",
+	concrete: "terrain/concrete.jpg",
 	cabin: "buildings/cabin.png",
 	chopper: "buildings/chopper.png",
 	cutter: "buildings/cutter.png",
@@ -20,49 +23,66 @@ export const resources: Record<string, string> = {
 	select: "commands/click.png",
 	character: "character.png",
 }
-export const deposits: Record<string, Ssh.DepositDefinition> = {
+export const terrain = {
+	water: {
+		deposits: {},
+		goods: {},
+	},
+	forest: {
+		deposits: { tree: 0.7 },
+		goods: { mushrooms: 0.3 },
+	},
+	rocky: {
+		deposits: { rock: 0.6 },
+		goods: {},
+	},
+	grass: {
+		deposits: { berry_bush: 0.1 },
+		goods: {},
+	},
+	sand: {
+		deposits: { rock: 0.3 },
+		goods: { berries: 0.05 },
+	},
+	snow: {
+		deposits: {},
+		goods: {},
+	},
+} as const satisfies Record<string, Ssh.TerrainDefinition>
+
+export const deposits = {
 	berry_bush: {
 		name: 'Berry Bush',
 		maxAmount: 18,
 		regenerate: .01,
 		sprites: ["bushes/bush1"],
+		terrain: "grass",
 	},
 	rock: {
 		name: "Rock",
 		maxAmount: 18,
 		sprites: ["rocks/rock1", "rocks/rock2", "rocks/rock3", "rocks/rock4", "rocks/rock5", "rocks/rock6"],
+		terrain: "rocky",
 	},
 	tree: {
 		name: "Tree",
 		maxAmount: 12,
 		sprites: ["trees/tree1", "trees/tree2", "trees/tree3", "trees/tree4", "trees/tree5", "trees/tree6", "trees/tree7", "trees/tree8", "trees/tree9", "trees/tree10", "trees/tree11"],
 		regenerate: 0.01,
+		terrain: "forest",
 	},
-}
+} as const satisfies Record<string, Ssh.DepositDefinition>
 
-export const buildings: Record<string, Ssh.BuildingDefinition> = {
-	shack: {
-		name: "Shack",
-		maxWorkers: 1,
-		carryingCapacity: 2,
-		restEase: 5,
-		goodsCapacity: { berries: 3, wood: 3, planks: 3, stone: 3 },
-		actions: [
-			{ type: "transformation", inputs: { wood: 1 }, outputs: { planks: 1 }, time: 6 },
-			{ type: "harvesting", deposit: "tree", output: { wood: 1 }, time: 5 },
-			{ type: "harvesting", deposit: "berry_bush", output: { berries: 1 }, time: 4 },
-			{ type: "harvesting", deposit: "rock", output: { stone: 1 }, time: 6 },
-		],
-		sprites: ["cabin"],
-		icon: "cabin",
-	},
+export const modules = {
 	tree_chopper: {
 		name: "Tree Chopper",
 		maxWorkers: 2,
 		carryingCapacity: 1,
 		restEase: 10,
-		goodsCapacity: { wood: 6 },
-		actions: [{ type: "harvesting", deposit: "tree", output: { wood: 1 }, time: 3 }],
+		goodsCapacity: 6,
+		action: { type: "harvest", deposit: "tree" },
+		output: "wood",
+		time: 3,
 		sprites: ["chopper"],
 		icon: "chopper",
 	},
@@ -71,8 +91,10 @@ export const buildings: Record<string, Ssh.BuildingDefinition> = {
 		maxWorkers: 2,
 		carryingCapacity: 1,
 		restEase: 10,
-		goodsCapacity: { stone: 6 },
-		actions: [{ type: "harvesting", deposit: "rock", output: { stone: 1 }, time: 4 }],
+		goodsCapacity: 6,
+		action: { type: "harvest", deposit: "rock" },
+		output: "stone",
+		time: 4,
 		sprites: ["cutter"],
 		icon: "cutter",
 	},
@@ -81,21 +103,16 @@ export const buildings: Record<string, Ssh.BuildingDefinition> = {
 		maxWorkers: 3,
 		carryingCapacity: 1,
 		restEase: 50,
-		goodsCapacity: { wood: 3, planks: 6 },
-		actions: [
-			{
-				type: "transformation",
-				inputs: { wood: 1 },
-				outputs: { planks: 1 },
-				time: 2,
-			},
-		],
+		goodsCapacity: 6,
+		action: { type: "transform", inputs: { wood: 1 } },
+		output: 'planks',
+		time: 2,
 		sprites: ["sawmill"],
 		icon: "sawmill",
 	},
-}
+} as const satisfies Record<string, Ssh.ModuleDefinition>
 
-export const goods: Record<string, Ssh.GoodsDefinition> = {
+export const goods = {
 	berries: {
 		name: "Berries",
 		feedingValue: 72,
@@ -126,4 +143,4 @@ export const goods: Record<string, Ssh.GoodsDefinition> = {
 		sprites: ["wood"],
 		icon: "wood",
 	},
-}
+} as const satisfies Record<string, Ssh.GoodsDefinition>

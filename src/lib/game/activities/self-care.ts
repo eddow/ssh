@@ -11,9 +11,9 @@ export function goEat(plan: Plan<Character>) {
 		const { hex } = character.game
 
 		function carryFood() {
-			if (!character.carried_goods || character.carried_amount <= 0) return false
+			if (!character.carriedType || character.carriedAmount <= 0) return false
 			// For now, assume all carried goods are food - this should be enhanced with proper food definitions
-			return character.carried_goods
+			return character.carriedType
 		}
 
 		function eatFood(foodType: string) {
@@ -34,7 +34,7 @@ export function goEat(plan: Plan<Character>) {
 			)
 		}
 
-		if (character.carried_amount > 0 && !carryFood()) await dropAllGoods(plan)
+		if (character.carriedAmount > 0 && !carryFood()) await dropAllGoods(plan)
 		while (character.hunger > character.triggerLevels.hunger.satisfied) {
 			let carrying: string | false
 			while (!(carrying = carryFood())) {
@@ -98,7 +98,7 @@ export function goEat(plan: Plan<Character>) {
 				if (foodType) await grab(plan, foodType, 1)
 				else throw new Error("TODO: No food found within range")
 			}
-			character.carried_amount--
+			character.carriedAmount--
 			await eatFood(carrying!)
 		}
 	}, "Feeding")
@@ -106,7 +106,7 @@ export function goEat(plan: Plan<Character>) {
 
 export function goRest(plan: Plan<Character>) {
 	return plan(async ({ activated: character, evolveStep }) => {
-		if (!character.assignedBuilding) {
+		if (!character.assignedModule) {
 			throw new Error("Not working")
 		}
 		// Find the tile that contains the assigned building
@@ -114,7 +114,7 @@ export function goRest(plan: Plan<Character>) {
 			character.coord,
 			(coord) => {
 				const tile = character.game.hex.getTile(coord)
-				return tile ? tile.building === character.assignedBuilding : false
+				return tile ? tile.building === character.assignedModule : false
 			},
 			100,
 		)
@@ -147,10 +147,10 @@ export function goSleep(plan: Plan<Character>) {
 		await evolveStep(
 			{
 				get value() {
-					return character.sleepiness
+					return character.Tiredness
 				},
 				set value(v) {
-					character.sleepiness = v
+					character.Tiredness = v
 				},
 				factor: -50,
 				bound: 0,

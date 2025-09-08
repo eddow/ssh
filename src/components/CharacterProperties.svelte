@@ -8,7 +8,7 @@
 	const actions = ms(character.activityManager.descriptions)
 	const bars = ms(() => ({
 		hunger: character.hunger,
-		sleepiness: character.sleepiness,
+		Tiredness: character.Tiredness,
 		fatigue: character.fatigue,
 		triggerLevels: character.triggerLevels
 	}))
@@ -25,9 +25,9 @@
 			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
 				<StatProgressBar value={$bars.hunger} levels={$bars.triggerLevels.hunger} label="Hunger" />
 				<StatProgressBar
-					value={$bars.sleepiness}
-					levels={$bars.triggerLevels.sleepiness}
-					label="Sleepiness"
+					value={$bars.Tiredness}
+					levels={$bars.triggerLevels.Tiredness}
+					label="Tiredness"
 				/>
 				<StatProgressBar
 					value={$bars.fatigue}

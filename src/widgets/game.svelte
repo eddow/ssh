@@ -9,7 +9,7 @@
 	import { onMount } from 'svelte'
 	import { debugInfo, games } from '$lib/globals.svelte'
 	import { type InteractiveGameObject, GameView } from '$lib/game'
-	import { getDockviewContext } from '$components/dockview/dockview.svelte'
+	import { getDockviewContext } from 'dockview-svelte/src'
 
 	const dvContext = getDockviewContext()
 	let {

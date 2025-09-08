@@ -1,4 +1,5 @@
 <script lang="ts">
+	// TODO: delete me
 	import { unwrap } from 'mutts'
 	import type { HexTile } from '$lib/game'
 	import { Badge, Range, Button } from 'flowbite-svelte'
@@ -34,7 +35,7 @@
 		}
 
 		// Assign character to building
-		nearestCharacter.assignedBuilding = building
+		nearestCharacter.assignedModule = building
 		building.assignedWorkers.push(nearestCharacter)
 		assignedWorkers = assignedWorkers
 	}

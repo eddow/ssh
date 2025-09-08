@@ -1,6 +1,10 @@
 <script lang="ts">
 	import type { HexTile } from '$lib/game'
+	import type { TileContent } from '$lib/game/tile'
+	import { UnBuiltLand, Module } from '$lib/game/tile'
 	import { Badge } from 'flowbite-svelte'
+	import UnBuiltProperties from './UnBuiltProperties.svelte'
+	import ModuleProperties from './ModuleProperties.svelte'
 
 	let { tile }: { tile: HexTile } = $props()
 </script>
@@ -8,34 +12,21 @@
 <div class="tile-properties">
 	<div class="space-y-2">
 		<div class="flex items-center gap-2">
-			<span class="font-medium">Terrain:</span>
-			<Badge color="green">{tile.terrain}</Badge>
+			<span class="font-medium">Content:</span>
+			<Badge color="green">{tile.content.name}</Badge>
 		</div>
 
 		<div class="flex items-center gap-2">
 			<span class="font-medium">Walk Time:</span>
-			<Badge color={tile.walkTime === Number.POSITIVE_INFINITY ? 'red' : 'yellow'}>
-				{tile.walkTime === Number.POSITIVE_INFINITY ? 'Unwalkable' : tile.walkTime}
+			<Badge color={tile.content.walkTime === Number.POSITIVE_INFINITY ? 'red' : 'yellow'}>
+				{tile.content.walkTime === Number.POSITIVE_INFINITY ? 'Unwalkable' : tile.content.walkTime}
 			</Badge>
 		</div>
 
-		{#if tile.deposit}
-			<div class="flex items-center gap-2">
-				<span class="font-medium">Deposit:</span>
-				<Badge color="purple">{tile.deposit.name}</Badge>
-				<Badge color="blue">{tile.deposit.amount}</Badge>
-			</div>
-		{/if}
-
-		{#if tile.getAllGoods().length > 0}
-			<div class="flex items-center gap-2">
-				<span class="font-medium">Goods:</span>
-				<div class="flex flex-wrap gap-1">
-					{#each tile.getAllGoods() as good}
-						<Badge color="yellow">{good}</Badge>
-					{/each}
-				</div>
-			</div>
+		{#if tile.content instanceof UnBuiltLand}
+			<UnBuiltProperties content={tile.content} />
+		{:else if tile.content instanceof Module}
+			<ModuleProperties content={tile.content} />
 		{/if}
 	</div>
 </div>

@@ -268,7 +268,7 @@ export default class ActivityManager<Activated extends InteractiveGameObject> ex
 
 		if (character.hunger > trigger_levels.hunger.critical && this.urgency < "3-hungry")
 			this.emergency("3-hungry", () => goEat(this.plan))
-		else if (character.sleepiness > trigger_levels.sleepiness.critical && this.urgency < "2-tired")
+		else if (character.Tiredness > trigger_levels.Tiredness.critical && this.urgency < "2-tired")
 			this.emergency("2-tired", () => goSleep(this.plan))
 		else if (
 			character.fatigue > trigger_levels.fatigue.critical &&

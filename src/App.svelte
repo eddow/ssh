@@ -7,7 +7,7 @@
 		FloppyDiskAltOutline
 	} from 'flowbite-svelte-icons'
 	import { onMount } from 'svelte'
-	import { DockView } from './components/dockview'
+	import { DockView } from 'dockview-svelte/src'
 	import { configuration, debugInfo, games } from '$lib/globals.svelte'
 	import * as gameContent from '$assets/game-content'
 	import widgets from './widgets'
@@ -119,7 +119,7 @@
 		</ToolbarGroup>
 		<ToolbarGroup>
 			<ButtonGroup>
-				{#each Object.entries(gameContent.buildings) as [b, building]}
+				{#each Object.entries(gameContent.modules) as [b, building]}
 					<RadioButton
 						name="action-selection"
 						value={`building-${b}`}

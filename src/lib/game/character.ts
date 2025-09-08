@@ -8,7 +8,6 @@ import { type RandGenerator, uuid } from "$lib/numbers"
 import ActivityManager, { CancelledError } from "./activities/manager"
 import { goEat, goRest, goSleep } from "./activities/self-care"
 import type { Game } from "./game"
-import type { Building } from "./hexboard"
 import {
 	GeneratorObject,
 	HittableGameObject,
@@ -16,6 +15,7 @@ import {
 	RenderableContainer,
 	TickedGameObject,
 } from "./object"
+import { UnBuiltLand, type GoodType, type Module } from "./tile"
 
 export class Character extends Reactive(
 	D(GeneratorObject, InteractiveGameObject, TickedGameObject),
@@ -26,7 +26,7 @@ export class Character extends Reactive(
 			critical: 1000,
 			satisfied: 100,
 		},
-		sleepiness: {
+		Tiredness: {
 			high: 2100,
 			critical: 2500,
 			satisfied: 100,
@@ -40,34 +40,33 @@ export class Character extends Reactive(
 	readonly evolutionRates = {
 		idle: {
 			hunger: 2,
-			sleepiness: 2,
+			Tiredness: 2,
 			fatigue: 0,
 		},
 		walking: {
 			hunger: 8,
-			sleepiness: 5,
+			Tiredness: 5,
 			fatigue: 10,
 		},
 		active: {
 			hunger: 12,
-			sleepiness: 8,
+			Tiredness: 8,
 			fatigue: 15,
 		},
 	} as const
 
-	public assignedBuilding: Building | undefined = undefined
+	public assignedModule: Module | undefined = undefined
 	public activityManager = new ActivityManager<Character>(this)
 
 	// Character needs levels (starting at 0, incrementing 1 per second)
 	public hunger: number = 0
-	public sleepiness: number = 0
+	public Tiredness: number = 0
 	public fatigue: number = 0
 
 	// Character inventory
-	// TODO Rename
-	public carried_goods: string = ""
-	public carried_amount: number = 0
-	public carrying_capacity: number = 10
+	public carriedType?: GoodType
+	public carriedAmount: number = 0
+	public carryingCapacity: number = 10
 
 	constructor(
 		public readonly game: Game,
@@ -76,8 +75,8 @@ export class Character extends Reactive(
 		public coord: AxialCoord,
 	) {
 		super(game, uid)
-		watch(() => this.assignedBuilding, () => {
-			if (this.assignedBuilding !== undefined) {
+		watch(() => this.assignedModule, () => {
+			if (this.assignedModule !== undefined) {
 				this.fatigue = this.triggerLevels.fatigue.high
 				// TODO: remove me when urgency is working
 				goRest(this.activityManager.plan)
@@ -111,7 +110,7 @@ export class Character extends Reactive(
 	// @ts-expect-error Diamond member
 	update(deltaTime: number) {
 		this.hunger += deltaTime
-		this.sleepiness += deltaTime
+		this.Tiredness += deltaTime
 		this.fatigue += deltaTime
 
 		if (!this.activityManager.activity)
@@ -123,11 +122,11 @@ export class Character extends Reactive(
 
 	findAction() {
 		if (this.hunger > this.triggerLevels.hunger.high) return goEat(this.activityManager.plan)
-		if (this.sleepiness > this.triggerLevels.sleepiness.high)
+		if (this.Tiredness > this.triggerLevels.Tiredness.high)
 			return goSleep(this.activityManager.plan)
 		if (
 			this.fatigue > this.triggerLevels.fatigue.high &&
-			this.assignedBuilding !== undefined
+			this.assignedModule !== undefined
 		) return goRest(this.activityManager.plan)
 		return this.activityManager.idle(1)
 	}
@@ -196,7 +195,9 @@ export class Population extends D(HittableGameObject, RenderableContainer) {
 					if (used.has(c)) return false
 					const tile = this.game.hex.getTile(c)!
 					return (
-						tile.terrain !== "water" && tile.building === undefined && tile.deposit === undefined
+						tile.content instanceof UnBuiltLand &&
+						tile.content.terrain !== "water" &&
+						tile.content.deposit === undefined
 					)
 				},
 				5,
@@ -252,7 +253,7 @@ export class Population extends D(HittableGameObject, RenderableContainer) {
 
 		for (const character of this.characters.values()) {
 			// Skip if character is already assigned to a building
-			if (character.assignedBuilding !== undefined) continue
+			if (character.assignedModule !== undefined) continue
 
 			// Calculate distance using axial distance
 			const distance = axial.distance(coord, character.coord)
@@ -267,7 +268,7 @@ export class Population extends D(HittableGameObject, RenderableContainer) {
 	}
 	get nbrFree(): number {
 		return Array.from(this.characters.values()).reduce(
-			(acc, character) => (character.assignedBuilding === undefined ? acc + 1 : acc),
+			(acc, character) => (character.assignedModule === undefined ? acc + 1 : acc),
 			0,
 		)
 	}
