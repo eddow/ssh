@@ -3,7 +3,7 @@ import type { AxialCoord, AxialRef } from "./axial"
 import { axial } from "./axial"
 
 export type GetNeighbors = (coord: AxialRef) => (NeighborInfo | AxialCoord)[]
-
+export type IsGoal<T> = (coord: AxialRef, walkTime: number) => T | false
 export interface NeighborInfo {
 	coord: AxialCoord
 	walkTime: number
@@ -23,7 +23,7 @@ export interface PathfindingNode {
  * @param start Starting coordinate
  * @param goal Target coordinate
  * @param maxTime Maximum walking time allowed for the path
- * @param punctual Whether to aim for the goal or a direct
+ * @param punctual Whether to aim for the goal or a direct neighbor
  * @returns Path if found within maxTime, undefined otherwise
  */
 export function findPath(
@@ -31,7 +31,7 @@ export function findPath(
 	start: AxialRef,
 	goal: AxialRef,
 	maxTime: number,
-	punctual: boolean = false,
+	punctual: boolean = true,
 ): AxialCoord[] | undefined {
 	const startCoord = axial.access(start)
 	const goalCoord = axial.access(goal)
@@ -154,22 +154,22 @@ function reconstructPath(
  * @param start Starting coordinate
  * @param isGoal Function that returns true if the coordinate is a valid goal
  * @param maxTime Maximum walking time allowed for the path
- * @param punctual Whether to aim for the exact goal or allow nearby coordinates
+ * @param punctual Whether to aim for the goal or a direct neighbor
  * @returns Path to the nearest valid goal if found within maxTime, undefined otherwise
  */
-export function findNearest(
+export function findNearest<T>(
 	getNeighbors: GetNeighbors,
 	start: AxialRef,
-	isGoal: (coord: AxialRef) => boolean,
-	maxTime: number,
-	punctual: boolean = false,
+	isGoal: IsGoal<true>,
+	stop: number | ((coord: AxialRef, walkTime: number) => boolean),
+	punctual: boolean = true,
 ): AxialCoord[] | undefined {
 	const startCoord = axial.access(start)
-
+	if(typeof stop === 'number')
+		stop = ((stop)=> (_, walkTime: number) => walkTime > stop)(stop)
 	// Check if start position already satisfies the goal condition
-	if (isGoal(startCoord)) {
-		return [startCoord]
-	}
+	if (isGoal(startCoord, 0)) return [startCoord]
+	if (stop(startCoord, 0)) return undefined
 
 	// Initialize data structures
 	const openSet = new HeapMin<AxialCoord, number>()
@@ -182,8 +182,7 @@ export function findNearest(
 	const startNode: PathfindingNode = {
 		coord: startCoord,
 		gCost: 0,
-		hCost: 0, // No heuristic for nearest search
-		fCost: 0,
+		hCost: 0 // No heuristic for nearest search
 	}
 	startNode.fCost = startNode.gCost + startNode.hCost
 
@@ -201,7 +200,7 @@ export function findNearest(
 		openSetMap.delete(currentCoord)
 
 		// Check if we reached a valid goal
-		if (punctual && isGoal(currentCoord)) {
+		if (punctual && isGoal(currentCoord, currentNode.gCost)) {
 			return reconstructPath(currentCoord, startCoord, parentMap)
 		}
 
@@ -211,20 +210,20 @@ export function findNearest(
 			const { coord: neighborCoord, walkTime } =
 				"coord" in neighbor ? neighbor : { coord: neighbor, walkTime: 1 }
 
-			// Skip if already in closed set
-			if (closedSet.has(neighborCoord)) continue
-			if (!punctual && isGoal(neighborCoord)) {
-				return reconstructPath(currentCoord, startCoord, parentMap)
-			}
-
 			// Skip if tile is unwalkable
 			if (!Number.isFinite(walkTime)) continue
+
+			// Skip if already in closed set
+			if (closedSet.has(neighborCoord)) continue
+			if (!punctual && isGoal(neighborCoord, currentNode.gCost)) {
+				return reconstructPath(currentCoord, startCoord, parentMap)
+			}
 
 			// Calculate tentative gCost
 			const tentativeGCost = currentNode.gCost + walkTime
 
 			// Skip if this path exceeds maxTime
-			if (tentativeGCost > maxTime) continue
+			if (stop(neighborCoord, tentativeGCost)) continue
 
 			// Check if this path to neighbor is better
 			const existingGCost = gCosts.get(neighborCoord)

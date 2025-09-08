@@ -1,7 +1,6 @@
 import { computed, Reactive, reactive } from "mutts"
 import type { AxialCoord, WorldCoord } from "$lib/hex"
 import type { InteractiveGameObject } from "../object"
-import { debugListeners, options } from "mutts/src/reactive/core"
 
 export class CancelledError extends Error {
 	constructor(message: string) {
@@ -65,7 +64,6 @@ export default class ActivityManager<Activated extends InteractiveGameObject> ex
 	): Promise<T> {
 		if (type) this.types.unshift(type)
 		if (!!description) {
-			const dl = debugListeners(this, 'descriptions')
 			this.descriptions.push(description)
 			this.log(description)
 		}
@@ -222,7 +220,6 @@ export default class ActivityManager<Activated extends InteractiveGameObject> ex
 			complete: () => R,
 			description?: string,
 		) => Promise<R>)
-	// TODO: `idle` should be a setTimeout + perf.getTime for evolution display?
 	idle = (duration: number, description?: string, type?: string) =>
 		this.lerpStep(duration, type ?? "idle", description)
 	waitFor = <T>(

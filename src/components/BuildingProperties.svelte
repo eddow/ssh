@@ -2,17 +2,14 @@
 	import { unwrap } from 'mutts'
 	import type { HexTile } from '$lib/game'
 	import { Badge, Range, Button } from 'flowbite-svelte'
-	import { games, muttsArray } from '$lib/globals.svelte'
+	import { games } from '$lib/globals.svelte'
+	import { ms, m2s } from '$lib/mutts.svelte'
 
 	let { tile }: { tile: HexTile } = $props()
 	const game = games.game('GameX')
-	let building = $derived(tile.building!) //mutts2svelte(tile, 'building')
-	//let assignedWorkers = $derived(tile.building?.assignedWorkers ?? [])
-	let assignedWorkers = $derived(muttsArray(tile.building?.assignedWorkers ?? []))
-	let weights = $derived(muttsArray(tile.building?.activityWeights ?? []))
-	//let weights = $state<number[]>([])
-	// TODO: mutts array reactivity interacts badly with svelte
-	//weights = (() => unwrap(building?.activityWeights ?? []))()
+	let building = $derived(tile.building!)
+	let assignedWorkers = $derived(m2s(tile.building?.assignedWorkers ?? []))
+	const weights = ms(tile.building?.activityWeights ?? [])
 	function updateActivityWeight(actionIndex: number, value: number) {
 		if (building && building.activityWeights) {
 			building.activityWeights[actionIndex] = value
@@ -147,7 +144,7 @@
 									min="0"
 									max="1"
 									step="0.01"
-									value={building.activityWeights?.[index] ?? 0.5}
+									value={$weights[index] ?? 0.5}
 									oninput={(e) => {
 										const target = e.target as HTMLInputElement
 										updateActivityWeight(index, parseFloat(target.value))
@@ -155,7 +152,7 @@
 									class="flex-1"
 								/>
 								<span class="text-xs font-mono w-8 text-right">
-									{Math.round((weights[index] ?? 0.5) * 100)}%
+									{Math.round(($weights[index] ?? 0.5) * 100)}%
 								</span>
 							</div>
 						</div>

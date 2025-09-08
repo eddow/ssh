@@ -11,7 +11,8 @@
 	import { Button } from 'flowbite-svelte'
 	import { EyeOutline } from 'flowbite-svelte-icons'
 	import { HexTile, InteractiveGameObject, Character } from '$lib/game'
-	import { mrg, muttsArray, mns } from '$lib/globals.svelte'
+	import { mrg } from '$lib/globals.svelte'
+	import { m2s, mns } from '$lib/mutts.svelte'
 	import { watch } from 'mutts'
 	import TileProperties from '$components/TileProperties.svelte'
 	import BuildingProperties from '$components/BuildingProperties.svelte'
@@ -25,9 +26,8 @@
 	// Auto-scroll to bottom when new logs are added and logLastLine is true
 	mns(() => {
 		object = game.getObject(uid)
-		return watch(
-			() => object?.logs.entries(),
-			() => {
+		if (object)
+			return watch(object.logs, () => {
 				if (object && logLastLine && logsContainer) {
 					// Use a small delay to ensure the DOM has updated
 					setTimeout(() => {
@@ -37,8 +37,7 @@
 						})
 					}, 10)
 				}
-			}
-		)
+			})
 	})
 
 	function handleLogScroll() {
@@ -85,7 +84,7 @@
 
 	{#if object}
 		<div class="logs" bind:this={logsContainer} onscroll={handleLogScroll}>
-			{#each muttsArray(object.logs) as line}
+			{#each m2s(object.logs) as line}
 				<div class="log-line">{line}</div>
 			{/each}
 		</div>

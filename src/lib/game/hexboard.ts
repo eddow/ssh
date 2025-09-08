@@ -19,6 +19,7 @@ import {
 	fromCartesian,
 	type NeighborInfo,
 	type WorldCoord,
+	type IsGoal,
 } from "../hex"
 import { AxialKeyMap } from "../mem"
 import type { Character } from "./character"
@@ -484,7 +485,7 @@ export class HexBoard extends D(RenderableContainer, HittableGameObject) {
 	 */
 	findNearest(
 		start: AxialRef,
-		isGoal: (coord: AxialRef) => boolean,
+		isGoal: IsGoal<true>,
 		maxTime: number,
 		punctual: boolean = true,
 	) {

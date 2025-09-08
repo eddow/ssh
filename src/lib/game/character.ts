@@ -77,13 +77,11 @@ export class Character extends Reactive(
 	) {
 		super(game, uid)
 		watch(() => this.assignedBuilding, () => {
-			untracked(() => {
 			if (this.assignedBuilding !== undefined) {
 				this.fatigue = this.triggerLevels.fatigue.high
 				// TODO: remove me when urgency is working
 				goRest(this.activityManager.plan)
 			}
-			})
 		})
 	}
 
@@ -131,7 +129,7 @@ export class Character extends Reactive(
 			this.fatigue > this.triggerLevels.fatigue.high &&
 			this.assignedBuilding !== undefined
 		) return goRest(this.activityManager.plan)
-		return this.activityManager.idle(100)
+		return this.activityManager.idle(1)
 	}
 
 	render = (): ScopedCallback | undefined => {
