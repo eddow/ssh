@@ -3,6 +3,9 @@
 import type { Character } from "../character"
 import { dropAllGoods, goForGoods, goTo, grab } from "./walk"
 import type { Plan } from "./manager"
+import { goods as goodsCatalog } from "$assets/game-content"
+import type { GoodType, Module } from "$lib/game/tile"
+import type { AxialRef } from "$lib/hex"
 
 const eatingTime = 3
 
@@ -12,15 +15,16 @@ export function goEat(plan: Plan<Character>) {
 
 		function carryFood() {
 			if (!character.carriedType || character.carriedAmount <= 0) return false
-			// For now, assume all carried goods are food - this should be enhanced with proper food definitions
-			return character.carriedType
+			const def = goodsCatalog[character.carriedType]
+			return def && def.feedingValue > 0 ? character.carriedType : false
 		}
 
-		function eatFood(foodType: string) {
-			const feedingValue = 100 // Default feeding value - should come from goods definition
-			const part = Math.min(1, character.hunger / feedingValue)
+		function eatFood(foodType: GoodType) {
+			const feedingValue = goodsCatalog[foodType]?.feedingValue ?? 0
+			const effective = Math.max(0, Math.min(feedingValue, character.hunger))
+			const part = feedingValue > 0 ? effective / feedingValue : 0
 			const from = character.hunger
-			const to = Math.max(0, from - feedingValue)
+			const to = Math.max(0, from - effective)
 			return lerpStep(
 				{
 					duration: eatingTime * part,
@@ -34,18 +38,29 @@ export function goEat(plan: Plan<Character>) {
 			)
 		}
 
+		function bestFoodOnTile(coord: AxialRef): GoodType | null {
+			const tile = hex.getTile(coord)
+			if (!tile) return null
+			const goodsMap = tile.content.listGoods()
+			let best: { type: GoodType; fv: number } | null = null
+			for (const [good, count] of Object.entries(goodsMap) as [GoodType, number][]) {
+				if (!count) continue
+				const def = goodsCatalog[good]
+				if (!def) continue
+				const fv = def.feedingValue ?? 0
+				if (fv > 0 && (!best || fv > best.fv)) best = { type: good, fv }
+			}
+			return best?.type ?? null
+		}
+
 		if (character.carriedAmount > 0 && !carryFood()) await dropAllGoods(plan)
 		while (character.hunger > character.triggerLevels.hunger.satisfied) {
-			let carrying: string | false
+			let carrying: GoodType | false
 			while (!(carrying = carryFood())) {
 				// Find nearest tile with food
 				const nearestFoodTile = hex.findNearest(
 					character.coord,
-					(coord) => {
-						const tile = hex.getTile(coord)
-						// TODO: use `feedingValue`
-						return tile ? tile.hasGood("berries") || tile.hasGood("mushrooms") : false
-					},
+					(coord) => bestFoodOnTile(coord) !== null,
 					100, // maxTime
 				)
 				if (!nearestFoodTile || nearestFoodTile.length === 0) {
@@ -54,33 +69,22 @@ export function goEat(plan: Plan<Character>) {
 				const targetTile = hex.getTile(nearestFoodTile[nearestFoodTile.length - 1])
 				if (!targetTile) throw new Error("Target tile not found")
 
-				// Find what food is available
-				let foodType = targetTile.hasGood("berries")
-					? "berries"
-					: targetTile.hasGood("mushrooms")
-						? "mushrooms"
-						: null
+				// Pick best available food on the target tile
+				let foodType = bestFoodOnTile(targetTile.coord)
 
 				while (
 					foodType &&
 					!(character.coord.q === targetTile.coord.q && character.coord.r === targetTile.coord.r)
 				) {
-					await goForGoods(plan, targetTile, foodType)
+					await goForGoods(plan, targetTile, foodType as GoodType)
 					const currentTile = hex.getTile(character.coord)
 					if (!currentTile) throw new Error("No tile at character position")
-					foodType = currentTile.hasGood("berries")
-						? "berries"
-						: currentTile.hasGood("mushrooms")
-							? "mushrooms"
-							: null
+					foodType = bestFoodOnTile(currentTile.coord)
 					if (!foodType) {
 						// Find new food source
 						const newNearestFoodTile = hex.findNearest(
 							character.coord,
-							(coord) => {
-								const tile = hex.getTile(coord)
-								return tile ? tile.hasGood("berries") || tile.hasGood("mushrooms") : false
-							},
+							(coord) => bestFoodOnTile(coord) !== null,
 							100,
 						)
 						if (!newNearestFoodTile || newNearestFoodTile.length === 0) {
@@ -88,14 +92,10 @@ export function goEat(plan: Plan<Character>) {
 						}
 						const newTargetTile = hex.getTile(newNearestFoodTile[newNearestFoodTile.length - 1])
 						if (!newTargetTile) throw new Error("Target tile not found")
-						foodType = newTargetTile.hasGood("berries")
-							? "berries"
-							: newTargetTile.hasGood("mushrooms")
-								? "mushrooms"
-								: null
+						foodType = bestFoodOnTile(newTargetTile.coord)
 					}
 				}
-				if (foodType) await grab(plan, foodType, 1)
+				if (foodType) await grab(plan, foodType as GoodType, 1)
 				else throw new Error("TODO: No food found within range")
 			}
 			character.carriedAmount--
@@ -114,7 +114,7 @@ export function goRest(plan: Plan<Character>) {
 			character.coord,
 			(coord) => {
 				const tile = character.game.hex.getTile(coord)
-				return tile ? tile.building === character.assignedModule : false
+				return tile ? (tile.content === character.assignedModule as unknown as Module) : false
 			},
 			100,
 		)

@@ -54,12 +54,12 @@ export async function goTo(
 				y: (position.y + nextTile.position.y) / 2,
 			}
 
-			log(
+			/*log(
 				`at ${character.coord.q}, ${character.coord.r} going to ${next.q}, ${next.r} for ${coord.q}, ${coord.r}`,
-			)
+			)*/
 			await walkTile(mid, tile.content.walkTime)
 			tile = nextTile
-			log(`reached mid ${tile.coord.q}, ${tile.coord.r}`)
+			//log(`reached mid ${tile.coord.q}, ${tile.coord.r}`)
 			await walkTile(tile.position, tile.content.walkTime)
 			character.coord = next
 			position = hex.axial2world(next)
@@ -78,7 +78,7 @@ export async function goForGoods(plan: Plan<Character>, target: HexTile, goods: 
 // #endregion
 // #region Goods mgt
 
-const transfer_duration = 0.5
+const transferDuration = 0.5
 export async function grab(plan: Plan<Character>, goods: GoodType, maxAmount: number) {
 	return plan(async function grab({ activated: character, lerpStep }) {
 		const tile = character.game.hex.getTile(character.coord)
@@ -88,26 +88,28 @@ export async function grab(plan: Plan<Character>, goods: GoodType, maxAmount: nu
 			character.carriedType !== goods &&
 			character.carriedAmount > 0
 		)
-			return
-		const can_grab = character.carryingCapacity - (character.carriedAmount || 0)
-		const amount = Math.min(can_grab, maxAmount)
-		if (amount <= 0) return
-		tile.content.removeGood(goods, amount)
-		await lerpStep(amount * transfer_duration, () => {})
+			await dropAllGoods(plan)
+		const canGrab = character.carryingCapacity - (character.carriedAmount || 0)
+		const amount = Math.min(canGrab, maxAmount)
+		if (amount <= 0) return 0
+		const taken = tile.content.removeGood(goods, amount)
+		if (taken <= 0) return 0
+		await lerpStep(taken * transferDuration, () => {})
 		character.carriedType = goods
-		character.carriedAmount = (character.carriedAmount || 0) + amount
+		character.carriedAmount = (character.carriedAmount || 0) + taken
+		return taken
 	}, `Grabbing ${goods}`)
 }
-export async function drop(plan: Plan<Character>, goods: GoodType, max_amount: number) {
+export async function drop(plan: Plan<Character>, goods: GoodType, maxAmount: number) {
 	return plan(async function drop({ activated: character, lerpStep }) {
 		const tile = character.game.hex.getTile(character.coord)
 		if (!tile) throw new Error(`No tile at character position`)
 		if (character.carriedType !== goods) return
-		const amount = Math.min(character.carriedAmount, max_amount)
+		const amount = Math.min(character.carriedAmount, maxAmount)
 		const dropped = tile.content.addGood(goods, amount)
 		character.carriedAmount -= dropped
 		if (character.carriedAmount <= 0) character.carriedType = undefined
-		await lerpStep(amount * transfer_duration, () => {})
+		await lerpStep(amount * transferDuration, () => {})
 	}, `Dropping ${goods}`)
 }
 

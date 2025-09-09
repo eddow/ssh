@@ -7,7 +7,9 @@ declare namespace Ssh {
 		maxAmount: number
 		regenerate?: number
 		sprites: Sprite[]
-		terrain: string
+		generation?: {
+			goods?: Record<string, number>
+		}
 	}
 
 	interface HarvestingAction {
@@ -24,9 +26,7 @@ declare namespace Ssh {
 	interface ModuleDefinition {
 		name: string
 		maxWorkers: number
-		carryingCapacity: number
 		restEase: number
-		goodsCapacity: number
 		action: Action
 		output: string
 		time: number
@@ -40,7 +40,9 @@ declare namespace Ssh {
 		sprites: Sprite[]
 	}
 	interface TerrainDefinition {
-		deposits: Record<string, number>
-		goods: Record<string, number>
+		generation?: {
+			deposits?: Record<string, number>
+			goods?: Record<string, number>
+		}
 	}
 }

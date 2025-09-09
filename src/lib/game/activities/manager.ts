@@ -18,10 +18,10 @@ export function lerp<T extends Lerpable>(a: T, b: T, t: number): T {
 	throw new Error(`Invalid lerpable type: ${typeof a}`)
 }
 
-export type Plan<Activated extends InteractiveGameObject> = (
-	plan: (activity: ActivityManager<Activated>) => Promise<void>,
+export type Plan<Activated extends InteractiveGameObject> = <R>(
+	plan: (activity: ActivityManager<Activated>) => Promise<R>,
 	description?: string,
-) => Promise<void>
+) => Promise<R>
 export type LerpSpecification<T extends Lerpable> = {
 	duration: number
 	from: T
@@ -90,7 +90,7 @@ export default class ActivityManager<Activated extends InteractiveGameObject> ex
 	}
 	log = (...args: any[]): void => this.activated.log(...args)
 
-	plan = <T>(plan: (activity: ActivityManager<Activated>) => Promise<T>, description?: string) =>
+	plan = <R>(plan: (activity: ActivityManager<Activated>) => Promise<R>, description?: string) =>
 		this.wrap(() => plan(this), plan.name, description)
 
 	atomicProgress?: (dt: number) => number | undefined

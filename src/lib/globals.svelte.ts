@@ -1,10 +1,6 @@
 import { Eventful, effect as mEffect, reactive } from "mutts"
 import { Game, type GameEvents, type InteractiveGameObject } from "./game"
 
-export interface IConfiguration {
-	darkMode?: boolean
-}
-
 const storedConfig = localStorage.getItem("configuration")
 export const configuration = $state(
 	storedConfig
@@ -45,4 +41,8 @@ export const games = new Games()
  */
 export const mrg = reactive({
 	hoveredObject: undefined as InteractiveGameObject | undefined,
+})
+
+export const interactionMode = $state({
+	selectedAction: '' as string,
 })

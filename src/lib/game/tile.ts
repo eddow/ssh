@@ -5,6 +5,7 @@ import type { Character } from "./character"
 import type { Game } from "./game"
 import { effect } from "mutts"
 
+// TODO: translate-> name = translation set on load
 type Ctor<T extends object = any> = abstract new (...args: any[]) => T
 
 export type TerrainType = keyof typeof terrain
@@ -16,11 +17,43 @@ export interface TileContent {
 	readonly debugInfo: Record<string, any>
 	readonly walkTime: number
 	readonly background: string
+	/**
+	 * 
+	 * @param goodType - The type of good to add
+	 * @param qty - The quantity of good to add
+	 * @returns The quantity of good that was added
+	 */
 	addGood(goodType: GoodType, qty: number): number
+	/**
+	 * Remove a good from the tile
+	 * @param goodType - The type of good to remove
+	 * @param qty - The quantity of good to remove
+	 * @returns The quantity of good that was removed
+	 */
 	removeGood(goodType: GoodType, qty: number): number
+	/**
+	 * List the goods on the tile
+	 * @returns A record of goods and their quantities
+	 */
 	listGoods(): {[k in GoodType]?: number} 
+	/**
+	 * Check if the tile can store a good
+	 * @param goodType - The type of good to check
+	 * @returns The quantity of good that can be stored
+	 */
 	canStoreGood(goodType: GoodType): number
+	/**
+	 * Render the tile
+	 * @param tile - The tile to render
+	 * @returns The container child to render
+	 */
 	render(tile: HexTile): ContainerChild
+	/**
+	 * Check if this tile content can perform the given action
+	 * @param action - The action to check
+	 * @returns true if the action can be performed
+	 */
+	canAct?(action: string): boolean
 }
 
 function GcClass<BaseCtor extends Ctor<any>, TDef extends object>(
@@ -48,6 +81,9 @@ export class Deposit implements Ssh.DepositDefinition {
 	declare sprites: string[]
 	declare regenerate?: number
 	declare terrain: string
+	declare generation?: {
+		goods?: Record<string, number>
+	}
 	constructor(public amount: number) {}
 }
 
@@ -57,51 +93,60 @@ export class Module implements Ssh.ModuleDefinition, TileContent {
 	declare maxWorkers: number
 	declare carryingCapacity: number
 	declare restEase: number
-	declare goodsCapacity: number
 	declare action: Ssh.Action
 	declare output: GoodType
 	declare time: number
 	declare sprites: string[]
 	declare icon: string
 	public assignedWorker: Character | undefined
-	public goodsQty: number = 0
+	public goods: {[k in GoodType]?: number} = {}
+	
+	// Configurable properties
+	public walkway: boolean = true
+	public conveyor: boolean = true
+	
 	constructor() {}
 
 	listGoods(): {[k in GoodType]?: number} {
-		return this.goodsQty <= 0 ? {} : { [this.output]: this.goodsQty }
+		return this.goods
 	}
 	canStoreGood(goodType: GoodType): number {
-		return goodType === this.output ? this.goodsCapacity - this.goodsQty : 0
+		const inputs = 
+			this.action.type === 'transform' ?
+			(this.action.inputs[goodType] || 0) :
+			0
+		if(inputs <= 0) return 0
+		return inputs - (this.goods[goodType] || 0)
 	}
 	addGood(goodType: GoodType, qty: number) {
-		if(goodType !== this.output) return qty
-		const stored = this.canStoreGood(goodType)
-		this.goodsQty += stored
-		return qty - stored
+		const stored = Math.min(qty, this.canStoreGood(goodType))
+		if(stored <= 0) return 0
+		this.goods[goodType] = (this.goods[goodType] || 0) + stored
+		return stored
 	}
 	removeGood(goodType: GoodType, qty: number) {
-		if(goodType !== this.output) return qty
-		const taken = Math.min(qty, this.goodsQty)
-		this.goodsQty -= taken
-		return qty - taken
+		const taken = Math.min(qty, this.goods[goodType] || 0)
+		if(taken <= 0) return 0
+		this.goods[goodType] = this.goods[goodType]! - taken
+		if(this.goods[goodType] === 0) delete this.goods[goodType]
+		return taken
 	}
 	get debugInfo() {
 		return {
 			outputs: this.output,
-			goodsQty: this.goodsQty,
+			goods: this.goods,
 		}
 	}
 	get walkTime() {
-		return Number.POSITIVE_INFINITY
+		return this.walkway ? 1 : Number.POSITIVE_INFINITY
 	}
 	get background() {
 		return 'concrete'
 	}
 
 	// Render module sprite + a vertical goods bar on the right side of the tile
-	render({ game, position }: HexTile): ContainerChild {
+	render({ game }: HexTile): ContainerChild {
 		const root = new Container()
-		root.position.set(position.x, position.y)
 		const size = game.hex.tileSize
 		// Module sprite (centered)
 		if (this.sprites && this.sprites[0]) {
@@ -113,27 +158,138 @@ export class Module implements Ssh.ModuleDefinition, TileContent {
 			root.addChild(sprite)
 		}
 
-		const g = new Graphics()
-		const capacity = Math.max(1, this.goodsCapacity)
-		const ratio = Math.min(1, Math.max(0, this.goodsQty / capacity))
-		const height = (size * 0.9) * ratio
-		const colorByGood: Partial<Record<GoodType, number>> = {
-			wood: 0x8b5a2b,
-			stone: 0x7a7a7a,
-			planks: 0xc49a6c,
-			berries: 0xb03060,
-			mushrooms: 0x8a6f4e,
-		}
-		const color = colorByGood[this.output] ?? 0x4a90e2
-		// Bar background (on the right side)
-		const barX = size * 0.55
-		const barW = Math.max(3, size * 0.12)
-		const barH = size * 0.9
-		g.rect(barX, -barH / 2, barW, barH).fill(0x222222)
-		// Bar fill from bottom up
-		if (height > 0) g.rect(barX, -barH / 2 + (barH - height), barW, height).fill(color)
-		root.addChild(g)
+		// Render individual good sprites
+		this.renderGoodSprites(root, game, size)
 		return root
+	}
+
+	private renderGoodSprites(root: Container, game: Game, size: number) {
+		// Use the imported goods definitions
+		
+		if (this.action.type === "harvest") {
+			// Harvesters: show output goods on the right
+			this.renderOutputGoods(root, game, size, goods)
+		} else if (this.action.type === "transform") {
+			// Transformers: show input goods on left, output goods on right
+			this.renderInputGoods(root, game, size, goods)
+			this.renderOutputGoods(root, game, size, goods)
+		}
+	}
+
+	private renderInputGoods(root: Container, game: Game, size: number, goods: any) {
+		if (this.action.type !== "transform" || !this.action.inputs) return
+
+		// Get all input good types and their required quantities
+		const inputEntries = Object.entries(this.action.inputs) as [GoodType, number][]
+		
+		let spriteIndex = 0
+		for (const [goodType, requiredQty] of inputEntries) {
+			const storedQty = this.goods[goodType] || 0
+			
+			// Render sprites for this input good type
+			for (let i = 0; i < requiredQty; i++) {
+				const sprite = new Sprite(game.getTexture(goods[goodType].sprites[0]))
+				
+				// Scale sprite to fit nicely
+				const spriteSize = size * 0.15
+				const scale = Math.max(sprite.width, sprite.height) / spriteSize
+				sprite.scale.set(1 / scale)
+				sprite.anchor.set(0.5)
+				
+				// Position sprites on the left side in a grid
+				const cols = 2
+				const col = spriteIndex % cols
+				const row = Math.floor(spriteIndex / cols)
+				const spacing = size * 0.2
+				const startX = -size * 0.4
+				const startY = -size * 0.3
+				
+				sprite.position.set(
+					startX + col * spacing,
+					startY + row * spacing
+				)
+				
+				// Color: filled sprites are normal, empty slots are grayed
+				if (i < storedQty) {
+					sprite.tint = 0xffffff // Normal color
+				} else {
+					sprite.tint = 0x666666 // Grayed out
+				}
+				
+				root.addChild(sprite)
+				spriteIndex++
+			}
+		}
+	}
+
+	private renderOutputGoods(root: Container, game: Game, size: number, goods: any) {
+		const outputQty = this.goods[this.output] || 0
+		if (outputQty <= 0) return
+
+		// Render output goods on the right side
+		const maxDisplay = 6 // Maximum number of sprites to show
+		const spritesToShow = Math.min(outputQty, maxDisplay)
+		
+		for (let i = 0; i < spritesToShow; i++) {
+			const sprite = new Sprite(game.getTexture(goods[this.output].sprites[0]))
+			
+			// Scale sprite to fit nicely
+			const spriteSize = size * 0.15
+			const scale = Math.max(sprite.width, sprite.height) / spriteSize
+			sprite.scale.set(1 / scale)
+			sprite.anchor.set(0.5)
+			
+			// Position sprites on the right side in a grid
+			const cols = 2
+			const col = i % cols
+			const row = Math.floor(i / cols)
+			const spacing = size * 0.2
+			const startX = size * 0.4
+			const startY = -size * 0.3
+			
+			sprite.position.set(
+				startX + col * spacing,
+				startY + row * spacing
+			)
+			
+			// Output goods are always colored normally
+			sprite.tint = 0xffffff
+			
+			root.addChild(sprite)
+		}
+		
+		// If there are more goods than we can display, show a "+" indicator
+		if (outputQty > maxDisplay) {
+			const plusSprite = new Sprite(game.getTexture(goods[this.output].sprites[0]))
+			const spriteSize = size * 0.15
+			const scale = Math.max(plusSprite.width, plusSprite.height) / spriteSize
+			plusSprite.scale.set(1 / scale)
+			plusSprite.anchor.set(0.5)
+			
+			// Position the "+" indicator
+			const cols = 2
+			const col = maxDisplay % cols
+			const row = Math.floor(maxDisplay / cols)
+			const spacing = size * 0.2
+			const startX = size * 0.4
+			const startY = -size * 0.3
+			
+			plusSprite.position.set(
+				startX + col * spacing,
+				startY + row * spacing
+			)
+			
+			// Make it semi-transparent to indicate "more"
+			plusSprite.tint = 0x888888
+			plusSprite.alpha = 0.7
+			
+			root.addChild(plusSprite)
+		}
+	}
+
+	canAct(action: string): boolean {
+		// Modules can't be built on (they already exist)
+		return false
 	}
 }
 
@@ -156,22 +312,24 @@ export class UnBuiltLand implements TileContent {
 		return this.goods.filter((good) => good === undefined).length
 	}
 	addGood(goodType: GoodType, qty: number) {
+		let toAdd = qty
 		for(let i = 0; i < this.goods.length; i++) {
 			if(this.goods[i] === undefined) {
 				this.goods[i] = goodType
-				if(!--qty) return 0
+				if(!--toAdd) return qty
 			}
 		}
-		return qty
+		return qty-toAdd
 	}
 	removeGood(goodType: GoodType, qty: number) {
+		let toRemove = qty
 		for(let i = 0; i < this.goods.length; i++) {
 			if(this.goods[i] === goodType) {
 				this.goods[i] = undefined
-				if(!--qty) return 0
+				if(!--toRemove) return qty
 			}
 		}
-		return qty
+		return qty-toRemove
 	}
 	get debugInfo() {
 		return {
@@ -186,11 +344,9 @@ export class UnBuiltLand implements TileContent {
 		return `terrain-${this.terrain}`
 	}
 
-	render({ game, position }: HexTile): ContainerChild {
+	render({ game }: HexTile): ContainerChild {
 		const size = game.hex.tileSize
 		const root = new Container()
-		const { x: wpx, y: wpy } = position
-		root.position.set(wpx, wpy)
 
 		effect(() => {
 			// Deposit sprite if any
@@ -229,5 +385,14 @@ export class UnBuiltLand implements TileContent {
 		})
 
 		return root
+	}
+
+	canAct(action: string): boolean {
+		// UnBuiltLand can accept building actions
+		if (action.startsWith('build:')) {
+			return !this.deposit
+		}
+		// Can also accept other actions if they make sense
+		return false
 	}
 }

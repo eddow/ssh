@@ -1,5 +1,6 @@
 <script lang="ts">
-	import type { UnBuiltLand } from '$lib/game/tile'
+	import type { GoodType, UnBuiltLand } from '$lib/game/tile'
+	import { goods } from '$assets/game-content'
 	import { Badge } from 'flowbite-svelte'
 
 	let { content }: { content: UnBuiltLand } = $props()
@@ -20,7 +21,10 @@
 				<span class="font-medium">Goods:</span>
 				<div class="flex flex-wrap gap-1">
 					{#each Object.entries(content.listGoods()) as [good, count]}
-						<Badge color="yellow">{good} × {count}</Badge>
+						{@const goodDef = goods[good as GoodType]}
+						<Badge color="yellow">
+							{goodDef.name} × {count}
+						</Badge>
 					{/each}
 				</div>
 			</div>

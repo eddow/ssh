@@ -1,7 +1,7 @@
 import D from "flat-diamond"
-import { effect, Reactive, reactive, watch, type ScopedCallback } from "mutts"
+import { effect, Reactive, watch } from "mutts"
 import { ColorMatrixFilter, Container, Graphics, Point, Sprite, TilingSprite } from "pixi.js"
-import { modules, deposits, terrain as terrainChances } from "$assets/game-content"
+import { deposits, terrain as terrainDetails } from "$assets/game-content"
 import {
 	GeneratorObject,
 	HittableGameObject,
@@ -34,7 +34,7 @@ export class HexTile extends Reactive(D(InteractiveGameObject, GeneratorObject))
 		readonly coord: AxialCoord,
 		public content: TileContent
 	) {
-		super(hex.game, `hex-tile-${coord.q}-${coord.r}`)
+		super(hex.game, `hex-tile:${coord.q},${coord.r}`)
 	}
 
 	get title(): string {
@@ -50,6 +50,32 @@ export class HexTile extends Reactive(D(InteractiveGameObject, GeneratorObject))
 			position: this.position,
 			content: this.content.debugInfo
 		}
+	}
+
+	canAct(action: string): boolean {
+		// For other actions, check if the tile content can act
+		return this.content.canAct?.(action) ?? false
+	}
+
+	build(moduleType: string): boolean {
+		// Check if we can build on this tile
+		if (!this.canAct(`build:${moduleType}`)) {
+			return false
+		}
+
+		// Get the module class from the static class registry
+		const ModuleClass = Module.class[moduleType as keyof typeof Module.class]
+		
+		if (!ModuleClass) {
+			console.error(`Unknown module type: ${moduleType}`)
+			return false
+		}
+
+		// Create and set the new module
+		const newModule = new ModuleClass()
+		this.content = newModule
+		
+		return true
 	}
 
 	render = () => {
@@ -85,6 +111,8 @@ export class HexTile extends Reactive(D(InteractiveGameObject, GeneratorObject))
 		// Render foreground via tile content
 		watch(() => this.content, (content)=> {
 			const fg = content.render(this)
+			const { x, y } = position
+			fg.position.set(x, y)
 			game.objectLayer.addChild(fg as any)
 			return () => {
 				fg.destroy()
@@ -132,10 +160,18 @@ export class HexBoard extends D(RenderableContainer, HittableGameObject) {
 		this.terrainGenerator = new PerlinTerrainGenerator(12345)
 	}
 
-	hitTest = (worldX: number, worldY: number): InteractiveGameObject | false => {
+	hitTest = (worldX: number, worldY: number, selectedAction?: string): InteractiveGameObject | false => {
 		const coord = axial.round(this.world2axial({ x: worldX, y: worldY }))
 		if (axial.distance(coord, { q: 0, r: 0 }) > this.boardSize) return false
-		return this.getTile(coord) ?? false
+		const tile = this.getTile(coord)
+		if (!tile) return false
+		
+		// If we have a selected action, check if the tile can act with it
+		if (selectedAction && !tile.canAct(selectedAction)) {
+			return false
+		}
+		
+		return tile
 	}
 
 	resizeSprite(sprite: Sprite, size: number) {
@@ -164,20 +200,22 @@ export class HexBoard extends D(RenderableContainer, HittableGameObject) {
 		deposit: Deposit | undefined,
 	): void {
 		const rnd = this.game.lcg(`goods-${seed}`)
+		const details: Ssh.TerrainDefinition = terrainDetails[terrain]
 
 		// Deposit-driven goods
-		if (deposit) {
-			const goodsByDeposit: Record<string, { good: string; chance: number }> = {
-				tree: { good: "wood", chance: 0.7 },
-				rock: { good: "stone", chance: 0.6 },
-				berry_bush: { good: "berries", chance: 0.8 },
+		if (deposit && deposit.generation?.goods) {
+			let gen = rnd()
+			for(const [good, chance] of Object.entries(deposit.generation.goods)) {
+				if(gen < chance) {
+					tile.content.addGood(good as any, 1)
+					break
+				}
+				gen -= chance
 			}
-			const rule = goodsByDeposit[deposit.name]
-			if (rule && rnd() < rule.chance) tile.content.addGood(rule.good as any, 1)
 		}
 
 		// Ambient goods by terrain (new terrain config)
-		const ambient = (terrainChances as any)[terrain]?.goods ?? {}
+		const ambient = details.generation?.goods ?? {}
 		for (const [good, chance] of Object.entries(ambient)) {
 			if (rnd() < (chance as number)) tile.content.addGood(good as any, 1)
 		}
@@ -185,7 +223,8 @@ export class HexBoard extends D(RenderableContainer, HittableGameObject) {
 
 	private generateRandomDeposit(seed: number, terrain: TerrainType): Deposit | undefined {
 		const rnd = this.game.lcg(`deposit+${seed}`)
-		const table = (terrainChances as any)[terrain]?.deposits ?? {}
+		const details: Ssh.TerrainDefinition = terrainDetails[terrain]
+		const table = details.generation?.deposits ?? {}
 		for (const [depKey, chance] of Object.entries(table)) {
 			if (rnd() < (chance as number)) {
 				const type = (deposits as any)[depKey] as Ssh.DepositDefinition

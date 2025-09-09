@@ -1,11 +1,13 @@
 import { Eventful, reactive, unreactive, zip } from "mutts"
 import { Application, Assets, Container, Point, Spritesheet, Texture } from "pixi.js"
 import * as gameContent from "$assets/game-content"
-import { mrg } from "$lib/globals.svelte"
+import { mrg, interactionMode } from "$lib/globals.svelte"
 import { LCG } from "$lib/numbers"
-import { Population } from "./character"
-import { HexBoard } from "./hexboard"
+import { Population, Character } from "./character"
+import { HexBoard, HexTile } from "./hexboard"
 import type { HittableGameObject, InteractiveGameObject } from "./object"
+import { Module, UnBuiltLand } from "./tile"
+import { registerPixiApp, unregisterPixiApp } from "$lib/hmr-pixi"
 
 unreactive(gameContent)
 
@@ -115,39 +117,88 @@ export class Game extends Eventful<GameEvents> {
 
 		this.generate()
 	}
+
+	public simulateObjectClick(object: InteractiveGameObject) {
+		this.emit("objectClick", {} as any, object)
+	}
 	generate(state: any = {}) {
 		this.hex?.generateBoard()
 		this.population.generateCharacters()
 	}
+	clickObject(event: any, object: InteractiveGameObject) {
+		this.emit("objectClick", event, object)
+	}
 }
 
 export class GameView {
-	public pixi: Application
-	public stage: Container
+	public pixi!: Application
+	public stage!: Container
+	private container: HTMLElement
+	private canvas: HTMLCanvasElement | null = null
+	
 	constructor(
 		public game: Game,
 		into: HTMLElement,
 	) {
+		this.container = into
+		this.initializePixi()
+	}
+
+	private async initializePixi() {
 		// Create PixiJS application
 		this.pixi = new Application()
 		this.stage = this.pixi.stage
-		this.pixi
-			.init({
-				backgroundColor: 0x1099bb,
-				resolution: window.devicePixelRatio || 1,
-				autoDensity: true,
-				//preference: "webgpu",
-				resizeTo: into,
-			})
-			.then(() => {
-				const canvas = this.pixi.canvas
-				into.appendChild(canvas)
-				this.setupInput(game, canvas)
-			})
+		
+		await this.pixi.init({
+			backgroundColor: 0x1099bb,
+			resolution: window.devicePixelRatio || 1,
+			autoDensity: true,
+			//preference: "webgpu",
+			resizeTo: this.container,
+		})
+
+		this.canvas = this.pixi.canvas
+		this.container.appendChild(this.canvas)
+		this.setupInput(this.game, this.canvas)
 		this.stage.addChild(this.game.stage)
+		
+		// Register for HMR cleanup
+		registerPixiApp(this.pixi)
+		
 		//@ts-expect-error
 		globalThis.__PIXI_APP__ = this.pixi
 		//new Stats(this.pixi.renderer, document.body)
+	}
+
+	public destroy() {
+		// Unregister from HMR cleanup
+		if (this.pixi) {
+			unregisterPixiApp(this.pixi)
+		}
+		
+		// Remove canvas from DOM
+		if (this.canvas && this.canvas.parentNode) {
+			this.canvas.parentNode.removeChild(this.canvas)
+		}
+		
+		// Destroy PixiJS application
+		if (this.pixi) {
+			this.pixi.destroy(true, { children: true, texture: true })
+		}
+		
+		// Clear global reference
+		//@ts-expect-error
+		if (globalThis.__PIXI_APP__ === this.pixi) {
+			//@ts-expect-error
+			globalThis.__PIXI_APP__ = null
+		}
+		
+		this.canvas = null
+	}
+
+	public async reload() {
+		this.destroy()
+		await this.initializePixi()
 	}
 	// Panning properties
 	private isPanning = false
@@ -171,20 +222,23 @@ export class GameView {
 			const sortedHittables = Array.from(game.hittableObjects).sort((a, b) => b.zIndex - a.zIndex)
 
 			for (const interactive of sortedHittables) {
-				const hit = interactive.hitTest(worldX, worldY)
+				const hit = interactive.hitTest(
+					worldX, worldY,
+					interactionMode.selectedAction === 'select' ? undefined : interactionMode.selectedAction
+				)
 				if (hit) return hit
 			}
 			return undefined
 		}
 
 		const emitOverOutIfNeeded = (nextHover: InteractiveGameObject | undefined, ev: MouseEvent) => {
-			if (mrg.hoveredObject !== nextHover) {
+			if (mrg.hoveredObject !== nextHover) {/*
 				if (mrg.hoveredObject) {
 					game.emit("objectOut", ev as any, mrg.hoveredObject)
 				}
 				if (nextHover) {
 					game.emit("objectOver", ev as any, nextHover, () => {})
-				}
+				}*/
 				mrg.hoveredObject = nextHover
 			}
 		}
@@ -218,7 +272,7 @@ export class GameView {
 
 		const clearHover = (e: Event) => {
 			if (mrg.hoveredObject) {
-				game.emit("objectOut", e as any, mrg.hoveredObject)
+				//game.emit("objectOut", e as any, mrg.hoveredObject)
 				mrg.hoveredObject = undefined
 			}
 		}
@@ -248,7 +302,7 @@ export class GameView {
 				const stop = () => {
 					stopped = true
 				}
-				game.emit("objectDown", e as any, hit, stop)
+				game.clickObject(e, hit)
 				if (stopped) e.stopPropagation()
 			}
 		})
@@ -262,12 +316,12 @@ export class GameView {
 			const { x, y } = getCanvasPoint(e)
 			const { x: wx, y: wy } = getWorldPoint(x, y)
 			const hit = topmostInteractiveAt(wx, wy)
-			if (hit) {
+			/*if (hit) {
 				game.emit("objectUp", e as any, hit)
 			}
 			if (hit && hit === mouseDownObject) {
 				game.emit("objectClick", e as any, hit)
-			}
+			}*/
 			mouseDownObject = undefined
 		})
 

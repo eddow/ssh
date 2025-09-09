@@ -7,15 +7,14 @@
 </script>
 
 <script lang="ts">
-	import { games } from '$lib/globals.svelte'
+	import { games, interactionMode } from '$lib/globals.svelte'
 	import { Button } from 'flowbite-svelte'
-	import { EyeOutline } from 'flowbite-svelte-icons'
+	import Icon from '@iconify/svelte'
 	import { HexTile, InteractiveGameObject, Character } from '$lib/game'
 	import { mrg } from '$lib/globals.svelte'
 	import { m2s, mns } from '$lib/mutts.svelte'
 	import { watch } from 'mutts'
 	import TileProperties from '$components/TileProperties.svelte'
-	import BuildingProperties from '$components/BuildingProperties.svelte'
 	import CharacterProperties from '$components/CharacterProperties.svelte'
 
 	let { uid }: { uid: string } = $props()
@@ -58,13 +57,24 @@
 	function mouseOut() {
 		if (mrg.hoveredObject === object) mrg.hoveredObject = undefined
 	}
+	function act() {
+		if (!object) return
+		if (interactionMode.selectedAction) {
+			game.simulateObjectClick(object)
+		}
+	}
 </script>
 
 <div class="selection-info" role="presentation" onmouseenter={mouseIn} onmouseleave={mouseOut}>
 	<div class="header">
 		<Button onclick={goTo} size="sm">
-			<EyeOutline class="w-4 h-4" />
+			<Icon icon="mdi:eye" width="16" height="16" />
 		</Button>
+		{#if interactionMode.selectedAction && object?.canAct?.(interactionMode.selectedAction)}
+			<Button onclick={act} size="sm">
+				<Icon icon="mdi:play" width="16" height="16" />
+			</Button>
+		{/if}
 	</div>
 
 	<div class="content">
@@ -72,9 +82,6 @@
 			<CharacterProperties character={object} />
 		{:else if object instanceof HexTile}
 			<TileProperties tile={object} />
-			{#if object.building}
-				<BuildingProperties tile={object} />
-			{/if}
 		{:else}
 			<div class="error">
 				<p>Unknown object type</p>

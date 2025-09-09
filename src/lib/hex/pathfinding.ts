@@ -222,7 +222,7 @@ export function findNearest<T>(
 			// Calculate tentative gCost
 			const tentativeGCost = currentNode.gCost + walkTime
 
-			// Skip if this path exceeds maxTime
+			// Skip if this path cannot be followed
 			if (stop(neighborCoord, tentativeGCost)) continue
 
 			// Check if this path to neighbor is better

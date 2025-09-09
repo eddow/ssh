@@ -1,13 +1,13 @@
 import { watch, effect as mEffect } from "mutts"
-import type { Readable, Subscriber, Unsubscriber } from "svelte/store"
+import type { Readable, Subscriber, Unsubscriber, Writable } from "svelte/store"
 
 /**
  * Mutts to Svelte store
  * @param muttsValue mutts value
  */
-export function ms<T>(muttsValue: () => T): Readable<T>
-export function ms<T extends object>(muttsValue: T): Readable<T>
-export function ms<T>(muttsValue: (() => T) | T): Readable<T> {
+export function ms<T>(muttsValue: () => T): Writable<T>
+export function ms<T extends object>(muttsValue: T): Writable<T>
+export function ms<T extends object | (() => any)>(muttsValue: (() => T) | T): Writable<T> {
 	const subscribers = new Set<Subscriber<T>>()
 	let cleanup: Unsubscriber | undefined
 	function subscribe(this: void, run: Subscriber<T>): Unsubscriber {
@@ -25,16 +25,25 @@ export function ms<T>(muttsValue: (() => T) | T): Readable<T> {
 			}
 		}
 	}
-	
-	return { subscribe }
+	// writing is done on property set - though replacing the value won't od the job here
+	function set(value: T) {
+		//debugger
+	}
+	function update(updater: (value: T) => T) {
+		//set(updater(typeof muttsValue === 'function' ? muttsValue() : muttsValue))
+	}
+	return { subscribe, set, update }
 }
 
 function copyInto(from: object, to?: object) {
 	if(!to) to = Object.create(Object.getPrototypeOf(from))
 	for(const key of Object.getOwnPropertyNames(to))
 		delete to![key as keyof object]
-	for(const key in from) if(from.hasOwnProperty(key) || !Number.isNaN(Number(key)))
-		to![key as keyof object] = from[key as keyof object]
+	const fromProps = Object.getOwnPropertyDescriptors(from)
+	for(const [key, value] of Object.entries(fromProps))
+		if('value' in value)
+		// @ts-expect-error
+			to![key] = value.value
 	return to
 }
 /**

@@ -3,9 +3,11 @@ import { babel } from "@rollup/plugin-babel"
 import { svelte } from "@sveltejs/vite-plugin-svelte"
 import { defineConfig } from "vite"
 import phaser from "vite-plugin-phaser"
+import tailwindcss from "@tailwindcss/vite"
 
 export default defineConfig({
 	plugins: [
+		tailwindcss(),
 		svelte(),
 		phaser,
 		babel({

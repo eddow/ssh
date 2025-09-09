@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Button } from 'flowbite-svelte'
-	import { MoonSolid, SunSolid } from 'flowbite-svelte-icons'
+	import Icon from '@iconify/svelte'
 
 	let {
 		darkMode = $bindable(false),
@@ -14,6 +14,16 @@
 	type="button"
 	onclick={() => (darkMode = !darkMode)}
 >
-	<MoonSolid class={`w-6 h-6 bg-gray-100 ${darkMode ? 'hidden' : ''}`} />
-	<SunSolid class={`w-6 h-6 bg-gray-700 ${darkMode ? '' : 'hidden'}`} />
+	<Icon
+		icon="mdi:weather-night"
+		width="24"
+		height="24"
+		class={`bg-gray-100 ${darkMode ? 'hidden' : ''}`}
+	/>
+	<Icon
+		icon="mdi:weather-sunny"
+		width="24"
+		height="24"
+		class={`bg-gray-700 ${darkMode ? '' : 'hidden'}`}
+	/>
 </Button>

@@ -6,10 +6,11 @@
 
 <script lang="ts">
 	import type { Writable } from 'svelte/store'
-	import { onMount } from 'svelte'
-	import { debugInfo, games } from '$lib/globals.svelte'
+	import { onMount, onDestroy } from 'svelte'
+	import { debugInfo, games, interactionMode } from '$lib/globals.svelte'
 	import { type InteractiveGameObject, GameView } from '$lib/game'
 	import { getDockviewContext } from 'dockview-svelte/src'
+	import { HexTile } from '$lib/game/hexboard'
 
 	const dvContext = getDockviewContext()
 	let {
@@ -33,18 +34,59 @@
 		gameView = new GameView(game, container!)
 	})
 
-	const gameEvents = {
-		objectDown(event: any, object: InteractiveGameObject, stopPropagation: () => void) {
-			if (event.button === 0) {
-				dvContext.addDock(
-					'selection-info',
-					{ uid: object.uid },
-					{
-						floating: true
-					}
-				)
-				stopPropagation()
+	onDestroy(() => {
+		// Clean up PixiJS resources when component is destroyed
+		if (gameView) {
+			gameView.destroy()
+		}
+	})
+
+	// Handle HMR reloads
+	if (import.meta.hot) {
+		import.meta.hot.accept(() => {
+			// Reload the entire PixiJS infrastructure on HMR
+			if (gameView) {
+				gameView.reload()
 			}
+		})
+	}
+
+	const gameEvents = {
+		objectClick(event: MouseEvent, object: InteractiveGameObject) {
+			if (event.button === 0) {
+				// Check if we're in building mode
+				if (interactionMode.selectedAction.startsWith('build:')) {
+					handleBuildingAction(object)
+				} else {
+					// Default behavior: show selection info
+					dvContext.addDock(
+						'selection-info',
+						{ uid: object.uid },
+						{
+							floating: true
+						}
+					)
+				}
+			}
+		}
+	}
+
+	function handleBuildingAction(object: InteractiveGameObject) {
+		// Only allow building on hex tiles
+		if (!(object instanceof HexTile)) return
+
+		const tile = object as HexTile
+		const action = interactionMode.selectedAction
+
+		// Extract module type from action (e.g., "build:sawmill" -> "sawmill")
+		const moduleType = action.replace('build:', '')
+
+		// Use the tile's build method
+		const success = tile.build(moduleType)
+
+		if (success) {
+			// Reset to selection mode
+			interactionMode.selectedAction = ''
 		}
 	}
 

@@ -5,28 +5,30 @@
 	import { Badge } from 'flowbite-svelte'
 	import UnBuiltProperties from './UnBuiltProperties.svelte'
 	import ModuleProperties from './ModuleProperties.svelte'
+	import { ms } from '$lib/mutts.svelte'
 
 	let { tile }: { tile: HexTile } = $props()
+	let tileContent = ms(() => tile.content)
 </script>
 
 <div class="tile-properties">
 	<div class="space-y-2">
 		<div class="flex items-center gap-2">
 			<span class="font-medium">Content:</span>
-			<Badge color="green">{tile.content.name}</Badge>
+			<Badge color="green">{$tileContent.name}</Badge>
 		</div>
 
 		<div class="flex items-center gap-2">
 			<span class="font-medium">Walk Time:</span>
-			<Badge color={tile.content.walkTime === Number.POSITIVE_INFINITY ? 'red' : 'yellow'}>
-				{tile.content.walkTime === Number.POSITIVE_INFINITY ? 'Unwalkable' : tile.content.walkTime}
+			<Badge color={$tileContent.walkTime === Number.POSITIVE_INFINITY ? 'red' : 'yellow'}>
+				{$tileContent.walkTime === Number.POSITIVE_INFINITY ? 'Unwalkable' : $tileContent.walkTime}
 			</Badge>
 		</div>
 
-		{#if tile.content instanceof UnBuiltLand}
-			<UnBuiltProperties content={tile.content} />
-		{:else if tile.content instanceof Module}
-			<ModuleProperties content={tile.content} />
+		{#if $tileContent instanceof UnBuiltLand}
+			<UnBuiltProperties content={$tileContent} />
+		{:else if $tileContent instanceof Module}
+			<ModuleProperties content={$tileContent} />
 		{/if}
 	</div>
 </div>

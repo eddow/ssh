@@ -24,30 +24,30 @@ export const resources: Record<string, string> = {
 	character: "character.png",
 }
 export const terrain = {
-	water: {
-		deposits: {},
-		goods: {},
-	},
+	water: {},
 	forest: {
-		deposits: { tree: 0.7 },
-		goods: { mushrooms: 0.3 },
+		generation: {
+			deposits: { tree: 0.7 },
+			goods: { mushrooms: 0.3 },
+		},
 	},
 	rocky: {
-		deposits: { rock: 0.6 },
-		goods: {},
+		generation: {
+			deposits: { rock: 0.6 },
+		},
 	},
 	grass: {
-		deposits: { berry_bush: 0.1 },
-		goods: {},
+		generation: {
+			deposits: { berry_bush: 0.1 },
+		},
 	},
 	sand: {
-		deposits: { rock: 0.3 },
-		goods: { berries: 0.05 },
+		generation: {
+			deposits: { rock: 0.3 },
+			goods: { berries: 0.05 },
+		},
 	},
-	snow: {
-		deposits: {},
-		goods: {},
-	},
+	snow: {},
 } as const satisfies Record<string, Ssh.TerrainDefinition>
 
 export const deposits = {
@@ -56,20 +56,26 @@ export const deposits = {
 		maxAmount: 18,
 		regenerate: .01,
 		sprites: ["bushes/bush1"],
-		terrain: "grass",
+		generation: {
+			goods: { berries: 0.05 },
+		},
 	},
 	rock: {
 		name: "Rock",
 		maxAmount: 18,
 		sprites: ["rocks/rock1", "rocks/rock2", "rocks/rock3", "rocks/rock4", "rocks/rock5", "rocks/rock6"],
-		terrain: "rocky",
+		generation: {
+			goods: { stone: 0.6 },
+		},
 	},
 	tree: {
 		name: "Tree",
 		maxAmount: 12,
 		sprites: ["trees/tree1", "trees/tree2", "trees/tree3", "trees/tree4", "trees/tree5", "trees/tree6", "trees/tree7", "trees/tree8", "trees/tree9", "trees/tree10", "trees/tree11"],
 		regenerate: 0.01,
-		terrain: "forest",
+		generation: {
+			goods: { wood: 0.5 },
+		},
 	},
 } as const satisfies Record<string, Ssh.DepositDefinition>
 
@@ -77,9 +83,7 @@ export const modules = {
 	tree_chopper: {
 		name: "Tree Chopper",
 		maxWorkers: 2,
-		carryingCapacity: 1,
 		restEase: 10,
-		goodsCapacity: 6,
 		action: { type: "harvest", deposit: "tree" },
 		output: "wood",
 		time: 3,
@@ -89,9 +93,7 @@ export const modules = {
 	stonecutter: {
 		name: "Stone Cutter",
 		maxWorkers: 2,
-		carryingCapacity: 1,
 		restEase: 10,
-		goodsCapacity: 6,
 		action: { type: "harvest", deposit: "rock" },
 		output: "stone",
 		time: 4,
@@ -101,9 +103,7 @@ export const modules = {
 	sawmill: {
 		name: "Sawmill",
 		maxWorkers: 3,
-		carryingCapacity: 1,
 		restEase: 50,
-		goodsCapacity: 6,
 		action: { type: "transform", inputs: { wood: 1 } },
 		output: 'planks',
 		time: 2,

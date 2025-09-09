@@ -88,6 +88,17 @@ export class Character extends Reactive(
 		return this.name
 	}
 
+	// @ts-expect-error Diamond inheritance conflict
+	canAct(action: string): boolean {
+		// Characters can't be built on
+		if (action.startsWith('build:')) {
+			return false
+		}
+		// For other actions, characters might be able to act
+		// This could be expanded based on character state, assigned module, etc.
+		return false
+	}
+
 	get debugInfo(): Record<string, any> {
 		return {
 			name: this.name,
@@ -100,9 +111,12 @@ export class Character extends Reactive(
 		return this.game.hex.axial2world(this.coord)
 	}
 
-	hitTest(coord: AxialCoord): boolean {
+	hitTest(coord: AxialCoord, selectedAction?: string): boolean {
 		// Simple circular hit test for character
-
+		// If we have a selected action, check if this character can act with it
+		if (selectedAction && !this.canAct(selectedAction)) {
+			return false
+		}
 		return axial.distance(coord, this.coord) <= 0.3
 	}
 
@@ -178,11 +192,12 @@ export class Population extends D(HittableGameObject, RenderableContainer) {
 		this.zIndex = 1 // Foreground layer - characters should be hit-tested first
 	}
 
-	hitTest(worldX: number, worldY: number): InteractiveGameObject | false {
+	hitTest(worldX: number, worldY: number, selectedAction?: string): InteractiveGameObject | false {
+		if(selectedAction && selectedAction !== 'select') return false
 		const coord = this.game.hex.world2axial({ x: worldX, y: worldY })
 		// Check if any character is hit
 		for (const character of this.characters.values()) {
-			if (character.hitTest(coord)) return character
+			if (character.hitTest(coord, selectedAction)) return character
 		}
 		return false
 	}

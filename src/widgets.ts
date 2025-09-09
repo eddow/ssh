@@ -12,6 +12,6 @@ const widgets = Object.fromEntries(
 	]),
 ) as Record<
 	string,
-	{ title: (params: Record<string, any>) => string; component: Component<[Record<string, any>]> }
+	{ title: (params: Record<string, any>) => string; component: Component<Record<string, any>> }
 >
 export default widgets

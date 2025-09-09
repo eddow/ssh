@@ -1,17 +1,14 @@
 <script lang="ts">
 	import type { DockviewApi } from 'dockview-core'
 	import { Toolbar, ToolbarButton, ToolbarGroup, RadioButton, ButtonGroup } from 'flowbite-svelte'
-	import {
-		AdjustmentsHorizontalOutline,
-		BugOutline,
-		FloppyDiskAltOutline
-	} from 'flowbite-svelte-icons'
+	// Icons now handled by IconifyIcon component
 	import { onMount } from 'svelte'
 	import { DockView } from 'dockview-svelte/src'
-	import { configuration, debugInfo, games } from '$lib/globals.svelte'
+	import { configuration, games, interactionMode } from '$lib/globals.svelte'
 	import * as gameContent from '$assets/game-content'
 	import widgets from './widgets'
 	import ResourceImage from '$components/resourceImage.svelte'
+	import Icon from '@iconify/svelte'
 
 	$effect(() => {
 		if (configuration.darkMode) document.documentElement.classList.add('dark')
@@ -69,11 +66,6 @@
 			event.preventDefault()
 		}
 	}
-	// Toolbar: building selection (radio behavior)
-	let selectedAction = $state<string>('')
-	$effect(() => {
-		debugInfo.selectedAction = selectedAction
-	})
 	function addGame() {
 		dockview!.showUniqueDock(
 			'game',
@@ -95,13 +87,13 @@
 	<Toolbar>
 		<ToolbarGroup>
 			<ToolbarButton onclick={showSystem('configuration')} title="Configuration">
-				<AdjustmentsHorizontalOutline class="w-6 h-6" />
+				<Icon icon="mdi:settings" width="24" height="24" />
 			</ToolbarButton>
 			<ToolbarButton onclick={addGame} title="Games">
-				<FloppyDiskAltOutline class="w-6 h-6" />
+				<Icon icon="mdi:plus" width="24" height="24" />
 			</ToolbarButton>
 			<ToolbarButton onclick={showSystem('debug')} title="Debug">
-				<BugOutline class="w-6 h-6" />
+				<Icon icon="mdi:bug" width="24" height="24" />
 			</ToolbarButton>
 		</ToolbarGroup>
 		<ToolbarGroup>
@@ -109,7 +101,8 @@
 				<RadioButton
 					name="action-selection"
 					value=""
-					bind:group={selectedAction}
+					bind:group={interactionMode.selectedAction}
+					checkedClass="!bg-gray-200 !text-gray-900 !border-2 !border-gray-400 dark:!bg-gray-700 dark:!text-gray-100 dark:!border-gray-500"
 					title="Select"
 					outline
 				>
@@ -122,8 +115,9 @@
 				{#each Object.entries(gameContent.modules) as [b, building]}
 					<RadioButton
 						name="action-selection"
-						value={`building-${b}`}
-						bind:group={selectedAction}
+						value={`build:${b}`}
+						bind:group={interactionMode.selectedAction}
+						checkedClass="!bg-gray-200 !text-gray-900 !border-2 !border-gray-400 dark:!bg-gray-700 dark:!text-gray-100 dark:!border-gray-500"
 						title={building.name}
 						outline
 					>

@@ -81,9 +81,10 @@ export abstract class HittableGameObject extends D(RenderableObject) {
 	 * Test if a world point is inside this interactive object
 	 * @param worldX - World X coordinate
 	 * @param worldY - World Y coordinate
+	 * @param selectedAction - Currently selected action (optional)
 	 * @returns true if the point is inside the object
 	 */
-	abstract hitTest(worldX: number, worldY: number): InteractiveGameObject | false
+	abstract hitTest(worldX: number, worldY: number, selectedAction?: string): InteractiveGameObject | false
 }
 
 export abstract class InteractiveGameObject extends D(RenderableObject) {
@@ -104,6 +105,14 @@ export abstract class InteractiveGameObject extends D(RenderableObject) {
 			this.logs.push(String(args))
 		}
 	}
+	
+	/**
+	 * Check if this object can perform the given action
+	 * @param action - The action to check
+	 * @returns true if the action can be performed on this object
+	 */
+	abstract canAct(action: string): boolean
+	
 	abstract readonly title: string
 	abstract readonly debugInfo?: Record<string, any>
 	abstract readonly position: WorldCoord
