@@ -1,4 +1,4 @@
-import { type Axial, type AxialKey, type AxialRef, axial } from "./hex"
+import { type Axial, type AxialKey, type AxialRef, axial } from './hex'
 
 export interface AxialKeyDictionary<T> {
 	get(key: AxialRef): T | undefined
@@ -54,7 +54,7 @@ export class FixedAxialKeyMap<T> extends AxialFixedKeyIndex implements AxialKeyD
 
 	set(key: AxialRef, value: T) {
 		const index = this.index(axial.key(key))
-		if (index === undefined) throw new Error("Key not found while setting a fixed-map")
+		if (index === undefined) throw new Error('Key not found while setting a fixed-map')
 		this.data[index] = value
 		return true
 	}

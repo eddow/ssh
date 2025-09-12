@@ -1,9 +1,10 @@
-import { deposits, modules, goods, terrain } from "$assets/game-content"
-import { Container, Graphics, Sprite, type ContainerChild } from "pixi.js"
-import type { HexBoard, HexTile } from "./hexboard"
-import type { Character } from "./character"
-import type { Game } from "./game"
-import { effect } from "mutts"
+import { effect } from 'mutts'
+import { Container, type ContainerChild, Sprite } from 'pixi.js'
+import { deposits, goods, modules, type terrain } from '$assets/game-content'
+import { tileSize } from '$lib/utils'
+import type { Character } from './character'
+import type { Game } from './game'
+import type { HexTile } from './hexboard'
 
 // TODO: translate-> name = translation set on load
 type Ctor<T extends object = any> = abstract new (...args: any[]) => T
@@ -18,7 +19,7 @@ export interface TileContent {
 	readonly walkTime: number
 	readonly background: string
 	/**
-	 * 
+	 *
 	 * @param goodType - The type of good to add
 	 * @param qty - The quantity of good to add
 	 * @returns The quantity of good that was added
@@ -35,7 +36,7 @@ export interface TileContent {
 	 * List the goods on the tile
 	 * @returns A record of goods and their quantities
 	 */
-	listGoods(): {[k in GoodType]?: number} 
+	listGoods(): { [k in GoodType]?: number }
 	/**
 	 * Check if the tile can store a good
 	 * @param goodType - The type of good to check
@@ -67,11 +68,10 @@ function GcClass<BaseCtor extends Ctor<any>, TDef extends object>(
 	return Sub as unknown as BaseCtor
 }
 
-function GcClasses<BaseCtor extends Ctor<any>>(
-	Base: BaseCtor,
-	entries: Record<string, any>
-) {
-	return Object.fromEntries(Object.entries(entries).map(([name, def]) => [name, GcClass(Base, name, def)]))
+function GcClasses<BaseCtor extends Ctor<any>>(Base: BaseCtor, entries: Record<string, any>) {
+	return Object.fromEntries(
+		Object.entries(entries).map(([name, def]) => [name, GcClass(Base, name, def)]),
+	)
 }
 
 export class Deposit implements Ssh.DepositDefinition {
@@ -99,36 +99,31 @@ export class Module implements Ssh.ModuleDefinition, TileContent {
 	declare sprites: string[]
 	declare icon: string
 	public assignedWorker: Character | undefined
-	public goods: {[k in GoodType]?: number} = {}
-	
+	public goods: { [k in GoodType]?: number } = {}
+
 	// Configurable properties
 	public walkway: boolean = true
 	public conveyor: boolean = true
-	
-	constructor() {}
 
-	listGoods(): {[k in GoodType]?: number} {
+	listGoods(): { [k in GoodType]?: number } {
 		return this.goods
 	}
 	canStoreGood(goodType: GoodType): number {
-		const inputs = 
-			this.action.type === 'transform' ?
-			(this.action.inputs[goodType] || 0) :
-			0
-		if(inputs <= 0) return 0
+		const inputs = this.action.type === 'transform' ? this.action.inputs[goodType] || 0 : 0
+		if (inputs <= 0) return 0
 		return inputs - (this.goods[goodType] || 0)
 	}
 	addGood(goodType: GoodType, qty: number) {
 		const stored = Math.min(qty, this.canStoreGood(goodType))
-		if(stored <= 0) return 0
+		if (stored <= 0) return 0
 		this.goods[goodType] = (this.goods[goodType] || 0) + stored
 		return stored
 	}
 	removeGood(goodType: GoodType, qty: number) {
 		const taken = Math.min(qty, this.goods[goodType] || 0)
-		if(taken <= 0) return 0
+		if (taken <= 0) return 0
 		this.goods[goodType] = this.goods[goodType]! - taken
-		if(this.goods[goodType] === 0) delete this.goods[goodType]
+		if (this.goods[goodType] === 0) delete this.goods[goodType]
 		return taken
 	}
 	get debugInfo() {
@@ -147,9 +142,9 @@ export class Module implements Ssh.ModuleDefinition, TileContent {
 	// Render module sprite + a vertical goods bar on the right side of the tile
 	render({ game }: HexTile): ContainerChild {
 		const root = new Container()
-		const size = game.hex.tileSize
+		const size = tileSize
 		// Module sprite (centered)
-		if (this.sprites && this.sprites[0]) {
+		if (this.sprites?.[0]) {
 			const sprite = new Sprite(game.getTexture(this.sprites[0]))
 			// approximate size scaling similar to hexboard
 			const scale = Math.max(sprite.width, sprite.height) / (size * 1.5)
@@ -165,11 +160,11 @@ export class Module implements Ssh.ModuleDefinition, TileContent {
 
 	private renderGoodSprites(root: Container, game: Game, size: number) {
 		// Use the imported goods definitions
-		
-		if (this.action.type === "harvest") {
+
+		if (this.action.type === 'harvest') {
 			// Harvesters: show output goods on the right
 			this.renderOutputGoods(root, game, size, goods)
-		} else if (this.action.type === "transform") {
+		} else if (this.action.type === 'transform') {
 			// Transformers: show input goods on left, output goods on right
 			this.renderInputGoods(root, game, size, goods)
 			this.renderOutputGoods(root, game, size, goods)
@@ -177,25 +172,25 @@ export class Module implements Ssh.ModuleDefinition, TileContent {
 	}
 
 	private renderInputGoods(root: Container, game: Game, size: number, goods: any) {
-		if (this.action.type !== "transform" || !this.action.inputs) return
+		if (this.action.type !== 'transform' || !this.action.inputs) return
 
 		// Get all input good types and their required quantities
 		const inputEntries = Object.entries(this.action.inputs) as [GoodType, number][]
-		
+
 		let spriteIndex = 0
 		for (const [goodType, requiredQty] of inputEntries) {
 			const storedQty = this.goods[goodType] || 0
-			
+
 			// Render sprites for this input good type
 			for (let i = 0; i < requiredQty; i++) {
 				const sprite = new Sprite(game.getTexture(goods[goodType].sprites[0]))
-				
+
 				// Scale sprite to fit nicely
 				const spriteSize = size * 0.15
 				const scale = Math.max(sprite.width, sprite.height) / spriteSize
 				sprite.scale.set(1 / scale)
 				sprite.anchor.set(0.5)
-				
+
 				// Position sprites on the left side in a grid
 				const cols = 2
 				const col = spriteIndex % cols
@@ -203,19 +198,16 @@ export class Module implements Ssh.ModuleDefinition, TileContent {
 				const spacing = size * 0.2
 				const startX = -size * 0.4
 				const startY = -size * 0.3
-				
-				sprite.position.set(
-					startX + col * spacing,
-					startY + row * spacing
-				)
-				
+
+				sprite.position.set(startX + col * spacing, startY + row * spacing)
+
 				// Color: filled sprites are normal, empty slots are grayed
 				if (i < storedQty) {
 					sprite.tint = 0xffffff // Normal color
 				} else {
 					sprite.tint = 0x666666 // Grayed out
 				}
-				
+
 				root.addChild(sprite)
 				spriteIndex++
 			}
@@ -229,16 +221,16 @@ export class Module implements Ssh.ModuleDefinition, TileContent {
 		// Render output goods on the right side
 		const maxDisplay = 6 // Maximum number of sprites to show
 		const spritesToShow = Math.min(outputQty, maxDisplay)
-		
+
 		for (let i = 0; i < spritesToShow; i++) {
 			const sprite = new Sprite(game.getTexture(goods[this.output].sprites[0]))
-			
+
 			// Scale sprite to fit nicely
 			const spriteSize = size * 0.15
 			const scale = Math.max(sprite.width, sprite.height) / spriteSize
 			sprite.scale.set(1 / scale)
 			sprite.anchor.set(0.5)
-			
+
 			// Position sprites on the right side in a grid
 			const cols = 2
 			const col = i % cols
@@ -246,18 +238,15 @@ export class Module implements Ssh.ModuleDefinition, TileContent {
 			const spacing = size * 0.2
 			const startX = size * 0.4
 			const startY = -size * 0.3
-			
-			sprite.position.set(
-				startX + col * spacing,
-				startY + row * spacing
-			)
-			
+
+			sprite.position.set(startX + col * spacing, startY + row * spacing)
+
 			// Output goods are always colored normally
 			sprite.tint = 0xffffff
-			
+
 			root.addChild(sprite)
 		}
-		
+
 		// If there are more goods than we can display, show a "+" indicator
 		if (outputQty > maxDisplay) {
 			const plusSprite = new Sprite(game.getTexture(goods[this.output].sprites[0]))
@@ -265,7 +254,7 @@ export class Module implements Ssh.ModuleDefinition, TileContent {
 			const scale = Math.max(plusSprite.width, plusSprite.height) / spriteSize
 			plusSprite.scale.set(1 / scale)
 			plusSprite.anchor.set(0.5)
-			
+
 			// Position the "+" indicator
 			const cols = 2
 			const col = maxDisplay % cols
@@ -273,16 +262,13 @@ export class Module implements Ssh.ModuleDefinition, TileContent {
 			const spacing = size * 0.2
 			const startX = size * 0.4
 			const startY = -size * 0.3
-			
-			plusSprite.position.set(
-				startX + col * spacing,
-				startY + row * spacing
-			)
-			
+
+			plusSprite.position.set(startX + col * spacing, startY + row * spacing)
+
 			// Make it semi-transparent to indicate "more"
 			plusSprite.tint = 0x888888
 			plusSprite.alpha = 0.7
-			
+
 			root.addChild(plusSprite)
 		}
 	}
@@ -298,38 +284,44 @@ export class UnBuiltLand implements TileContent {
 	get name() {
 		return this.terrain
 	}
-	constructor(goodsSlots: number = 3, public terrain: TerrainType, public deposit?: Deposit) {
+	constructor(
+		goodsSlots: number = 3,
+		public terrain: TerrainType,
+		public deposit?: Deposit,
+	) {
 		this.goods = new Array(goodsSlots).fill(undefined)
 	}
 	listGoods() {
-		return this.goods.reduce((acc, good) => {
-			if (good)
-				acc[good] = (acc[good] || 0) + 1
-			return acc
-		}, {} as {[k in GoodType]?: number} )
+		return this.goods.reduce(
+			(acc, good) => {
+				if (good) acc[good] = (acc[good] || 0) + 1
+				return acc
+			},
+			{} as { [k in GoodType]?: number },
+		)
 	}
 	canStoreGood(goodType: GoodType): number {
 		return this.goods.filter((good) => good === undefined).length
 	}
 	addGood(goodType: GoodType, qty: number) {
 		let toAdd = qty
-		for(let i = 0; i < this.goods.length; i++) {
-			if(this.goods[i] === undefined) {
+		for (let i = 0; i < this.goods.length; i++) {
+			if (this.goods[i] === undefined) {
 				this.goods[i] = goodType
-				if(!--toAdd) return qty
+				if (!--toAdd) return qty
 			}
 		}
-		return qty-toAdd
+		return qty - toAdd
 	}
 	removeGood(goodType: GoodType, qty: number) {
 		let toRemove = qty
-		for(let i = 0; i < this.goods.length; i++) {
-			if(this.goods[i] === goodType) {
+		for (let i = 0; i < this.goods.length; i++) {
+			if (this.goods[i] === goodType) {
 				this.goods[i] = undefined
-				if(!--toRemove) return qty
+				if (!--toRemove) return qty
 			}
 		}
-		return qty-toRemove
+		return qty - toRemove
 	}
 	get debugInfo() {
 		return {
@@ -338,19 +330,19 @@ export class UnBuiltLand implements TileContent {
 		}
 	}
 	get walkTime() {
-		return this.terrain === "water" ? Number.POSITIVE_INFINITY : 1
+		return this.terrain === 'water' ? Number.POSITIVE_INFINITY : 1
 	}
 	get background() {
 		return `terrain-${this.terrain}`
 	}
 
 	render({ game }: HexTile): ContainerChild {
-		const size = game.hex.tileSize
+		const size = tileSize
 		const root = new Container()
 
 		effect(() => {
 			// Deposit sprite if any
-			if (this.deposit && this.deposit.sprites && this.deposit.sprites[0]) {
+			if (this.deposit?.sprites?.[0]) {
 				const sprite = new Sprite(game.getTexture(this.deposit.sprites[0]))
 				// match previous hex resize: scale to tile size
 				const scale = Math.max(sprite.width, sprite.height) / (size * 1)
@@ -381,7 +373,9 @@ export class UnBuiltLand implements TileContent {
 				root.addChild(goodsSprite)
 				goodsSprites.push(goodsSprite)
 			}
-			return () => { for(const sprite of goodsSprites) sprite.destroy() }
+			return () => {
+				for (const sprite of goodsSprites) sprite.destroy()
+			}
 		})
 
 		return root

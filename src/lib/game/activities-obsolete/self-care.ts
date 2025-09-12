@@ -1,11 +1,11 @@
 // #region Eat
 
-import type { Character } from "../character"
-import { dropAllGoods, goForGoods, goTo, grab } from "./walk"
-import type { Plan } from "./manager"
-import { goods as goodsCatalog } from "$assets/game-content"
-import type { GoodType, Module } from "$lib/game/tile"
-import type { AxialRef } from "$lib/hex"
+import { goods as goodsCatalog } from '$assets/game-content'
+import type { GoodType, Module } from '$lib/game/tile'
+import type { AxialRef } from '$lib/hex'
+import type { Character } from '../character'
+import type { Plan } from './manager'
+import { dropAllGoods, goForGoods, goTo, grab } from './walk'
 
 const eatingTime = 3
 
@@ -64,10 +64,10 @@ export function goEat(plan: Plan<Character>) {
 					100, // maxTime
 				)
 				if (!nearestFoodTile || nearestFoodTile.length === 0) {
-					throw new Error("No food source found within range")
+					throw new Error('No food source found within range')
 				}
 				const targetTile = hex.getTile(nearestFoodTile[nearestFoodTile.length - 1])
-				if (!targetTile) throw new Error("Target tile not found")
+				if (!targetTile) throw new Error('Target tile not found')
 
 				// Pick best available food on the target tile
 				let foodType = bestFoodOnTile(targetTile.coord)
@@ -78,7 +78,7 @@ export function goEat(plan: Plan<Character>) {
 				) {
 					await goForGoods(plan, targetTile, foodType as GoodType)
 					const currentTile = hex.getTile(character.coord)
-					if (!currentTile) throw new Error("No tile at character position")
+					if (!currentTile) throw new Error('No tile at character position')
 					foodType = bestFoodOnTile(currentTile.coord)
 					if (!foodType) {
 						// Find new food source
@@ -88,41 +88,41 @@ export function goEat(plan: Plan<Character>) {
 							100,
 						)
 						if (!newNearestFoodTile || newNearestFoodTile.length === 0) {
-							throw new Error("No food source found within range")
+							throw new Error('No food source found within range')
 						}
 						const newTargetTile = hex.getTile(newNearestFoodTile[newNearestFoodTile.length - 1])
-						if (!newTargetTile) throw new Error("Target tile not found")
+						if (!newTargetTile) throw new Error('Target tile not found')
 						foodType = bestFoodOnTile(newTargetTile.coord)
 					}
 				}
 				if (foodType) await grab(plan, foodType as GoodType, 1)
-				else throw new Error("TODO: No food found within range")
+				else throw new Error('TODO: No food found within range')
 			}
 			character.carriedAmount--
 			await eatFood(carrying!)
 		}
-	}, "Feeding")
+	}, 'Feeding')
 }
 
 export function goRest(plan: Plan<Character>) {
 	return plan(async ({ activated: character, evolveStep }) => {
 		if (!character.assignedModule) {
-			throw new Error("Not working")
+			throw new Error('Not working')
 		}
 		// Find the tile that contains the assigned building
 		const buildingTile = character.game.hex.findNearest(
 			character.coord,
 			(coord) => {
 				const tile = character.game.hex.getTile(coord)
-				return tile ? (tile.content === character.assignedModule as unknown as Module) : false
+				return tile ? tile.content === (character.assignedModule as unknown as Module) : false
 			},
 			100,
 		)
 		if (!buildingTile || buildingTile.length === 0) {
-			throw new Error("Assigned building not found")
+			throw new Error('Assigned building not found')
 		}
 		const targetTile = character.game.hex.getTile(buildingTile[buildingTile.length - 1])
-		if (!targetTile) throw new Error("Target tile not found")
+		if (!targetTile) throw new Error('Target tile not found')
 		await goTo(plan, targetTile, 'Going to workplace')
 
 		await evolveStep(
@@ -136,10 +136,10 @@ export function goRest(plan: Plan<Character>) {
 				factor: -10, // Default rest ease - should come from building definition
 				bound: 0,
 			},
-			"resting",
-			'Preparing for work'
+			'resting',
+			'Preparing for work',
 		)
-	}, "Going to rest")
+	}, 'Going to rest')
 }
 
 export function goSleep(plan: Plan<Character>) {
@@ -155,7 +155,7 @@ export function goSleep(plan: Plan<Character>) {
 				factor: -50,
 				bound: 0,
 			},
-			"sleeping",
+			'sleeping',
 		)
-	}, "Going to sleep")
+	}, 'Going to sleep')
 }

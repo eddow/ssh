@@ -20,10 +20,10 @@ export function destroyAllPixiApps() {
 	for (const app of activePixiApps) {
 		try {
 			// Remove canvas from DOM if it exists
-			if (app.canvas && app.canvas.parentNode) {
+			if (app.canvas?.parentNode) {
 				app.canvas.parentNode.removeChild(app.canvas)
 			}
-			
+
 			// Destroy the application
 			app.destroy(true, { children: true, texture: true })
 		} catch (error) {
@@ -37,25 +37,25 @@ export function destroyAllPixiApps() {
 if (import.meta.hot) {
 	import.meta.hot.accept(() => {
 		console.log('🔥 HMR: Reloading PixiJS infrastructure...')
-		
+
 		// Destroy all active PixiJS applications on HMR
 		destroyAllPixiApps()
-		
+
 		// Clear any global PixiJS references
 		//@ts-expect-error
 		if (globalThis.__PIXI_APP__) {
 			//@ts-expect-error
 			globalThis.__PIXI_APP__ = null
 		}
-		
+
 		// Force garbage collection if available (development only)
 		if (typeof window !== 'undefined' && (window as any).gc) {
-			(window as any).gc()
+			;(window as any).gc()
 		}
-		
+
 		console.log('✅ HMR: PixiJS infrastructure reloaded')
 	})
-	
+
 	// Handle HMR dispose
 	import.meta.hot.dispose(() => {
 		console.log('🧹 HMR: Disposing PixiJS resources...')

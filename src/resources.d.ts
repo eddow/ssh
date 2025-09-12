@@ -1,4 +1,3 @@
-
 declare namespace Ssh {
 	type SpriteDefinition = string
 	type Sprite = string
@@ -13,12 +12,12 @@ declare namespace Ssh {
 	}
 
 	interface HarvestingAction {
-		type: "harvest"
+		type: 'harvest'
 		deposit: string
 	}
 
 	interface TransformationAction {
-		type: "transform"
+		type: 'transform'
 		inputs: Record<string, number>
 	}
 	type Action = HarvestingAction | TransformationAction

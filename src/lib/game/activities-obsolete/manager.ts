@@ -1,19 +1,19 @@
-import { computed, Reactive, reactive } from "mutts"
-import type { AxialCoord, WorldCoord } from "$lib/hex"
-import type { InteractiveGameObject } from "../object"
+import { computed, Reactive } from 'mutts'
+import type { AxialCoord, WorldCoord } from '$lib/hex'
+import type { InteractiveGameObject } from '../object'
 
 export class CancelledError extends Error {
 	constructor(message: string) {
 		super(message)
-		this.name = "CancelledError"
+		this.name = 'CancelledError'
 	}
 }
 type Lerpable = number | AxialCoord | WorldCoord
 export function lerp<T extends Lerpable>(a: T, b: T, t: number): T {
-	if (typeof a === "number" && typeof b === "number") return (a + (b - a) * t) as T
-	if (typeof a === "object" && typeof b === "object") {
-		if ("q" in a && "q" in b) return { q: lerp(a.q, b.q, t), r: lerp(a.r, b.r, t) } as T
-		if ("x" in a && "x" in b) return { x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t) } as T
+	if (typeof a === 'number' && typeof b === 'number') return (a + (b - a) * t) as T
+	if (typeof a === 'object' && typeof b === 'object') {
+		if ('q' in a && 'q' in b) return { q: lerp(a.q, b.q, t), r: lerp(a.r, b.r, t) } as T
+		if ('x' in a && 'x' in b) return { x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t) } as T
 	}
 	throw new Error(`Invalid lerpable type: ${typeof a}`)
 }
@@ -45,7 +45,9 @@ function numberEvolve(specs: NumericEvolution, dt: number, resolve?: () => void)
 	specs.value = value + factor * dt
 }
 
-export default class ActivityManager<Activated extends InteractiveGameObject> extends Reactive(Object) {
+export default class ActivityManager<Activated extends InteractiveGameObject> extends Reactive(
+	Object,
+) {
 	constructor(public readonly activated: Activated) {
 		super()
 	}
@@ -63,7 +65,7 @@ export default class ActivityManager<Activated extends InteractiveGameObject> ex
 		description?: string,
 	): Promise<T> {
 		if (type) this.types.unshift(type)
-		if (!!description) {
+		if (description) {
 			this.descriptions.push(description)
 			this.log(description)
 		}
@@ -73,7 +75,7 @@ export default class ActivityManager<Activated extends InteractiveGameObject> ex
 		})
 		try {
 			return await Promise.race([
-				typeof promise === "function" ? promise() : promise,
+				typeof promise === 'function' ? promise() : promise,
 				rejectPromise,
 			])
 		} catch (error) {
@@ -97,7 +99,7 @@ export default class ActivityManager<Activated extends InteractiveGameObject> ex
 	reject?: (reason?: any) => void
 	cancel(reason: string) {
 		if (!this.reject) return
-		this.log(`Cancelled: ${this.descriptions.join(" | ")}: ${reason}`)
+		this.log(`Cancelled: ${this.descriptions.join(' | ')}: ${reason}`)
 		this.reject(new CancelledError(reason))
 	}
 
@@ -137,7 +139,7 @@ export default class ActivityManager<Activated extends InteractiveGameObject> ex
 		type?: string,
 		description?: string,
 	): Promise<T> => {
-		if (typeof complete === "string") {
+		if (typeof complete === 'string') {
 			description = type
 			type = complete
 			complete = undefined
@@ -167,17 +169,17 @@ export default class ActivityManager<Activated extends InteractiveGameObject> ex
 		complete?: string | (() => R),
 		description?: string,
 	) => {
-		const { from, to } = typeof spec === "number" ? {} : spec
-		const duration = typeof spec === "number" ? spec : spec.duration
+		const { from, to } = typeof spec === 'number' ? {} : spec
+		const duration = typeof spec === 'number' ? spec : spec.duration
 		const progressFn =
-			typeof progress === "string"
+			typeof progress === 'string'
 				? undefined
-				: typeof spec === "number"
+				: typeof spec === 'number'
 					? progress
 					: (e: number) => progress(lerp(from!, to!, e))
 
-		const type = typeof progress === "string" ? progress : progress.name
-		if (typeof complete === "string") {
+		const type = typeof progress === 'string' ? progress : progress.name
+		if (typeof complete === 'string') {
 			description = complete
 			complete = undefined
 		}
@@ -221,12 +223,12 @@ export default class ActivityManager<Activated extends InteractiveGameObject> ex
 			description?: string,
 		) => Promise<R>)
 	idle = (duration: number, description?: string, type?: string) =>
-		this.lerpStep(duration, type ?? "idle", description)
+		this.lerpStep(duration, type ?? 'idle', description)
 	waitFor = <T>(
 		promise: Promise<T>,
 		timeout: number,
 		description?: string,
-		type: string = "idle",
+		type: string = 'idle',
 	): Promise<T> => {
 		let reject: (reason?: any) => void = null!
 		this.remainingDt = 0

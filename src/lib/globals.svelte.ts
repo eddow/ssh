@@ -1,12 +1,12 @@
-import { Eventful, effect as mEffect, reactive } from "mutts"
-import { Game, type GameEvents, type InteractiveGameObject } from "./game"
+import { Eventful, reactive } from 'mutts'
+import { Game, type GameEvents, type InteractiveGameObject } from './game'
 
-const storedConfig = localStorage.getItem("configuration")
+const storedConfig = localStorage.getItem('configuration')
 export const configuration = $state(
 	storedConfig
 		? JSON.parse(storedConfig)
 		: {
-				darkMode: window.matchMedia("(prefers-color-scheme: dark)").matches,
+				darkMode: window.matchMedia('(prefers-color-scheme: dark)').matches,
 			},
 )
 export const debugInfo = $state({} as Record<string, any>)

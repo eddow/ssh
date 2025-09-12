@@ -1,9 +1,9 @@
 /**
  * @link https://www.redblobgames.com/grids/hexagons/
  */
-import type { Sextuplet } from "../../types"
-import { assert } from "../debug"
-import type { RandGenerator } from "../numbers"
+import type { Sextuplet } from '../../types'
+import { assert } from '../debug'
+import type { RandGenerator } from '../numbers'
 
 export type AxialKey = number
 export interface AxialCoord {
@@ -99,10 +99,10 @@ export function pointInHex(point: WorldCoord, coord: AxialRef, size: number): bo
 function lerp(a: number, b: number, t: number): number
 function lerp(a: WorldCoord, b: WorldCoord, t: number): WorldCoord
 function lerp(a: number | WorldCoord, b: number | WorldCoord, t: number): number | WorldCoord {
-	if (typeof a === "number" && typeof b === "number") return a + (b - a) * t
-	if (typeof a === "object" && typeof b === "object")
+	if (typeof a === 'number' && typeof b === 'number') return a + (b - a) * t
+	if (typeof a === 'object' && typeof b === 'object')
 		return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t }
-	throw new Error("Invalid type for lerp")
+	throw new Error('Invalid type for lerp')
 }
 
 /**
@@ -130,7 +130,7 @@ export function posInTile(aRef: AxialRef, radius: number) {
 	const outerRadius = radius + 0.5
 	const { q, r } = { q: coord.q / outerRadius, r: coord.r / outerRadius }
 	const s = -q - r
-	const signs = (q >= 0 ? "Q" : "q") + (r >= 0 ? "R" : "r") + (s >= 0 ? "S" : "s")
+	const signs = (q >= 0 ? 'Q' : 'q') + (r >= 0 ? 'R' : 'r') + (s >= 0 ? 'S' : 's')
 	return {
 		Qrs: { s: 0, u: -r, v: -s },
 		QrS: { s: 1, u: s, v: q },
@@ -152,7 +152,7 @@ function bitShiftUnpair(z: number): AxialCoord {
 
 export const axial = {
 	access(aRef: AxialRef): Axial {
-		if (typeof aRef === "number") return axial.keyAccess(aRef)
+		if (typeof aRef === 'number') return axial.keyAccess(aRef)
 		return axial.coordAccess(aRef)
 	},
 	keyAccess(aRef: AxialKey): Axial {
@@ -162,8 +162,8 @@ export const axial = {
 		}
 	},
 	coordAccess(aRef: AxialCoord): Axial {
-		assert(!("key" in aRef) || aRef.key !== undefined, "key must be defined if set")
-		if ("key" in aRef) return aRef as Axial
+		assert(!('key' in aRef) || aRef.key !== undefined, 'key must be defined if set')
+		if ('key' in aRef) return aRef as Axial
 		return Object.assign(aRef, {
 			key: bitShiftPair(aRef),
 		})
@@ -176,10 +176,10 @@ export const axial = {
 	 */
 	coord(aRef: AxialRef | string): AxialCoord {
 		switch (typeof aRef) {
-			case "number":
+			case 'number':
 				return bitShiftUnpair(aRef)
-			case "string": {
-				const [q, r] = aRef.split(",").map(Number)
+			case 'string': {
+				const [q, r] = aRef.split(',').map(Number)
 				return { q, r }
 			}
 			default:
@@ -194,9 +194,9 @@ export const axial = {
 	 */
 	key(aRef: AxialRef | string): AxialKey {
 		switch (typeof aRef) {
-			case "number":
+			case 'number':
 				return aRef
-			case "string":
+			case 'string':
 				return bitShiftPair(axial.coord(aRef))
 			default:
 				return axial.coordAccess(aRef as Axial).key // cache it
@@ -229,7 +229,7 @@ export const axial = {
 	 * @returns boolean
 	 */
 	zero(aRef: AxialRef) {
-		if (typeof aRef !== "object") return aRef === 0
+		if (typeof aRef !== 'object') return aRef === 0
 		const { q, r } = axial.coord(aRef)
 		return q === 0 && r === 0
 	},
@@ -267,7 +267,7 @@ export const axial = {
 	orthogonal(ARef: AxialRef, BRef: AxialRef): [AxialCoord, AxialCoord] {
 		const sideAxial = axial.linear(ARef, [-1, BRef])
 		const side = hexSides.findIndex(({ q, r }) => q === sideAxial.q && r === sideAxial.r)
-		assert(side !== -1, "Orthogonal: Points must be neighbors")
+		assert(side !== -1, 'Orthogonal: Points must be neighbors')
 		return [
 			axial.linear(BRef, hexSides[(side + 1) % 6]),
 			axial.linear(BRef, hexSides[(side + 5) % 6]),
@@ -313,4 +313,4 @@ const neighborIndexes: (AxialDirection | undefined)[] = [
 ]
 
 //@ts-expect-error - this is only for debug purpose anyway
-if (typeof window !== "undefined") window.axial = axial
+if (typeof window !== 'undefined') window.axial = axial

@@ -1,14 +1,15 @@
-import D from "flat-diamond"
-import { effect, Reactive, watch } from "mutts"
-import { ColorMatrixFilter, Container, Graphics, Point, Sprite, TilingSprite } from "pixi.js"
-import { deposits, terrain as terrainDetails } from "$assets/game-content"
+import D from 'flat-diamond'
+import { effect, Reactive, watch } from 'mutts'
+import { ColorMatrixFilter, Container, Graphics, Point, type Sprite, TilingSprite } from 'pixi.js'
+import { deposits, terrain as terrainDetails } from '$assets/game-content'
 import {
 	GeneratorObject,
 	HittableGameObject,
 	InteractiveGameObject,
 	RenderableContainer,
-} from "$lib/game/object"
-import { mrg } from "$lib/globals.svelte"
+} from '$lib/game/object'
+import { mrg } from '$lib/globals.svelte'
+import { tileSize } from '$lib/utils'
 import {
 	type AxialCoord,
 	type AxialRef,
@@ -17,22 +18,21 @@ import {
 	findNearest,
 	findPath,
 	fromCartesian,
-	type NeighborInfo,
-	type WorldCoord,
 	type IsGoal,
+	type NeighborInfo,
 	PerlinTerrainGenerator,
-	DEFAULT_TERRAIN_CONFIG,
-} from "../hex"
-import { AxialKeyMap } from "../mem"
-import type { Game } from "./game"
-import { Module, Deposit, UnBuiltLand, type TileContent, type TerrainType } from "./tile"
+	type WorldCoord,
+} from '../hex'
+import { AxialKeyMap } from '../mem'
+import type { Game } from './game'
+import { type Deposit, Module, type TerrainType, type TileContent, UnBuiltLand } from './tile'
 // TODO: check container.cacheAsTexture() for background
 
 export class HexTile extends Reactive(D(InteractiveGameObject, GeneratorObject)) {
 	constructor(
 		public readonly hex: HexBoard,
 		readonly coord: AxialCoord,
-		public content: TileContent
+		public content: TileContent,
 	) {
 		super(hex.game, `hex-tile:${coord.q},${coord.r}`)
 	}
@@ -48,7 +48,7 @@ export class HexTile extends Reactive(D(InteractiveGameObject, GeneratorObject))
 	get debugInfo(): Record<string, any> {
 		return {
 			position: this.position,
-			content: this.content.debugInfo
+			content: this.content.debugInfo,
 		}
 	}
 
@@ -65,7 +65,7 @@ export class HexTile extends Reactive(D(InteractiveGameObject, GeneratorObject))
 
 		// Get the module class from the static class registry
 		const ModuleClass = Module.class[moduleType as keyof typeof Module.class]
-		
+
 		if (!ModuleClass) {
 			console.error(`Unknown module type: ${moduleType}`)
 			return false
@@ -74,13 +74,13 @@ export class HexTile extends Reactive(D(InteractiveGameObject, GeneratorObject))
 		// Create and set the new module
 		const newModule = new ModuleClass()
 		this.content = newModule
-		
+
 		return true
 	}
 
 	render = () => {
 		const { background } = this.content
-		const { hex, position, game } = this
+		const { position, game } = this
 		const { x: wpx, y: wpy } = position
 
 		// Container for this tile
@@ -88,7 +88,7 @@ export class HexTile extends Reactive(D(InteractiveGameObject, GeneratorObject))
 		tileContainer.position.set(wpx, wpy)
 
 		// Create tiling sprite from terrain texture
-		const size = hex.tileSize
+		const size = tileSize
 		const texture = this.game.getTexture(background)
 		const tileSprite = new TilingSprite({ texture, width: size * 2, height: size * 2 })
 		tileSprite.anchor.set(0.5)
@@ -109,15 +109,19 @@ export class HexTile extends Reactive(D(InteractiveGameObject, GeneratorObject))
 		tileContainer.addChild(tileSprite, mask)
 		game.backgroundLayer.addChild(tileContainer)
 		// Render foreground via tile content
-		watch(() => this.content, (content)=> {
-			const fg = content.render(this)
-			const { x, y } = position
-			fg.position.set(x, y)
-			game.objectLayer.addChild(fg as any)
-			return () => {
-				fg.destroy()
-			}
-		}, { immediate: true })
+		watch(
+			() => this.content,
+			(content) => {
+				const fg = content.render(this)
+				const { x, y } = position
+				fg.position.set(x, y)
+				game.objectLayer.addChild(fg as any)
+				return () => {
+					fg.destroy()
+				}
+			},
+			{ immediate: true },
+		)
 		const mouseoverEffect = effect(() => {
 			if (mrg.hoveredObject === this) {
 				tileSprite.tint = 0xaaaaff
@@ -141,41 +145,44 @@ export class HexBoard extends D(RenderableContainer, HittableGameObject) {
 	private terrainGenerator: PerlinTerrainGenerator
 
 	axial2world(coord: AxialRef): WorldCoord {
-		return cartesian(coord, this.tileSize)
+		return cartesian(coord, tileSize)
 	}
 
 	world2axial(world: WorldCoord): AxialCoord {
-		return fromCartesian(world, this.tileSize)
+		return fromCartesian(world, tileSize)
 	}
 
 	constructor(
 		public game: Game,
 		public readonly boardSize: number = 12,
-		public readonly tileSize: number = 30,
 	) {
-		super(game, "hexboard")
+		super(game, 'hexboard')
 		this.tiles = new AxialKeyMap()
 		this.zIndex = -1 // Background layer - tiles should be hit-tested last
 		// Use a consistent seed based on the game instance
 		this.terrainGenerator = new PerlinTerrainGenerator(12345)
 	}
 
-	hitTest = (worldX: number, worldY: number, selectedAction?: string): InteractiveGameObject | false => {
+	hitTest = (
+		worldX: number,
+		worldY: number,
+		selectedAction?: string,
+	): InteractiveGameObject | false => {
 		const coord = axial.round(this.world2axial({ x: worldX, y: worldY }))
 		if (axial.distance(coord, { q: 0, r: 0 }) > this.boardSize) return false
 		const tile = this.getTile(coord)
 		if (!tile) return false
-		
+
 		// If we have a selected action, check if the tile can act with it
 		if (selectedAction && !tile.canAct(selectedAction)) {
 			return false
 		}
-		
+
 		return tile
 	}
 
 	resizeSprite(sprite: Sprite, size: number) {
-		size *= this.tileSize
+		size *= tileSize
 		const scale = Math.max(sprite.width, sprite.height) / size
 		sprite.scale.x /= scale
 		sprite.scale.y /= scale
@@ -184,7 +191,7 @@ export class HexBoard extends D(RenderableContainer, HittableGameObject) {
 		// Generate all tiles within the board radius
 		for (const coord of axial.enum(this.boardSize - 1)) {
 			const seed = axial.access(coord).key
-			const terrain = this.generateRandomTerrain(seed, coord)
+			const terrain = this.terrainGenerator.generateTerrain(coord)
 			const deposit = this.generateRandomDeposit(seed, terrain)
 			const content = new UnBuiltLand(3, terrain, deposit)
 			const tile = new HexTile(this, coord, content)
@@ -203,10 +210,10 @@ export class HexBoard extends D(RenderableContainer, HittableGameObject) {
 		const details: Ssh.TerrainDefinition = terrainDetails[terrain]
 
 		// Deposit-driven goods
-		if (deposit && deposit.generation?.goods) {
+		if (deposit?.generation?.goods) {
 			let gen = rnd()
-			for(const [good, chance] of Object.entries(deposit.generation.goods)) {
-				if(gen < chance) {
+			for (const [good, chance] of Object.entries(deposit.generation.goods)) {
+				if (gen < chance) {
 					tile.content.addGood(good as any, 1)
 					break
 				}
@@ -237,25 +244,6 @@ export class HexBoard extends D(RenderableContainer, HittableGameObject) {
 			}
 		}
 		return undefined
-	}
-
-	private generateRandomTerrain(seed: number, coord: AxialCoord): TerrainType {
-		// Use Perlin noise for more natural terrain generation
-		const terrain = this.terrainGenerator.generateTerrain(coord, DEFAULT_TERRAIN_CONFIG)
-		
-		// Convert Perlin terrain types to our TerrainType
-		switch (terrain) {
-			case "water":
-			case "grass":
-			case "forest":
-			case "rocky":
-			case "sand":
-			case "snow":
-				return terrain
-			default:
-				return "grass" // fallback
-				console.error(`Unknown terrain: ${terrain}`)
-		}
 	}
 
 	// Public methods
@@ -299,12 +287,7 @@ export class HexBoard extends D(RenderableContainer, HittableGameObject) {
 	 * @param punctual Whether to aim for the exact goal or allow nearby coordinates
 	 * @returns Path to the nearest valid goal if found within maxTime, undefined otherwise
 	 */
-	findNearest(
-		start: AxialRef,
-		isGoal: IsGoal<true>,
-		maxTime: number,
-		punctual: boolean = true,
-	) {
+	findNearest(start: AxialRef, isGoal: IsGoal<true>, maxTime: number, punctual: boolean = true) {
 		return findNearest((c) => this.getNeighbors(c), start, isGoal, maxTime, punctual)
 	}
 }

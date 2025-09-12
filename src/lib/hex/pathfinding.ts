@@ -1,6 +1,6 @@
-import { AxialKeyMap, HeapMin } from "../mem"
-import type { AxialCoord, AxialRef } from "./axial"
-import { axial } from "./axial"
+import { AxialKeyMap, HeapMin } from '../mem'
+import type { AxialCoord, AxialRef } from './axial'
+import { axial } from './axial'
 
 export type GetNeighbors = (coord: AxialRef) => (NeighborInfo | AxialCoord)[]
 export type IsGoal<T> = (coord: AxialRef, walkTime: number) => T | false
@@ -75,7 +75,7 @@ export function findPath(
 		const neighbors = getNeighbors(currentCoord)
 		for (const neighbor of neighbors) {
 			const { coord: neighborCoord, walkTime } =
-				"coord" in neighbor ? neighbor : { coord: neighbor, walkTime: 1 }
+				'coord' in neighbor ? neighbor : { coord: neighbor, walkTime: 1 }
 
 			// Skip if already in closed set
 			if (closedSet.has(neighborCoord)) continue
@@ -157,7 +157,7 @@ function reconstructPath(
  * @param punctual Whether to aim for the goal or a direct neighbor
  * @returns Path to the nearest valid goal if found within maxTime, undefined otherwise
  */
-export function findNearest<T>(
+export function findNearest<_T>(
 	getNeighbors: GetNeighbors,
 	start: AxialRef,
 	isGoal: IsGoal<true>,
@@ -165,8 +165,11 @@ export function findNearest<T>(
 	punctual: boolean = true,
 ): AxialCoord[] | undefined {
 	const startCoord = axial.access(start)
-	if(typeof stop === 'number')
-		stop = ((stop)=> (_, walkTime: number) => walkTime > stop)(stop)
+	if (typeof stop === 'number')
+		stop = (
+			(stop) => (_, walkTime: number) =>
+				walkTime > stop
+		)(stop)
 	// Check if start position already satisfies the goal condition
 	if (isGoal(startCoord, 0)) return [startCoord]
 	if (stop(startCoord, 0)) return undefined
@@ -182,7 +185,7 @@ export function findNearest<T>(
 	const startNode: PathfindingNode = {
 		coord: startCoord,
 		gCost: 0,
-		hCost: 0 // No heuristic for nearest search
+		hCost: 0, // No heuristic for nearest search
 	}
 	startNode.fCost = startNode.gCost + startNode.hCost
 
@@ -208,7 +211,7 @@ export function findNearest<T>(
 		const neighbors = getNeighbors(currentCoord)
 		for (const neighbor of neighbors) {
 			const { coord: neighborCoord, walkTime } =
-				"coord" in neighbor ? neighbor : { coord: neighbor, walkTime: 1 }
+				'coord' in neighbor ? neighbor : { coord: neighbor, walkTime: 1 }
 
 			// Skip if tile is unwalkable
 			if (!Number.isFinite(walkTime)) continue

@@ -3,8 +3,8 @@
  * Based on Ken Perlin's improved noise algorithm
  */
 
-import type { TerrainType } from "$lib/game"
-import type { AxialCoord } from "./axial"
+import type { TerrainType } from '$lib/game'
+import type { AxialCoord } from './axial'
 
 export interface TerrainConfig {
 	// Noise parameters
@@ -12,7 +12,7 @@ export interface TerrainConfig {
 	octaves: number
 	persistence: number
 	lacunarity: number
-	
+
 	// Terrain thresholds
 	waterLevel: number
 	grassLevel: number
@@ -20,7 +20,7 @@ export interface TerrainConfig {
 	rockyLevel: number
 	sandLevel: number
 	snowLevel: number
-	
+
 	// Biome modifiers
 	temperatureScale: number
 	humidityScale: number
@@ -38,7 +38,7 @@ export const DEFAULT_TERRAIN_CONFIG: TerrainConfig = {
 	sandLevel: 0.25,
 	snowLevel: 0.8,
 	temperatureScale: 0.08,
-	humidityScale: 0.08
+	humidityScale: 0.08,
 }
 
 /**
@@ -54,14 +54,14 @@ class PerlinNoise {
 		for (let i = 0; i < 256; i++) {
 			this.permutation[i] = i
 		}
-		
+
 		// Shuffle using seed
 		const rng = this.seededRandom(seed)
 		for (let i = 255; i > 0; i--) {
 			const j = Math.floor(rng() * (i + 1))
 			;[this.permutation[i], this.permutation[j]] = [this.permutation[j], this.permutation[i]]
 		}
-		
+
 		// Duplicate permutation array
 		this.p = [...this.permutation, ...this.permutation]
 	}
@@ -92,25 +92,25 @@ class PerlinNoise {
 	noise(x: number, y: number): number {
 		const X = Math.floor(x) & 255
 		const Y = Math.floor(y) & 255
-		
+
 		x -= Math.floor(x)
 		y -= Math.floor(y)
-		
+
 		const u = this.fade(x)
 		const v = this.fade(y)
-		
+
 		const A = this.p[X] + Y
 		const AA = this.p[A]
 		const AB = this.p[A + 1]
 		const B = this.p[X + 1] + Y
 		const BA = this.p[B]
 		const BB = this.p[B + 1]
-		
-		return this.lerp(v,
-			this.lerp(u, this.grad(this.p[AA], x, y),
-				this.grad(this.p[BA], x - 1, y)),
-			this.lerp(u, this.grad(this.p[AB], x, y - 1),
-				this.grad(this.p[BB], x - 1, y - 1)))
+
+		return this.lerp(
+			v,
+			this.lerp(u, this.grad(this.p[AA], x, y), this.grad(this.p[BA], x - 1, y)),
+			this.lerp(u, this.grad(this.p[AB], x, y - 1), this.grad(this.p[BB], x - 1, y - 1)),
+		)
 	}
 }
 
@@ -124,7 +124,13 @@ export class PerlinTerrainGenerator {
 		this.noise = new PerlinNoise(seed)
 	}
 
-	private fbm(x: number, y: number, octaves: number, persistence: number, lacunarity: number): number {
+	private fbm(
+		x: number,
+		y: number,
+		octaves: number,
+		persistence: number,
+		lacunarity: number,
+	): number {
 		let value = 0
 		let amplitude = 1
 		let frequency = 1
@@ -154,7 +160,7 @@ export class PerlinTerrainGenerator {
 			worldY * config.scale,
 			config.octaves,
 			config.persistence,
-			config.lacunarity
+			config.lacunarity,
 		)
 
 		// Generate temperature and humidity for biome variation
@@ -163,7 +169,7 @@ export class PerlinTerrainGenerator {
 			worldY * config.temperatureScale,
 			3,
 			0.5,
-			2.0
+			2.0,
 		)
 
 		const humidity = this.fbm(
@@ -171,7 +177,7 @@ export class PerlinTerrainGenerator {
 			worldY * config.humidityScale,
 			3,
 			0.5,
-			2.0
+			2.0,
 		)
 
 		// Determine terrain based on height and biome factors
@@ -182,7 +188,7 @@ export class PerlinTerrainGenerator {
 		height: number,
 		temperature: number,
 		humidity: number,
-		config: TerrainConfig
+		config: TerrainConfig,
 	): TerrainType {
 		// Normalize values to 0-1 range
 		const normalizedHeight = (height + 1) / 2
@@ -191,36 +197,36 @@ export class PerlinTerrainGenerator {
 
 		// High altitude = snow
 		if (normalizedHeight > config.snowLevel) {
-			return "snow"
+			return 'snow'
 		}
 
 		// Low altitude = water
 		if (normalizedHeight < config.waterLevel) {
-			return "water"
+			return 'water'
 		}
 
 		// Hot and dry = sand (more aggressive)
 		if (normalizedTemp > 0.6 && normalizedHumidity < 0.4) {
-			return "sand"
+			return 'sand'
 		}
 
 		// High altitude = rocky (more aggressive)
 		if (normalizedHeight > config.rockyLevel) {
-			return "rocky"
+			return 'rocky'
 		}
 
 		// Forest conditions (more aggressive)
 		if (normalizedHeight > config.forestLevel && normalizedHumidity > 0.4) {
-			return "forest"
+			return 'forest'
 		}
 
 		// More forest in moderate heights with good humidity
 		if (normalizedHeight > 0.3 && normalizedHeight < 0.6 && normalizedHumidity > 0.5) {
-			return "forest"
+			return 'forest'
 		}
 
 		// Default to grass
-		return "grass"
+		return 'grass'
 	}
 
 	/**
@@ -235,14 +241,17 @@ export class PerlinTerrainGenerator {
 			worldY * config.scale,
 			config.octaves,
 			config.persistence,
-			config.lacunarity
+			config.lacunarity,
 		)
 	}
 
 	/**
 	 * Generate temperature and humidity values for biome analysis
 	 */
-	generateBiomeData(coord: AxialCoord, config: TerrainConfig = DEFAULT_TERRAIN_CONFIG): {
+	generateBiomeData(
+		coord: AxialCoord,
+		config: TerrainConfig = DEFAULT_TERRAIN_CONFIG,
+	): {
 		temperature: number
 		humidity: number
 	} {
@@ -255,15 +264,9 @@ export class PerlinTerrainGenerator {
 				worldY * config.temperatureScale,
 				3,
 				0.5,
-				2.0
+				2.0,
 			),
-			humidity: this.fbm(
-				worldX * config.humidityScale,
-				worldY * config.humidityScale,
-				3,
-				0.5,
-				2.0
-			)
+			humidity: this.fbm(worldX * config.humidityScale, worldY * config.humidityScale, 3, 0.5, 2.0),
 		}
 	}
 }
@@ -281,15 +284,15 @@ export function createTerrainGenerator(seed: number = 0): PerlinTerrainGenerator
 export function generateTerrainBatch(
 	coords: AxialCoord[],
 	generator: PerlinTerrainGenerator,
-	config: TerrainConfig = DEFAULT_TERRAIN_CONFIG
+	config: TerrainConfig = DEFAULT_TERRAIN_CONFIG,
 ): Map<string, TerrainType> {
 	const result = new Map<string, TerrainType>()
-	
+
 	for (const coord of coords) {
 		const key = `${coord.q},${coord.r}`
 		const terrain = generator.generateTerrain(coord, config)
 		result.set(key, terrain)
 	}
-	
+
 	return result
 }

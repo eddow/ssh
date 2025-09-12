@@ -1,21 +1,24 @@
-import D from "flat-diamond"
-import { computed, effect, Reactive, untracked, watch, type ScopedCallback } from "mutts"
-import { ColorMatrixFilter, Sprite } from "pixi.js"
-import { mrg } from "$lib/globals.svelte"
-import { type AxialCoord, axial, type WorldCoord } from "$lib/hex"
-import { AxialSet } from "$lib/mem"
-import { type RandGenerator, uuid } from "$lib/numbers"
-import ActivityManager, { CancelledError } from "./activities/manager"
-import { goEat, goRest, goSleep } from "./activities/self-care"
-import type { Game } from "./game"
+import D from 'flat-diamond'
+import { computed, effect, Reactive, type ScopedCallback, untracked, watch } from 'mutts'
+import { ColorMatrixFilter, Sprite } from 'pixi.js'
+import { mrg } from '$lib/globals.svelte'
+import { type AxialCoord, axial, type WorldCoord } from '$lib/hex'
+import { AxialSet } from '$lib/mem'
+import { type RandGenerator, uuid } from '$lib/numbers'
+import ActivityManager, { CancelledError } from './activities-obsolete/manager'
+import { goEat, goRest, goSleep } from './activities-obsolete/self-care'
+import type { Game } from './game'
 import {
 	GeneratorObject,
 	HittableGameObject,
 	InteractiveGameObject,
 	RenderableContainer,
 	TickedGameObject,
-} from "./object"
-import { UnBuiltLand, type GoodType, type Module } from "./tile"
+} from './object'
+import { type GoodType, type Module, UnBuiltLand } from './tile'
+
+//import * as allScripts from "./npcs/scripts"
+//console.log(allScripts)
 
 export class Character extends Reactive(
 	D(GeneratorObject, InteractiveGameObject, TickedGameObject),
@@ -75,13 +78,16 @@ export class Character extends Reactive(
 		public coord: AxialCoord,
 	) {
 		super(game, uid)
-		watch(() => this.assignedModule, () => {
-			if (this.assignedModule !== undefined) {
-				this.fatigue = this.triggerLevels.fatigue.high
-				// TODO: remove me when urgency is working
-				goRest(this.activityManager.plan)
-			}
-		})
+		watch(
+			() => this.assignedModule,
+			() => {
+				if (this.assignedModule !== undefined) {
+					this.fatigue = this.triggerLevels.fatigue.high
+					// TODO: remove me when urgency is working
+					goRest(this.activityManager.plan)
+				}
+			},
+		)
 	}
 
 	get title(): string {
@@ -138,10 +144,8 @@ export class Character extends Reactive(
 		if (this.hunger > this.triggerLevels.hunger.high) return goEat(this.activityManager.plan)
 		if (this.Tiredness > this.triggerLevels.Tiredness.high)
 			return goSleep(this.activityManager.plan)
-		if (
-			this.fatigue > this.triggerLevels.fatigue.high &&
-			this.assignedModule !== undefined
-		) return goRest(this.activityManager.plan)
+		if (this.fatigue > this.triggerLevels.fatigue.high && this.assignedModule !== undefined)
+			return goRest(this.activityManager.plan)
 		return this.activityManager.idle(1)
 	}
 
@@ -149,7 +153,7 @@ export class Character extends Reactive(
 		const { game } = this
 
 		// Create character sprite
-		const characterSprite = new Sprite(game.getTexture("character"))
+		const characterSprite = new Sprite(game.getTexture('character'))
 		characterSprite.anchor.set(0.5, 0.5)
 		game.hex.resizeSprite(characterSprite, 1.2)
 
@@ -188,12 +192,12 @@ export class Population extends D(HittableGameObject, RenderableContainer) {
 	public characterGen: RandGenerator
 	constructor(public readonly game: Game) {
 		super(game)
-		this.characterGen = game.lcg("characterGen")
+		this.characterGen = game.lcg('characterGen')
 		this.zIndex = 1 // Foreground layer - characters should be hit-tested first
 	}
 
 	hitTest(worldX: number, worldY: number, selectedAction?: string): InteractiveGameObject | false {
-		if(selectedAction && selectedAction !== 'select') return false
+		if (selectedAction && selectedAction !== 'select') return false
 		const coord = this.game.hex.world2axial({ x: worldX, y: worldY })
 		// Check if any character is hit
 		for (const character of this.characters.values()) {
@@ -211,7 +215,7 @@ export class Population extends D(HittableGameObject, RenderableContainer) {
 					const tile = this.game.hex.getTile(c)!
 					return (
 						tile.content instanceof UnBuiltLand &&
-						tile.content.terrain !== "water" &&
+						tile.content.terrain !== 'water' &&
 						tile.content.deposit === undefined
 					)
 				},

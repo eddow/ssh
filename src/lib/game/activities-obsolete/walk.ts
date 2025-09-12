@@ -1,8 +1,8 @@
-import type { AxialCoord, WorldCoord } from "$lib/hex"
-import type { Character } from "../character"
-import { HexTile } from "../hexboard"
-import type { GoodType } from "../tile"
-import type { Plan } from "./manager"
+import type { AxialCoord, WorldCoord } from '$lib/hex'
+import type { Character } from '../character'
+import { HexTile } from '../hexboard'
+import type { GoodType } from '../tile'
+import type { Plan } from './manager'
 
 export async function goTo(
 	plan: Plan<Character>,
@@ -83,11 +83,7 @@ export async function grab(plan: Plan<Character>, goods: GoodType, maxAmount: nu
 	return plan(async function grab({ activated: character, lerpStep }) {
 		const tile = character.game.hex.getTile(character.coord)
 		if (!tile) throw new Error(`No tile at character position`)
-		if (
-			character.carriedType &&
-			character.carriedType !== goods &&
-			character.carriedAmount > 0
-		)
+		if (character.carriedType && character.carriedType !== goods && character.carriedAmount > 0)
 			await dropAllGoods(plan)
 		const canGrab = character.carryingCapacity - (character.carriedAmount || 0)
 		const amount = Math.min(canGrab, maxAmount)
@@ -133,13 +129,15 @@ export function dropAllGoods(plan: Plan<Character>) {
 					throw new Error(`TODO: We have nowhere to drop what we have in hand, what to do?`)
 				const targetTile = world.getTile(nearestTile[nearestTile.length - 1])
 				if (!targetTile) throw new Error(`Target tile not found`)
-				await goTo(plan, targetTile, `Go to drop ${character.carriedType}`, () =>
-					!!targetTile.content.canStoreGood(character.carriedType!),
+				await goTo(
+					plan,
+					targetTile,
+					`Go to drop ${character.carriedType}`,
+					() => !!targetTile.content.canStoreGood(character.carriedType!),
 				)
 			}
 			const stored = tile.content.addGood(character.carriedType!, character.carriedAmount)
 			character.carriedAmount -= stored
 		}
-	}, "Freeing hands")
+	}, 'Freeing hands')
 }
-

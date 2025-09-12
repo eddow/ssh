@@ -1,13 +1,12 @@
-import { Eventful, reactive, unreactive, zip } from "mutts"
-import { Application, Assets, Container, Point, Spritesheet, Texture } from "pixi.js"
-import * as gameContent from "$assets/game-content"
-import { mrg, interactionMode } from "$lib/globals.svelte"
-import { LCG } from "$lib/numbers"
-import { Population, Character } from "./character"
-import { HexBoard, HexTile } from "./hexboard"
-import type { HittableGameObject, InteractiveGameObject } from "./object"
-import { Module, UnBuiltLand } from "./tile"
-import { registerPixiApp, unregisterPixiApp } from "$lib/hmr-pixi"
+import { Eventful, reactive, unreactive, zip } from 'mutts'
+import { Application, Assets, Container, Point, Spritesheet, Texture } from 'pixi.js'
+import * as gameContent from '$assets/game-content'
+import { interactionMode, mrg } from '$lib/globals.svelte'
+import { registerPixiApp, unregisterPixiApp } from '$lib/hmr-pixi'
+import { LCG } from '$lib/numbers'
+import { Population } from './character'
+import { HexBoard } from './hexboard'
+import type { HittableGameObject, InteractiveGameObject } from './object'
 
 unreactive(gameContent)
 
@@ -18,7 +17,7 @@ export const assetUrls = Object.fromEntries(
 const assetsLoading = Promise.all(
 	assetsToLoad.map(async ([_, resource]) => {
 		const texture = await Assets.load(`${gameContent.prefix}${resource}`)
-		if ("defaultAnchor" in texture) texture.defaultAnchor = { x: 0.5, y: 0.5 }
+		if ('defaultAnchor' in texture) texture.defaultAnchor = { x: 0.5, y: 0.5 }
 		return texture
 	}),
 ).then((assets) =>
@@ -40,10 +39,10 @@ export type GameEvents = {
 
 export class Game extends Eventful<GameEvents> {
 	public get name() {
-		return "GameX"
+		return 'GameX'
 	}
 	public lcg(seed: string | number) {
-		return LCG("gameSeed", seed)
+		return LCG('gameSeed', seed)
 	}
 	public stage: Container
 	public backgroundLayer: Container
@@ -119,14 +118,14 @@ export class Game extends Eventful<GameEvents> {
 	}
 
 	public simulateObjectClick(object: InteractiveGameObject) {
-		this.emit("objectClick", {} as any, object)
+		this.emit('objectClick', {} as any, object)
 	}
 	generate(state: any = {}) {
 		this.hex?.generateBoard()
 		this.population.generateCharacters()
 	}
 	clickObject(event: any, object: InteractiveGameObject) {
-		this.emit("objectClick", event, object)
+		this.emit('objectClick', event, object)
 	}
 }
 
@@ -135,7 +134,7 @@ export class GameView {
 	public stage!: Container
 	private container: HTMLElement
 	private canvas: HTMLCanvasElement | null = null
-	
+
 	constructor(
 		public game: Game,
 		into: HTMLElement,
@@ -148,7 +147,7 @@ export class GameView {
 		// Create PixiJS application
 		this.pixi = new Application()
 		this.stage = this.pixi.stage
-		
+
 		await this.pixi.init({
 			backgroundColor: 0x1099bb,
 			resolution: window.devicePixelRatio || 1,
@@ -161,10 +160,10 @@ export class GameView {
 		this.container.appendChild(this.canvas)
 		this.setupInput(this.game, this.canvas)
 		this.stage.addChild(this.game.stage)
-		
+
 		// Register for HMR cleanup
 		registerPixiApp(this.pixi)
-		
+
 		//@ts-expect-error
 		globalThis.__PIXI_APP__ = this.pixi
 		//new Stats(this.pixi.renderer, document.body)
@@ -175,24 +174,24 @@ export class GameView {
 		if (this.pixi) {
 			unregisterPixiApp(this.pixi)
 		}
-		
+
 		// Remove canvas from DOM
-		if (this.canvas && this.canvas.parentNode) {
+		if (this.canvas?.parentNode) {
 			this.canvas.parentNode.removeChild(this.canvas)
 		}
-		
+
 		// Destroy PixiJS application
 		if (this.pixi) {
 			this.pixi.destroy(true, { children: true, texture: true })
 		}
-		
+
 		// Clear global reference
 		//@ts-expect-error
 		if (globalThis.__PIXI_APP__ === this.pixi) {
 			//@ts-expect-error
 			globalThis.__PIXI_APP__ = null
 		}
-		
+
 		this.canvas = null
 	}
 
@@ -205,8 +204,6 @@ export class GameView {
 	private panStartPosition = { x: 0, y: 0 }
 	private panStartCamera = { x: 0, y: 0 }
 	public setupInput(game: Game, canvas: HTMLCanvasElement) {
-		let mouseDownObject: InteractiveGameObject | undefined
-
 		const getCanvasPoint = (e: MouseEvent | WheelEvent) => {
 			const rect = canvas.getBoundingClientRect()
 			return { x: e.clientX - rect.left, y: e.clientY - rect.top }
@@ -223,8 +220,9 @@ export class GameView {
 
 			for (const interactive of sortedHittables) {
 				const hit = interactive.hitTest(
-					worldX, worldY,
-					interactionMode.selectedAction === 'select' ? undefined : interactionMode.selectedAction
+					worldX,
+					worldY,
+					interactionMode.selectedAction === 'select' ? undefined : interactionMode.selectedAction,
 				)
 				if (hit) return hit
 			}
@@ -232,7 +230,8 @@ export class GameView {
 		}
 
 		const emitOverOutIfNeeded = (nextHover: InteractiveGameObject | undefined, ev: MouseEvent) => {
-			if (mrg.hoveredObject !== nextHover) {/*
+			if (mrg.hoveredObject !== nextHover) {
+				/*
 				if (mrg.hoveredObject) {
 					game.emit("objectOut", ev as any, mrg.hoveredObject)
 				}
@@ -243,11 +242,11 @@ export class GameView {
 			}
 		}
 
-		canvas.addEventListener("mousemove", (e) => {
+		canvas.addEventListener('mousemove', (e) => {
 			if (this.isPanning && !(e.buttons & 4)) {
 				// 4 = middle button
 				this.isPanning = false
-				canvas.style.cursor = "default"
+				canvas.style.cursor = 'default'
 			}
 			// Pan while middle button down
 			if (this.isPanning) {
@@ -255,6 +254,8 @@ export class GameView {
 				const deltaY = this.panStartPosition.y - e.offsetY
 				this.stage.x = this.panStartCamera.x - deltaX
 				this.stage.y = this.panStartCamera.y - deltaY
+				// TODO: zoom on mouse cursor
+				//console.log(this.stage.x, this.stage.y)
 			} else {
 				const { x, y } = getCanvasPoint(e)
 				const { x: wx, y: wy } = getWorldPoint(x, y)
@@ -263,7 +264,7 @@ export class GameView {
 			}
 		})
 
-		canvas.addEventListener("mouseenter", (e) => {
+		canvas.addEventListener('mouseenter', (e) => {
 			const { x, y } = getCanvasPoint(e)
 			const { x: wx, y: wy } = getWorldPoint(x, y)
 			const hit = topmostInteractiveAt(wx, wy)
@@ -277,55 +278,39 @@ export class GameView {
 			}
 		}
 
-		canvas.addEventListener("mouseleave", clearHover)
-		window.addEventListener("blur", clearHover)
-		window.addEventListener("mouseout", (e) => {
+		canvas.addEventListener('mouseleave', clearHover)
+		window.addEventListener('blur', clearHover)
+		window.addEventListener('mouseout', (e) => {
 			if (!(e as MouseEvent).relatedTarget) clearHover(e)
 		})
 
-		canvas.addEventListener("mousedown", (e) => {
+		canvas.addEventListener('mousedown', (e) => {
 			if (e.button === 1) {
 				this.isPanning = true
 				this.panStartPosition.x = e.offsetX
 				this.panStartPosition.y = e.offsetY
 				this.panStartCamera.x = this.stage.x
 				this.panStartCamera.y = this.stage.y
-				canvas.style.cursor = "grab"
+				canvas.style.cursor = 'grab'
 				return
 			}
 			const { x, y } = getCanvasPoint(e)
 			const { x: wx, y: wy } = getWorldPoint(x, y)
 			const hit = topmostInteractiveAt(wx, wy)
-			mouseDownObject = hit
 			if (hit) {
-				let stopped = false
-				const stop = () => {
-					stopped = true
-				}
 				game.clickObject(e, hit)
-				if (stopped) e.stopPropagation()
 			}
 		})
 
-		canvas.addEventListener("mouseup", (e) => {
+		canvas.addEventListener('mouseup', (e) => {
 			if (e.button === 1) {
 				this.isPanning = false
-				canvas.style.cursor = "default"
+				canvas.style.cursor = 'default'
 				return
 			}
-			const { x, y } = getCanvasPoint(e)
-			const { x: wx, y: wy } = getWorldPoint(x, y)
-			const hit = topmostInteractiveAt(wx, wy)
-			/*if (hit) {
-				game.emit("objectUp", e as any, hit)
-			}
-			if (hit && hit === mouseDownObject) {
-				game.emit("objectClick", e as any, hit)
-			}*/
-			mouseDownObject = undefined
 		})
 
-		canvas.addEventListener("wheel", (e) => {
+		canvas.addEventListener('wheel', (e) => {
 			const deltaY = e.deltaY
 			const zoomSpeed = 0.9
 			const zoomDelta = zoomSpeed ** (deltaY / 120)
@@ -334,7 +319,7 @@ export class GameView {
 		})
 
 		// Prevent default context menu on right-click
-		canvas.addEventListener("contextmenu", (e) => {
+		canvas.addEventListener('contextmenu', (e) => {
 			e.preventDefault()
 		})
 	}

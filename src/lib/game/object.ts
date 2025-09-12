@@ -1,10 +1,10 @@
 // Library used by Pixi
-import EventEmitter from "eventemitter3"
-import D from "flat-diamond"
-import { effect, reactive, type ScopedCallback, unreactive } from "mutts"
-import { type Container, Ticker } from "pixi.js"
-import type { WorldCoord } from "$lib/hex"
-import type { Game } from "./game"
+import EventEmitter from 'eventemitter3'
+import D from 'flat-diamond'
+import { effect, Reactive, reactive, type ScopedCallback, unreactive } from 'mutts'
+import { type Container, Ticker } from 'pixi.js'
+import type { WorldCoord } from '$lib/hex'
+import type { Game } from './game'
 
 unreactive(EventEmitter)
 export type Positionable = Container & {
@@ -84,7 +84,11 @@ export abstract class HittableGameObject extends D(RenderableObject) {
 	 * @param selectedAction - Currently selected action (optional)
 	 * @returns true if the point is inside the object
 	 */
-	abstract hitTest(worldX: number, worldY: number, selectedAction?: string): InteractiveGameObject | false
+	abstract hitTest(
+		worldX: number,
+		worldY: number,
+		selectedAction?: string,
+	): InteractiveGameObject | false
 }
 
 export abstract class InteractiveGameObject extends D(RenderableObject) {
@@ -98,21 +102,21 @@ export abstract class InteractiveGameObject extends D(RenderableObject) {
 	 */
 	log(...args: any[]) {
 		try {
-			const line = args.map((a) => a.toString()).join(" ")
+			const line = args.map((a) => a.toString()).join(' ')
 			this.logs.push(line)
 		} catch {
 			// Fallback if JSON serialization fails
 			this.logs.push(String(args))
 		}
 	}
-	
+
 	/**
 	 * Check if this object can perform the given action
 	 * @param action - The action to check
 	 * @returns true if the action can be performed on this object
 	 */
 	abstract canAct(action: string): boolean
-	
+
 	abstract readonly title: string
 	abstract readonly debugInfo?: Record<string, any>
 	abstract readonly position: WorldCoord
