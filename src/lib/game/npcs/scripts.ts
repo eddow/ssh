@@ -1,8 +1,6 @@
-// Load all .npcs files as raw text at build time
-
-import D from 'flat-diamond'
-import { computed, reactive } from 'mutts'
+// TODO: Load all .npcs files as raw text at build time
 import type { ExecutionContext, ExecutionState } from 'npc-script'
+import { epsilon } from '$lib/utils'
 import {
 	FunctionDefinition,
 	type IsaTypes,
@@ -12,8 +10,7 @@ import {
 	type Operators,
 } from 'npc-script/src'
 import { objectMap } from '$lib/utils'
-import type { Game } from '../game'
-import { Position } from './position'
+import { Position } from '../position'
 
 /**
  * Custom operators that extend JavaScript operators with position support
@@ -52,7 +49,54 @@ export const gameIsaTypes: IsaTypes = Object.setPrototypeOf(
 	jsIsaTypes,
 )
 
-export const npcsContext: Record<string, any> = {}
+// Math utilities
+const mathUtils = {
+	// Basic math functions
+	min: Math.min,
+	max: Math.max,
+	abs: Math.abs,
+	floor: Math.floor,
+	ceil: Math.ceil,
+	clamp: (value: number, min: number, max: number) => Math.max(min, Math.min(max, value)),
+	
+	// Interpolation and rounding
+	lerp<T extends number|Position>(a: T, b: T, t: number): T {
+		if (typeof a === 'number' && typeof b === 'number') {
+			return (a + (b - a) * t) as T
+		}
+		if (a instanceof Position && b instanceof Position) {
+			return a.lerpTo(b, t) as T
+		}
+		throw new Error(`Invalid lerp types: ${typeof a} and ${typeof b}`)
+	},
+	round<T extends number|Position>(a: T): T {
+		if (typeof a === 'number') {
+			return Math.round(a) as T
+		}
+		if (a instanceof Position) {
+			return Position.fromQR(Math.round(a.q), Math.round(a.r)) as T
+		}
+		throw new Error(`Invalid round type: ${typeof a}`)
+	},
+	roughly<T extends number|Position>(a: T, usedEpsilon = epsilon): T {
+		if (typeof a === 'number') {
+			return Math.round(a / usedEpsilon) * usedEpsilon as T
+		}
+		if (a instanceof Position) {
+			return Position.fromQR(
+				Math.round(a.q / usedEpsilon) * usedEpsilon,
+				Math.round(a.r / usedEpsilon) * usedEpsilon
+			) as T
+		}
+		throw new Error(`Invalid roughly type: ${typeof a}`)
+	}
+	
+}
+
+export const npcsContext: Record<string, any> = {
+	// Math utilities
+	...mathUtils,
+}
 class GameScript extends NpcScript {
 	constructor(
 		public readonly name: string,
@@ -75,16 +119,17 @@ function isXOrDictX<X>(x: XOrDictX<X>, Class: new (...args: any[]) => X): x is X
 	)
 }
 
-class ScriptExecution {
+export class ScriptExecution {
 	constructor(
 		public readonly script: GameScript,
-		public state: ExecutionState,
+		public state?: ExecutionState,
 	) {}
 	run(context: ExecutionContext) {
+		if (!this.state) throw new Error('ScriptExecution was finished')
 		const executor = this.script.executor(this.state, context)
-		const { type, value } = executor.execute()
-		if (type === 'yield') this.state = executor.state
-		return value
+		const result = executor.execute()
+		this.state = result.type === 'yield' ? executor.state : undefined
+		return result
 	}
 }
 export const npcScripts = Object.fromEntries(
@@ -125,48 +170,8 @@ for (const [name, { gameScript, value }] of Object.entries(npcScripts)) {
 	npcsContext[name] = exposeScripts(gameScript, value)
 }
 
-abstract class SingleStepExecutor {
+export abstract class SingleStepExecutor {
 	abstract tick(dt: number): number | undefined
-}
-
-@reactive
-export abstract class ScriptedActor extends D() {
-	abstract readonly scriptContext: ExecutionContext
-	public stepExecutor: SingleStepExecutor | undefined
-	public runningScripts: ScriptExecution[] = []
-
-	constructor(public readonly game: Game) {
-		super()
-	}
-
-	abstract findAction(): ScriptExecution | undefined
-	@computed
-	get actionDescription() {
-		return this.runningScripts.map((s) => s.script.name).reverse()
-	}
-	nextStep() {
-		while (this.runningScripts.length && !this.stepExecutor) {
-			const { type, value } = this.runningScripts[0].run(this.scriptContext)
-			if (type === 'return') this.runningScripts.shift()
-			if (value) {
-				if (value instanceof ScriptExecution) this.runningScripts.unshift(value)
-				else if (value instanceof SingleStepExecutor) this.stepExecutor = value
-				else throw new Error(`Unexpected next action: ${value}`)
-			} else if (!this.runningScripts.length) {
-				const nextAction = this.findAction()
-				if (nextAction) this.runningScripts.unshift(nextAction)
-			}
-		}
-	}
-
-	evolve(dt: number) {
-		let remaining: number | undefined = dt
-		while (remaining !== undefined && this.stepExecutor) {
-			remaining = this.stepExecutor.tick(dt)
-			if (remaining !== undefined) {
-				this.stepExecutor = undefined
-				this.nextStep()
-			}
-		}
-	}
+	abstract readonly description: string
+	
 }

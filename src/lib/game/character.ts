@@ -1,28 +1,26 @@
-import D from 'flat-diamond'
-import { computed, effect, Reactive, type ScopedCallback, untracked, watch } from 'mutts'
+import { computed, effect, reactive, type ScopedCallback, untracked, watch } from 'mutts'
 import { ColorMatrixFilter, Sprite } from 'pixi.js'
 import { mrg } from '$lib/globals.svelte'
 import { type AxialCoord, axial, type WorldCoord } from '$lib/hex'
 import { AxialSet } from '$lib/mem'
 import { type RandGenerator, uuid } from '$lib/numbers'
-import ActivityManager, { CancelledError } from './activities-obsolete/manager'
-import { goEat, goRest, goSleep } from './activities-obsolete/self-care'
 import type { Game } from './game'
 import {
-	GeneratorObject,
-	HittableGameObject,
-	InteractiveGameObject,
-	RenderableContainer,
-	TickedGameObject,
+	GameObject,
+	withGenerator,
+	withInteractive,
+	withTicked,
+	withContainer,
+	withHittable,
 } from './object'
 import { type GoodType, type Module, UnBuiltLand } from './tile'
+import { Position } from './position'
 
 //import * as allScripts from "./npcs/scripts"
 //console.log(allScripts)
 
-export class Character extends Reactive(
-	D(GeneratorObject, InteractiveGameObject, TickedGameObject),
-) {
+@reactive
+export class Character extends withInteractive(withTicked(withGenerator(GameObject))) {
 	readonly triggerLevels = {
 		hunger: {
 			high: 700,
@@ -59,7 +57,6 @@ export class Character extends Reactive(
 	} as const
 
 	public assignedModule: Module | undefined = undefined
-	public activityManager = new ActivityManager<Character>(this)
 
 	// Character needs levels (starting at 0, incrementing 1 per second)
 	public hunger: number = 0
@@ -75,26 +72,27 @@ export class Character extends Reactive(
 		public readonly game: Game,
 		public readonly uid: string,
 		public name: string,
-		public coord: AxialCoord,
+		coord: AxialCoord,
 	) {
 		super(game, uid)
+		this.position = new Position(coord)
 		watch(
 			() => this.assignedModule,
 			() => {
 				if (this.assignedModule !== undefined) {
 					this.fatigue = this.triggerLevels.fatigue.high
 					// TODO: remove me when urgency is working
-					goRest(this.activityManager.plan)
+					//goRest(this.activityManager.plan)
 				}
 			},
 		)
 	}
+	readonly position: Position
 
 	get title(): string {
 		return this.name
 	}
 
-	// @ts-expect-error Diamond inheritance conflict
 	canAct(action: string): boolean {
 		// Characters can't be built on
 		if (action.startsWith('build:')) {
@@ -108,13 +106,8 @@ export class Character extends Reactive(
 	get debugInfo(): Record<string, any> {
 		return {
 			name: this.name,
-			coord: this.coord,
+			coord: this.position,
 		}
-	}
-
-	@computed
-	get position(): WorldCoord {
-		return this.game.hex.axial2world(this.coord)
 	}
 
 	hitTest(coord: AxialCoord, selectedAction?: string): boolean {
@@ -123,33 +116,33 @@ export class Character extends Reactive(
 		if (selectedAction && !this.canAct(selectedAction)) {
 			return false
 		}
-		return axial.distance(coord, this.coord) <= 0.3
+		return axial.distance(coord, this.position) <= 0.3
 	}
 
 	// Update character needs levels based on time elapsed
-	// @ts-expect-error Diamond member
 	update(deltaTime: number) {
 		this.hunger += deltaTime
 		this.Tiredness += deltaTime
 		this.fatigue += deltaTime
 
-		if (!this.activityManager.activity)
+		/*if (!this.activityManager.activity)
 			this.findAction().catch((error) => {
 				if (!(error instanceof CancelledError)) console.error(error.stack)
 			})
-		this.activityManager.evolve(deltaTime)
+		this.activityManager.evolve(deltaTime)*/
 	}
 
 	findAction() {
+		/* TODO: Script
 		if (this.hunger > this.triggerLevels.hunger.high) return goEat(this.activityManager.plan)
 		if (this.Tiredness > this.triggerLevels.Tiredness.high)
 			return goSleep(this.activityManager.plan)
 		if (this.fatigue > this.triggerLevels.fatigue.high && this.assignedModule !== undefined)
 			return goRest(this.activityManager.plan)
-		return this.activityManager.idle(1)
+		return this.activityManager.idle(1)*/
 	}
 
-	render = (): ScopedCallback | undefined => {
+	render(): ScopedCallback | undefined {
 		const { game } = this
 
 		// Create character sprite
@@ -186,7 +179,7 @@ export class Character extends Reactive(
 	}
 }
 
-export class Population extends D(HittableGameObject, RenderableContainer) {
+export class Population extends withContainer(withHittable(GameObject)) {
 	private characters: Map<string, Character> = new Map()
 
 	public characterGen: RandGenerator
@@ -196,7 +189,7 @@ export class Population extends D(HittableGameObject, RenderableContainer) {
 		this.zIndex = 1 // Foreground layer - characters should be hit-tested first
 	}
 
-	hitTest(worldX: number, worldY: number, selectedAction?: string): InteractiveGameObject | false {
+	hitTest(worldX: number, worldY: number, selectedAction?: string): any {
 		if (selectedAction && selectedAction !== 'select') return false
 		const coord = this.game.hex.world2axial({ x: worldX, y: worldY })
 		// Check if any character is hit
@@ -275,7 +268,7 @@ export class Population extends D(HittableGameObject, RenderableContainer) {
 			if (character.assignedModule !== undefined) continue
 
 			// Calculate distance using axial distance
-			const distance = axial.distance(coord, character.coord)
+			const distance = axial.distance(coord, character.position)
 
 			if (distance < nearestDistance) {
 				nearestDistance = distance

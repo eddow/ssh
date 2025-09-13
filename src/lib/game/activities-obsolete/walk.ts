@@ -26,22 +26,22 @@ export async function goTo(
 					to,
 				},
 				function step(e) {
-					character.coord = hex.world2axial(e)
+					character.position = hex.world2axial(e)
 				},
 			)
 		}
 
 		let position = character.position
-		const center = hex.axial2world(character.coord)
-		let tile = hex.getTile(character.coord)
+		const center = hex.axial2world(character.position)
+		let tile = hex.getTile(character.position)
 		if (!tile)
-			throw new Error(`No tile at character position ${character.coord.q}, ${character.coord.r}`)
+			throw new Error(`No tile at character position ${character.position.q}, ${character.position.r}`)
 
 		const distanceToCenter = Math.sqrt((position.x - center.x) ** 2 + (position.y - center.y) ** 2)
 		if (distanceToCenter > 0.1) await walkTile(center, tile.content.walkTime)
 
-		while (!(character.coord.q === coord.q && character.coord.r === coord.r)) {
-			const path = hex.findPath(character.coord, coord, 100) // maxTime of 100
+		while (!(character.position.q === coord.q && character.position.r === coord.r)) {
+			const path = hex.findPath(character.position, coord, 100) // maxTime of 100
 			if (!path || path.length === 0) {
 				throw new Error(`No path found to ${coord.q}, ${coord.r}`)
 			}
@@ -61,11 +61,11 @@ export async function goTo(
 			tile = nextTile
 			//log(`reached mid ${tile.coord.q}, ${tile.coord.r}`)
 			await walkTile(tile.position, tile.content.walkTime)
-			character.coord = next
+			character.position = next
 			position = hex.axial2world(next)
 			if (reevaluate && !reevaluate()) return
 		}
-		log(`arrived at ${character.coord.q}, ${character.coord.r}`)
+		log(`arrived at ${character.position.q}, ${character.position.r}`)
 	}, customDescription || `Walking to ${coord.q}, ${coord.r}`)
 }
 
@@ -81,7 +81,7 @@ export async function goForGoods(plan: Plan<Character>, target: HexTile, goods: 
 const transferDuration = 0.5
 export async function grab(plan: Plan<Character>, goods: GoodType, maxAmount: number) {
 	return plan(async function grab({ activated: character, lerpStep }) {
-		const tile = character.game.hex.getTile(character.coord)
+		const tile = character.game.hex.getTile(character.position)
 		if (!tile) throw new Error(`No tile at character position`)
 		if (character.carriedType && character.carriedType !== goods && character.carriedAmount > 0)
 			await dropAllGoods(plan)
@@ -98,7 +98,7 @@ export async function grab(plan: Plan<Character>, goods: GoodType, maxAmount: nu
 }
 export async function drop(plan: Plan<Character>, goods: GoodType, maxAmount: number) {
 	return plan(async function drop({ activated: character, lerpStep }) {
-		const tile = character.game.hex.getTile(character.coord)
+		const tile = character.game.hex.getTile(character.position)
 		if (!tile) throw new Error(`No tile at character position`)
 		if (character.carriedType !== goods) return
 		const amount = Math.min(character.carriedAmount, maxAmount)
@@ -112,13 +112,13 @@ export async function drop(plan: Plan<Character>, goods: GoodType, maxAmount: nu
 export function dropAllGoods(plan: Plan<Character>) {
 	return plan(async ({ activated: character }) => {
 		const world = character.game.hex
-		const tile = world.getTile(character.coord)
+		const tile = world.getTile(character.position)
 		if (!tile) throw new Error(`No tile at character position`)
 		while (character.carriedAmount > 0) {
 			while (!tile.content.canStoreGood(character.carriedType!)) {
 				// Find nearest tile that can store the goods
 				const nearestTile = world.findNearest(
-					character.coord,
+					character.position,
 					(coord) => {
 						const t = world.getTile(coord)
 						return t ? !!t.content.canStoreGood(character.carriedType!) : false

@@ -1,4 +1,4 @@
-import { computed, Reactive } from 'mutts'
+import { computed, reactive, Reactive } from 'mutts'
 import type { AxialCoord, WorldCoord } from '$lib/hex'
 import type { InteractiveGameObject } from '../object'
 
@@ -45,9 +45,8 @@ function numberEvolve(specs: NumericEvolution, dt: number, resolve?: () => void)
 	specs.value = value + factor * dt
 }
 
-export default class ActivityManager<Activated extends InteractiveGameObject> extends Reactive(
-	Object,
-) {
+@reactive
+export default class ActivityManager<Activated extends InteractiveGameObject> extends Reactive{
 	constructor(public readonly activated: Activated) {
 		super()
 	}

@@ -1,12 +1,12 @@
-import D from 'flat-diamond'
-import { effect, Reactive, watch } from 'mutts'
+import { effect, reactive, watch } from 'mutts'
 import { ColorMatrixFilter, Container, Graphics, Point, type Sprite, TilingSprite } from 'pixi.js'
 import { deposits, terrain as terrainDetails } from '$assets/game-content'
 import {
-	GeneratorObject,
-	HittableGameObject,
-	InteractiveGameObject,
-	RenderableContainer,
+	GameObject,
+	withGenerator,
+	withInteractive,
+	withContainer,
+	withHittable,
 } from '$lib/game/object'
 import { mrg } from '$lib/globals.svelte'
 import { tileSize } from '$lib/utils'
@@ -26,23 +26,23 @@ import {
 import { AxialKeyMap } from '../mem'
 import type { Game } from './game'
 import { type Deposit, Module, type TerrainType, type TileContent, UnBuiltLand } from './tile'
+import { Position } from './position'
 // TODO: check container.cacheAsTexture() for background
 
-export class HexTile extends Reactive(D(InteractiveGameObject, GeneratorObject)) {
+@reactive
+export class HexTile extends withInteractive(withGenerator(GameObject)) {
 	constructor(
 		public readonly hex: HexBoard,
-		readonly coord: AxialCoord,
+		coord: AxialCoord,
 		public content: TileContent,
 	) {
 		super(hex.game, `hex-tile:${coord.q},${coord.r}`)
+		this.position = new Position(coord)
 	}
+	readonly position: Position
 
 	get title(): string {
-		return `Tile ${this.coord.q}, ${this.coord.r}`
-	}
-
-	get position(): WorldCoord {
-		return this.hex.axial2world(this.coord)
+		return `Tile ${this.position.q}, ${this.position.r}`
 	}
 
 	get debugInfo(): Record<string, any> {
@@ -78,7 +78,7 @@ export class HexTile extends Reactive(D(InteractiveGameObject, GeneratorObject))
 		return true
 	}
 
-	render = () => {
+	render() {
 		const { background } = this.content
 		const { position, game } = this
 		const { x: wpx, y: wpy } = position
@@ -140,7 +140,7 @@ export class HexTile extends Reactive(D(InteractiveGameObject, GeneratorObject))
 	}
 }
 
-export class HexBoard extends D(RenderableContainer, HittableGameObject) {
+export class HexBoard extends withContainer(withHittable(GameObject)) {
 	private tiles: AxialKeyMap<HexTile>
 	private terrainGenerator: PerlinTerrainGenerator
 
@@ -156,18 +156,20 @@ export class HexBoard extends D(RenderableContainer, HittableGameObject) {
 		public game: Game,
 		public readonly boardSize: number = 12,
 	) {
-		super(game, 'hexboard')
+		super(game)
 		this.tiles = new AxialKeyMap()
 		this.zIndex = -1 // Background layer - tiles should be hit-tested last
 		// Use a consistent seed based on the game instance
 		this.terrainGenerator = new PerlinTerrainGenerator(12345)
 	}
 
-	hitTest = (
+	// Container functionality is provided by withContainer mixin
+
+	hitTest(
 		worldX: number,
 		worldY: number,
 		selectedAction?: string,
-	): InteractiveGameObject | false => {
+	): any {
 		const coord = axial.round(this.world2axial({ x: worldX, y: worldY }))
 		if (axial.distance(coord, { q: 0, r: 0 }) > this.boardSize) return false
 		const tile = this.getTile(coord)

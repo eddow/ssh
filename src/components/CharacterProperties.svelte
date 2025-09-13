@@ -5,7 +5,7 @@
 	import { ms, m2s } from '$lib/mutts.svelte'
 
 	let { character }: { character: Character } = $props()
-	const actions = ms(character.activityManager.descriptions)
+	const actions = ms([] /*character.activityManager.descriptions*/)
 	const bars = ms(() => ({
 		hunger: character.hunger,
 		Tiredness: character.Tiredness,
@@ -42,7 +42,7 @@
 		<div class="space-y-2">
 			<div class="flex items-center gap-2">
 				<span class="font-medium">Current Activity:</span>
-				<Badge color="blue">{character.activityManager.activity || 'Idle'}</Badge>
+				<Badge color="blue">TODO: {'Idle'}</Badge>
 			</div>
 			<div class="flex flex-col gap-1">
 				<span class="font-medium">Activity Descriptions:</span>

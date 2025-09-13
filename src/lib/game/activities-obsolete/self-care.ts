@@ -59,7 +59,7 @@ export function goEat(plan: Plan<Character>) {
 			while (!(carrying = carryFood())) {
 				// Find nearest tile with food
 				const nearestFoodTile = hex.findNearest(
-					character.coord,
+					character.position,
 					(coord) => bestFoodOnTile(coord) !== null,
 					100, // maxTime
 				)
@@ -74,16 +74,16 @@ export function goEat(plan: Plan<Character>) {
 
 				while (
 					foodType &&
-					!(character.coord.q === targetTile.coord.q && character.coord.r === targetTile.coord.r)
+					!(character.position.q === targetTile.coord.q && character.position.r === targetTile.coord.r)
 				) {
 					await goForGoods(plan, targetTile, foodType as GoodType)
-					const currentTile = hex.getTile(character.coord)
+					const currentTile = hex.getTile(character.position)
 					if (!currentTile) throw new Error('No tile at character position')
 					foodType = bestFoodOnTile(currentTile.coord)
 					if (!foodType) {
 						// Find new food source
 						const newNearestFoodTile = hex.findNearest(
-							character.coord,
+							character.position,
 							(coord) => bestFoodOnTile(coord) !== null,
 							100,
 						)
@@ -111,7 +111,7 @@ export function goRest(plan: Plan<Character>) {
 		}
 		// Find the tile that contains the assigned building
 		const buildingTile = character.game.hex.findNearest(
-			character.coord,
+			character.position,
 			(coord) => {
 				const tile = character.game.hex.getTile(coord)
 				return tile ? tile.content === (character.assignedModule as unknown as Module) : false

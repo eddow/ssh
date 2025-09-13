@@ -21,7 +21,6 @@
     "@tsconfig/svelte": "^5.0.4",
     "dockview-core": "^4.7.1",
     "dockview-svelte": "file:../hex-map/packages/dockview-svelte",
-    "flat-diamond": "^1.0.11",
     "flowbite": "^3.1.2",
     "flowbite-svelte": "^1.13.8",
     "flowbite-svelte-icons": "^3.0.0",
