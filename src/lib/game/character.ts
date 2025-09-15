@@ -7,7 +7,7 @@ import { type RandGenerator, uuid } from '$lib/numbers'
 import type { Game } from './game'
 import type { HexTile } from './hexboard'
 import CharacterContext from './npcs/character'
-import type { ASingleStep } from './npcs/steps'
+import type { ActivityType, ASingleStep } from './npcs/steps'
 import {
 	GameObject,
 	withContainer,
@@ -40,21 +40,22 @@ export function withCharacterStep<
 	return CharacterStepMixin
 }
 const evolutionRates = {
-	idle: {
-		hunger: 2,
-		Tiredness: 2,
-		fatigue: 0,
-	},
-	walking: {
-		hunger: 8,
-		Tiredness: 5,
-		fatigue: 10,
-	},
-	work: {
-		hunger: 12,
-		Tiredness: 8,
-		fatigue: 15,
-	},
+	// Need evolution per activity, with '*' as default fallback
+	hunger: {
+		'*': 2,
+		walk: 8,
+		work: 12,
+	} as Partial<Record<ActivityType | '*', number>>,
+	tiredness: {
+		'*': 2,
+		walk: 5,
+		work: 8,
+	} as Partial<Record<ActivityType | '*', number>>,
+	fatigue: {
+		'*': 0,
+		walk: 10,
+		work: 15,
+	} as Partial<Record<ActivityType | '*', number>>,
 } as const
 
 @reactive
@@ -146,9 +147,13 @@ export class Character extends withInteractive(
 
 	// Update character needs levels based on time elapsed
 	update(deltaTime: number) {
-		this.hunger += deltaTime
-		this.tiredness += deltaTime
-		this.fatigue += deltaTime
+		const activity: ActivityType = (this.stepExecutor?.type ?? 'idle') as ActivityType
+		const hungerRate = evolutionRates.hunger[activity] ?? evolutionRates.hunger['*'] ?? 0
+		const tirednessRate = evolutionRates.tiredness[activity] ?? evolutionRates.tiredness['*'] ?? 0
+		const fatigueRate = evolutionRates.fatigue[activity] ?? evolutionRates.fatigue['*'] ?? 0
+		this.hunger += hungerRate * deltaTime
+		this.tiredness += tirednessRate * deltaTime
+		this.fatigue += fatigueRate * deltaTime
 		super.update(deltaTime)
 	}
 

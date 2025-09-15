@@ -59,7 +59,7 @@ export function findPath(
 
 	while (!openSet.isEmpty) {
 		// Get node with lowest fCost
-		const currentCoord =axial.keyAccess(openSet.pop()![0])
+		const currentCoord = axial.keyAccess(openSet.pop()![0])
 		const currentNode = openSetMap.get(currentCoord)!
 
 		// Move to closed set
@@ -107,7 +107,7 @@ export function findPath(
 			parentMap.set(neighborCoord, currentCoord)
 			openSet.set(axial.key(neighborCoord), neighborNode.fCost)
 			openSetMap.set(neighborCoord, neighborNode)
-			if(openSet.size !== openSetMap.size) {
+			if (openSet.size !== openSetMap.size) {
 				debugger
 			}
 		}

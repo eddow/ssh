@@ -1,4 +1,11 @@
-import { type AxialRef, axial, cartesian, fromCartesian, type WorldCoord, type AxialCoord } from '$lib/hex'
+import {
+	type AxialCoord,
+	type AxialRef,
+	axial,
+	cartesian,
+	fromCartesian,
+	type WorldCoord,
+} from '$lib/hex'
 import { epsilon, tileSize } from '$lib/utils'
 
 function roughly(x: number) {
@@ -24,15 +31,16 @@ export function isWorldCoord(value: any): value is WorldCoord {
 }
 
 export function isAxialRef(value: any): value is AxialRef {
-	return typeof value === 'number' || 
-		   (typeof value === 'object' && value !== null && 'q' in value && 'r' in value)
+	return (
+		typeof value === 'number' ||
+		(typeof value === 'object' && value !== null && 'q' in value && 'r' in value)
+	)
 }
 
 // Conversion functions
 export function toWorldCoord(position: Position): WorldCoord {
 	if (isWorldCoord(position)) return position
-	if(typeof position === 'number') 
-		return cartesian(position, tileSize)
+	if (typeof position === 'number') return cartesian(position, tileSize)
 	if (isAxialRef(position)) {
 		Object.assign(position, cartesian(position, tileSize))
 		return position as unknown as WorldCoord
@@ -100,22 +108,22 @@ export function positionEquals(a: Position, b: Position): boolean {
 }
 
 export function positionLerp(a: Position, b: Position, t: number): Position {
-	if(isWorldCoord(a) && isWorldCoord(b)) {
+	if (isWorldCoord(a) && isWorldCoord(b)) {
 		return {
 			x: a.x + (b.x - a.x) * t,
-			y: a.y + (b.y - a.y) * t
+			y: a.y + (b.y - a.y) * t,
 		}
 	}
 	const aAxial = toAxialCoord(a)
 	const bAxial = toAxialCoord(b)
 	return {
 		q: aAxial.q + (bAxial.q - aAxial.q) * t,
-		r: aAxial.r + (bAxial.r - aAxial.r) * t
+		r: aAxial.r + (bAxial.r - aAxial.r) * t,
 	}
 }
 
 export function xyDistance(a: Position, b: Position): number {
-	const {x: ax, y: ay} = toWorldCoord(a)
-	const {x: bx, y: by} = toWorldCoord(b)
+	const { x: ax, y: ay } = toWorldCoord(a)
+	const { x: bx, y: by } = toWorldCoord(b)
 	return Math.sqrt((ax - bx) ** 2 + (ay - by) ** 2)
 }

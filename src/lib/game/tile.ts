@@ -36,7 +36,7 @@ export interface TileContent {
 	 * List the goods on the tile
 	 * @returns A record of goods and their quantities
 	 */
-	listGoods(): { [k in GoodType]?: number }
+	get goods(): { [k in GoodType]?: number }
 	/**
 	 * Check if the tile can store a good
 	 * @param goodType - The type of good to check
@@ -104,10 +104,9 @@ export class Module implements Ssh.ModuleDefinition, TileContent {
 	// Configurable properties
 	public walkway: boolean = true
 	public conveyor: boolean = true
+	// TODO: configure or let it on "is there a connected deposit?"
+	public gather: boolean = true
 
-	listGoods(): { [k in GoodType]?: number } {
-		return this.goods
-	}
 	canStoreGood(goodType: GoodType): number {
 		const inputs = this.action.type === 'transform' ? this.action.inputs[goodType] || 0 : 0
 		if (inputs <= 0) return 0
@@ -280,7 +279,7 @@ export class Module implements Ssh.ModuleDefinition, TileContent {
 }
 
 export class UnBuiltLand implements TileContent {
-	public goods: (GoodType | undefined)[]
+	public goodSlots: (GoodType | undefined)[]
 	get name() {
 		return this.terrain
 	}
@@ -289,10 +288,10 @@ export class UnBuiltLand implements TileContent {
 		public terrain: TerrainType,
 		public deposit?: Deposit,
 	) {
-		this.goods = new Array(goodsSlots).fill(undefined)
+		this.goodSlots = new Array(goodsSlots).fill(undefined)
 	}
-	listGoods() {
-		return this.goods.reduce(
+	get goods() {
+		return this.goodSlots.reduce(
 			(acc, good) => {
 				if (good) acc[good] = (acc[good] || 0) + 1
 				return acc
@@ -301,13 +300,13 @@ export class UnBuiltLand implements TileContent {
 		)
 	}
 	canStoreGood(goodType: GoodType): number {
-		return this.goods.filter((good) => good === undefined).length
+		return this.goodSlots.filter((good) => good === undefined).length
 	}
 	addGood(goodType: GoodType, qty: number) {
 		let toAdd = qty
-		for (let i = 0; i < this.goods.length; i++) {
-			if (this.goods[i] === undefined) {
-				this.goods[i] = goodType
+		for (let i = 0; i < this.goodSlots.length; i++) {
+			if (this.goodSlots[i] === undefined) {
+				this.goodSlots[i] = goodType
 				if (!--toAdd) return qty
 			}
 		}
@@ -315,9 +314,9 @@ export class UnBuiltLand implements TileContent {
 	}
 	removeGood(goodType: GoodType, qty: number) {
 		let toRemove = qty
-		for (let i = 0; i < this.goods.length; i++) {
-			if (this.goods[i] === goodType) {
-				this.goods[i] = undefined
+		for (let i = 0; i < this.goodSlots.length; i++) {
+			if (this.goodSlots[i] === goodType) {
+				this.goodSlots[i] = undefined
 				if (!--toRemove) return qty
 			}
 		}
@@ -325,7 +324,7 @@ export class UnBuiltLand implements TileContent {
 	}
 	get debugInfo() {
 		return {
-			goods: this.goods.filter((good) => good !== undefined),
+			goods: this.goodSlots.filter((good) => good !== undefined),
 			terrain: this.terrain,
 		}
 	}
@@ -356,8 +355,8 @@ export class UnBuiltLand implements TileContent {
 		effect(() => {
 			// Goods rendering in triangular pattern
 			const goodsSprites: Sprite[] = []
-			for (let i = 0; i < this.goods.length; i++) {
-				const good = this.goods[i]
+			for (let i = 0; i < this.goodSlots.length; i++) {
+				const good = this.goodSlots[i]
 				if (!good) continue
 				const goodsSprite = new Sprite(game.getTexture(goods[good].sprites[0]))
 				// scale small

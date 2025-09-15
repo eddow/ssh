@@ -40,7 +40,9 @@ export class HexTile extends withInteractive(withGenerator(GameObject)) {
 		this.position = coord
 	}
 	readonly position: Position
-	get tile(): HexTile { return this }
+	get tile(): HexTile {
+		return this
+	}
 
 	get title(): string {
 		const axial = toAxialCoord(this.position)

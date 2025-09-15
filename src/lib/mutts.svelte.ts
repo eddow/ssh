@@ -13,7 +13,7 @@ export function ms<T>(factory: () => T, deep?: false): Writable<T>
 export function ms<T extends object>(factory: () => T, deep: true): Writable<T>
 
 // 1) Plain value that is NOT a function
-export function ms<T extends object|any[]>(value: NonFunction<T>): Writable<T>
+export function ms<T extends object | any[]>(value: NonFunction<T>): Writable<T>
 export function ms<T>(muttsValue: (() => T) | T, deep: boolean = false): Writable<T> {
 	const subscribers = new Set<Subscriber<T>>()
 	let cleanup: Unsubscriber | undefined

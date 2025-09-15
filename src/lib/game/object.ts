@@ -1,13 +1,13 @@
 // Library used by Pixi
 import EventEmitter from 'eventemitter3'
-import { computed, effect, ReactiveBase, reactive, type ScopedCallback, unreactive } from 'mutts'
+import { computed, effect, ReactiveBase, type ScopedCallback, unreactive } from 'mutts'
 import type { ExecutionContext } from 'npc-script/src'
 import { Ticker } from 'pixi.js'
 import type { Game } from './game'
+import type { HexTile } from './hexboard'
 import { ScriptExecution } from './npcs/scripts'
 import { ASingleStep } from './npcs/steps'
 import type { Position } from './position'
-import type { HexTile } from './hexboard'
 
 // All pixi objects extend this `EventEmitter` and should be unreactive
 unreactive(EventEmitter)

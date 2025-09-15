@@ -1,0 +1,14 @@
+dropAll = function()
+	while carriedAmount > 0
+		good = carriedType
+		if not good then break
+		spot = find.freeSpot(good)
+		if not spot then return false
+		if not walk.into spot.tile then return false
+		drop good, carriedAmount
+	end while
+end function
+
+return { dropAll: dropAll }
+
+

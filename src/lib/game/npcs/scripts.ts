@@ -1,20 +1,29 @@
 // TODO: Load all .npcs files as raw text at build time
+
+import { unreactive } from 'mutts'
 import type { ExecutionContext, ExecutionState } from 'npc-script/src'
 import {
+	ExecutionError,
 	FunctionDefinition,
 	type IsaTypes,
 	jsIsaTypes,
 	jsOperators,
-	NpcScript,
 	MiniScriptExecutor,
+	NpcScript,
 	type Operators,
-	ExecutionError,
 } from 'npc-script/src'
 import { epsilon, objectMap } from '$lib/utils'
 import { HexTile } from '../hexboard'
 import type { GameObject, InteractiveGameObject } from '../object'
-import { isPosition, type Position, positionDistance, positionLerp, positionRoughly, positionRoughlyEquals, toAxialCoord } from '../position'
-import { unreactive } from 'mutts'
+import {
+	isPosition,
+	type Position,
+	positionDistance,
+	positionLerp,
+	positionRoughly,
+	positionRoughlyEquals,
+	toAxialCoord,
+} from '../position'
 
 unreactive(MiniScriptExecutor)
 unreactive(NpcScript)
@@ -69,10 +78,10 @@ class GlobalContext implements ExecutionContext {
 		throw new Error(message)
 	}
 	// Basic math functions
-	min(... args: any[]) {
+	min(...args: any[]) {
 		return Math.min(...args)
 	}
-	max(... args: any[]) {
+	max(...args: any[]) {
 		return Math.max(...args)
 	}
 	abs(args: any) {
@@ -125,7 +134,6 @@ export class GameContext extends GlobalContext {
 }
 
 export class InteractiveContext extends GameContext {
-
 	#interactive: InteractiveGameObject
 	constructor(interactive: InteractiveGameObject) {
 		super(interactive)
@@ -172,7 +180,7 @@ export class ScriptExecution {
 			this.state = result.type === 'yield' ? executor.state : undefined
 			return result
 		} catch (error) {
-			if(error instanceof ExecutionError)
+			if (error instanceof ExecutionError)
 				console.error(this.script.sourceLocation(error.statement))
 			throw error
 		}
@@ -211,7 +219,13 @@ export function loadNpcScripts(modules: Record<string, string>, context: Executi
 	}
 
 	for (const [name, { gameScript, value }] of Object.entries(npcScripts)) {
-		context[name] = exposeScripts(gameScript, value)
+		const exposed = exposeScripts(gameScript, value)
+		const existing = (context as any)[name]
+		if (name in context && typeof context[name] === 'object') {
+			Object.assign(existing, exposed)
+		} else {
+			context[name] = exposed
+		}
 	}
 	return context
 }
