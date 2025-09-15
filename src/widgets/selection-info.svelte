@@ -71,7 +71,7 @@
 		<Button onclick={goTo} size="sm">
 			<Icon icon="mdi:eye" width="16" height="16" />
 		</Button>
-		{#if interactionMode.selectedAction && object?.canAct?.(interactionMode.selectedAction)}
+		{#if interactionMode.selectedAction && object?.canInteract?.(interactionMode.selectedAction)}
 			<Button onclick={act} size="sm">
 				<Icon icon="mdi:play" width="16" height="16" />
 			</Button>

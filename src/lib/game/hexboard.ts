@@ -54,14 +54,14 @@ export class HexTile extends withInteractive(withGenerator(GameObject)) {
 		}
 	}
 
-	canAct(action: string): boolean {
+	canInteract(action: string): boolean {
 		// For other actions, check if the tile content can act
-		return this.content.canAct?.(action) ?? false
+		return this.content.canInteract?.(action) ?? false
 	}
 
 	build(moduleType: string): boolean {
 		// Check if we can build on this tile
-		if (!this.canAct(`build:${moduleType}`)) {
+		if (!this.canInteract(`build:${moduleType}`)) {
 			return false
 		}
 
@@ -177,7 +177,7 @@ export class HexBoard extends withContainer(withHittable(GameObject)) {
 		if (!tile) return false
 
 		// If we have a selected action, check if the tile can act with it
-		if (selectedAction && !tile.canAct(selectedAction)) {
+		if (selectedAction && !tile.canInteract(selectedAction)) {
 			return false
 		}
 

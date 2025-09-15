@@ -3,35 +3,35 @@
 	import { Badge } from 'flowbite-svelte'
 	import StatProgressBar from './StatProgressBar.svelte'
 	import { ms, m2s } from '$lib/mutts.svelte'
-
 	let { character }: { character: Character } = $props()
-	const actions = ms([] /*character.activityManager.descriptions*/)
-	const bars = ms(() => ({
+	const actions = ms(() => character.actionDescription, true)
+	const state = ms(() => ({
 		hunger: character.hunger,
 		Tiredness: character.tiredness,
 		fatigue: character.fatigue,
-		triggerLevels: character.triggerLevels
+		triggerLevels: character.triggerLevels,
+		stepDescription: character.stepExecutor?.type
 	}))
-
-	//	let mct = $derived(m2s(character))
-
-	//{mct.fatigue}
 </script>
 
 <div class="character-properties">
-	{#if $bars.triggerLevels}
+	{#if $state.triggerLevels}
 		<div class="mt-4">
 			<h3 class="font-medium mb-3">Character Stats</h3>
 			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-				<StatProgressBar value={$bars.hunger} levels={$bars.triggerLevels.hunger} label="Hunger" />
 				<StatProgressBar
-					value={$bars.Tiredness}
-					levels={$bars.triggerLevels.Tiredness}
+					value={$state.hunger}
+					levels={$state.triggerLevels.hunger}
+					label="Hunger"
+				/>
+				<StatProgressBar
+					value={$state.Tiredness}
+					levels={$state.triggerLevels.Tiredness}
 					label="Tiredness"
 				/>
 				<StatProgressBar
-					value={$bars.fatigue}
-					levels={$bars.triggerLevels.fatigue}
+					value={$state.fatigue}
+					levels={$state.triggerLevels.fatigue}
 					label="Fatigue"
 				/>
 			</div>
@@ -42,7 +42,7 @@
 		<div class="space-y-2">
 			<div class="flex items-center gap-2">
 				<span class="font-medium">Current Activity:</span>
-				<Badge color="blue">TODO: {'Idle'}</Badge>
+				<Badge color="blue">{$state.stepDescription ?? 'Idle'}</Badge>
 			</div>
 			<div class="flex flex-col gap-1">
 				<span class="font-medium">Activity Descriptions:</span>

@@ -5,9 +5,16 @@ import type { Subscriber, Unsubscriber, Writable } from 'svelte/store'
  * Mutts to Svelte store
  * @param muttsValue mutts value
  */
-export function ms<T>(muttsValue: () => T): Writable<T>
-export function ms<T extends object>(muttsValue: T): Writable<T>
-export function ms<T extends object | (() => any)>(muttsValue: (() => T) | T): Writable<T> {
+type AnyFn = (...args: any[]) => any
+type NonFunction<T> = T extends AnyFn ? never : T
+export function ms<T>(factory: () => T, deep?: false): Writable<T>
+
+// 2) Factory returning object: deep optional (true|undefined)
+export function ms<T extends object>(factory: () => T, deep: true): Writable<T>
+
+// 1) Plain value that is NOT a function
+export function ms<T extends object|any[]>(value: NonFunction<T>): Writable<T>
+export function ms<T>(muttsValue: (() => T) | T, deep: boolean = false): Writable<T> {
 	const subscribers = new Set<Subscriber<T>>()
 	let cleanup: Unsubscriber | undefined
 	function subscribe(this: void, run: Subscriber<T>): Unsubscriber {
@@ -18,7 +25,7 @@ export function ms<T extends object | (() => any)>(muttsValue: (() => T) | T): W
 				(value: T) => {
 					for (const run of subscribers) run(value)
 				},
-				{ immediate: true },
+				{ immediate: true, deep },
 			)
 		}
 		return () => {

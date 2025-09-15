@@ -39,6 +39,23 @@ export function withCharacterStep<
 	}
 	return CharacterStepMixin
 }
+const evolutionRates = {
+	idle: {
+		hunger: 2,
+		Tiredness: 2,
+		fatigue: 0,
+	},
+	walking: {
+		hunger: 8,
+		Tiredness: 5,
+		fatigue: 10,
+	},
+	work: {
+		hunger: 12,
+		Tiredness: 8,
+		fatigue: 15,
+	},
+} as const
 
 @reactive
 export class Character extends withInteractive(
@@ -59,23 +76,6 @@ export class Character extends withInteractive(
 			high: 140,
 			critical: 180,
 			satisfied: 10,
-		},
-	} as const
-	readonly evolutionRates = {
-		idle: {
-			hunger: 2,
-			Tiredness: 2,
-			fatigue: 0,
-		},
-		walking: {
-			hunger: 8,
-			Tiredness: 5,
-			fatigue: 10,
-		},
-		active: {
-			hunger: 12,
-			Tiredness: 8,
-			fatigue: 15,
 		},
 	} as const
 
@@ -118,7 +118,7 @@ export class Character extends withInteractive(
 		return this.name
 	}
 
-	canAct(action: string): boolean {
+	canInteract(action: string): boolean {
 		// Characters can't be built on
 		if (action.startsWith('build:')) {
 			return false
@@ -138,7 +138,7 @@ export class Character extends withInteractive(
 	hitTest(coord: AxialCoord, selectedAction?: string): boolean {
 		// Simple circular hit test for character
 		// If we have a selected action, check if this character can act with it
-		if (selectedAction && !this.canAct(selectedAction)) {
+		if (selectedAction && !this.canInteract(selectedAction)) {
 			return false
 		}
 		return axial.distance(coord, toAxialCoord(this.position)) <= 0.3
@@ -150,11 +150,6 @@ export class Character extends withInteractive(
 		this.tiredness += deltaTime
 		this.fatigue += deltaTime
 		super.update(deltaTime)
-		/*if (!this.activityManager.activity)
-			this.findAction().catch((error) => {
-				if (!(error instanceof CancelledError)) console.error(error.stack)
-			})
-		this.activityManager.evolve(deltaTime)*/
 	}
 
 	findAction() {

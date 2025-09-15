@@ -4,45 +4,53 @@ import { objectMap } from '$lib/utils'
 import type { Character } from '../character'
 import type { HexTile } from '../hexboard'
 import type { Position } from '../position'
-import { toAxialCoord, isPosition, positionRoughlyEquals } from '../position'
-import { GameUtils, loadNpcScripts } from './scripts'
+import { toAxialCoord, positionRoughlyEquals, xyDistance } from '../position'
+import { InteractiveContext, loadNpcScripts } from './scripts'
 import { MoveToStep } from './steps'
 
 
-const maxWalkTime = 10
+const maxWalkTime = 24
 
-class CharacterContext extends GameUtils {
-	#subject: Character
-	constructor(subject: Character) {
-		super(subject)
-		this.#subject = subject
+class CharacterContext extends InteractiveContext {
+	#character: Character
+	constructor(character: Character) {
+		super(character)
+		this.#character = character
 	}
 	get tile() {
-		return this.#subject.tile
+		return this.#character.tile
 	}
 	set tile(value: HexTile) {
 		// TODO: super-duper-validate (even with position)
-		
-		this.#subject.tile = value
-	}
-	log(...args: any[]) {
-		this.#subject.log(...args)
+
+		this.#character.tile = value
 	}
 
 	moveTo(to: Position) {
+		const toAxial = toAxialCoord(to)
+		const fromAxial = toAxialCoord(this.#character)
 		// TODO: hyper-validate, should be in the same tile
-		if(!positionRoughlyEquals(this.#subject.tile.position, to))
-			return new MoveToStep(this.#subject.tile.content.walkTime, this.#subject, to)
+		if(!positionRoughlyEquals(fromAxial, toAxial))
+			return new MoveToStep(
+				this.#character.tile.content.walkTime * axial.distance(fromAxial, toAxial),
+				this.#character, to)
 	}
-	findPath(to: Position) {
-		return this.#subject.game.hex.findPath(
-			axial.round(toAxialCoord(this.#subject.tile.position)),
-			axial.round(toAxialCoord(to)),
-			maxWalkTime
-		)
+	find = {
+		path(this: CharacterContext, to: Position, punctual: boolean = true) {
+			return this.#character.game.hex.findPath(
+				toAxialCoord(this.#character.tile.position),
+				axial.round(toAxialCoord(to)),
+				maxWalkTime,
+				punctual
+			)
+		},
+		food(this: CharacterContext) {
+			// TODO: implement
+		},
+		
 	}
 	canWalkIn(tile: HexTile) {
-		return Number.isFinite(this.#subject.tile.content.walkTime)
+		return Number.isFinite(this.#character.tile.content.walkTime)
 	}
 }
 

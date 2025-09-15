@@ -113,3 +113,9 @@ export function positionLerp(a: Position, b: Position, t: number): Position {
 		r: aAxial.r + (bAxial.r - aAxial.r) * t
 	}
 }
+
+export function xyDistance(a: Position, b: Position): number {
+	const {x: ax, y: ay} = toWorldCoord(a)
+	const {x: bx, y: by} = toWorldCoord(b)
+	return Math.sqrt((ax - bx) ** 2 + (ay - by) ** 2)
+}

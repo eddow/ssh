@@ -5,7 +5,7 @@ import { lerp } from './scripts'
 
 export abstract class ASingleStep {
 	abstract tick(dt: number): number | undefined
-	abstract readonly description: string
+	abstract readonly type: 'walk' | 'idle' | 'work' | 'fun' | 'eat' | 'sleep' | 'rest'
 }
 
 export abstract class AEvolutionStep extends ASingleStep {
@@ -43,7 +43,7 @@ export abstract class ALerpStep<T extends number | Position> extends AEvolutionS
 //#region Commons
 
 export class MoveToStep extends ALerpStep<Position> {
-	readonly description = 'Stepping'
+	get type() { return 'walk' as const }
 	constructor(
 		duration: number,
 		readonly who: { position: Position },

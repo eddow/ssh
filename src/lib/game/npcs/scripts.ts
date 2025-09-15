@@ -8,10 +8,11 @@ import {
 	NpcScript,
 	MiniScriptExecutor,
 	type Operators,
+	ExecutionError,
 } from 'npc-script/src'
 import { epsilon, objectMap } from '$lib/utils'
 import { HexTile } from '../hexboard'
-import type { GameObject } from '../object'
+import type { GameObject, InteractiveGameObject } from '../object'
 import { isPosition, type Position, positionDistance, positionLerp, positionRoughly, positionRoughlyEquals, toAxialCoord } from '../position'
 import { unreactive } from 'mutts'
 
@@ -59,10 +60,13 @@ export const gameIsaTypes: IsaTypes = Object.setPrototypeOf(
 //!TODO: Heavy argument validation
 // Math utilities
 @unreactive
-class GlobalUtils implements ExecutionContext {
+class GlobalContext implements ExecutionContext {
 	debugger(value: any) {
 		console.dir(value, { depth: null })
 		debugger
+	}
+	error(message: string) {
+		throw new Error(message)
 	}
 	// Basic math functions
 	min(... args: any[]) {
@@ -109,19 +113,36 @@ class GlobalUtils implements ExecutionContext {
 	}
 }
 
-export class GameUtils extends GlobalUtils {
-	readonly #subject: GameObject
+export class GameContext extends GlobalContext {
+	readonly #gameObject: GameObject
 	constructor(gameObject: GameObject) {
 		super()
-		this.#subject = gameObject
+		this.#gameObject = gameObject
 	}
 	tileAt(position: Position) {
-		return this.#subject.game.hex.getTile(toAxialCoord(position))
+		return this.#gameObject.game.hex.getTile(toAxialCoord(position))
 	}
 }
+
+export class InteractiveContext extends GameContext {
+
+	#interactive: InteractiveGameObject
+	constructor(interactive: InteractiveGameObject) {
+		super(interactive)
+		this.#interactive = interactive
+	}
+	get tile() {
+		return this.#interactive.tile
+	}
+	log(...args: any[]) {
+		this.#interactive.log(...args)
+	}
+}
+
 class GameScript extends NpcScript {
 	constructor(
 		public readonly name: string,
+		public readonly fileName: string,
 		source: string,
 	) {
 		super(source, gameOperators, gameIsaTypes)
@@ -146,9 +167,15 @@ export class ScriptExecution {
 	run(context: ExecutionContext) {
 		if (!this.state) throw new Error('ScriptExecution was finished')
 		const executor = this.script.executor(context, this.state)
-		const result = executor.execute()
-		this.state = result.type === 'yield' ? executor.state : undefined
-		return result
+		try {
+			const result = executor.execute()
+			this.state = result.type === 'yield' ? executor.state : undefined
+			return result
+		} catch (error) {
+			if(error instanceof ExecutionError)
+				console.error(this.script.sourceLocation(error.statement))
+			throw error
+		}
 	}
 }
 
@@ -160,7 +187,7 @@ export function loadNpcScripts(modules: Record<string, string>, context: Executi
 				.pop()!
 				.match(/(.*)\.npcs$/)?.[1]!
 				.replace(/\//g, '.')!
-			const gameScript = new GameScript(name, source)
+			const gameScript = new GameScript(name, path, source)
 			const executed = gameScript.execute(context)
 			if (executed.type !== 'return') {
 				throw new Error(

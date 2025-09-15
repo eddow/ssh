@@ -54,7 +54,7 @@ export interface TileContent {
 	 * @param action - The action to check
 	 * @returns true if the action can be performed
 	 */
-	canAct?(action: string): boolean
+	canInteract?(action: string): boolean
 }
 
 function GcClass<BaseCtor extends Ctor<any>, TDef extends object>(
@@ -273,7 +273,7 @@ export class Module implements Ssh.ModuleDefinition, TileContent {
 		}
 	}
 
-	canAct(action: string): boolean {
+	canInteract(action: string): boolean {
 		// Modules can't be built on (they already exist)
 		return false
 	}
@@ -381,7 +381,7 @@ export class UnBuiltLand implements TileContent {
 		return root
 	}
 
-	canAct(action: string): boolean {
+	canInteract(action: string): boolean {
 		// UnBuiltLand can accept building actions
 		if (action.startsWith('build:')) {
 			return !this.deposit

@@ -38,7 +38,7 @@ export function findPath(
 	const goalDistance = punctual ? 0 : 1
 
 	// Initialize data structures
-	const openSet = new HeapMin<AxialCoord, number>()
+	const openSet = new HeapMin<number, number>()
 	const openSetMap = new AxialKeyMap<PathfindingNode>()
 	const closedSet = new AxialKeyMap<PathfindingNode>()
 	const gCosts = new AxialKeyMap<number>()
@@ -53,13 +53,13 @@ export function findPath(
 	}
 	startNode.fCost = startNode.gCost + startNode.hCost
 
-	openSet.set(startCoord, startNode.fCost)
+	openSet.set(axial.key(startCoord), startNode.fCost)
 	openSetMap.set(startCoord, startNode)
 	gCosts.set(startCoord, 0)
 
 	while (!openSet.isEmpty) {
 		// Get node with lowest fCost
-		const currentCoord = openSet.pop()![0]
+		const currentCoord =axial.keyAccess(openSet.pop()![0])
 		const currentNode = openSetMap.get(currentCoord)!
 
 		// Move to closed set
@@ -105,8 +105,11 @@ export function findPath(
 			// Update costs and add to open set
 			gCosts.set(neighborCoord, tentativeGCost)
 			parentMap.set(neighborCoord, currentCoord)
-			openSet.set(neighborCoord, neighborNode.fCost)
+			openSet.set(axial.key(neighborCoord), neighborNode.fCost)
 			openSetMap.set(neighborCoord, neighborNode)
+			if(openSet.size !== openSetMap.size) {
+				debugger
+			}
 		}
 	}
 

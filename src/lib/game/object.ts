@@ -80,7 +80,7 @@ export function withInteractive<T extends new (...args: any[]) => GameObject>(Ba
 			}
 		}
 
-		abstract canAct(action: string): boolean
+		abstract canInteract(action: string): boolean
 		abstract readonly title: string
 		abstract readonly debugInfo?: Record<string, any>
 		abstract readonly position: Position
@@ -214,7 +214,8 @@ export function withScripted<T extends new (...args: any[]) => TickedGameObject>
 		}
 
 		abandonAnd(exec: ScriptExecution) {
-			this.runningScripts = [exec]
+			this.runningScripts.splice(0, this.runningScripts.length)
+			this.runningScripts.push(exec)
 			this.nextStep()
 		}
 	}

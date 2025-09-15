@@ -1,4 +1,4 @@
-into = function(target)
+walk = function(target, punctual)
 	if target isa tile then
 		targetTile = target
 		targetPosition = target.position
@@ -9,7 +9,10 @@ into = function(target)
 		error "Expected: tile or position, got " + target
 	end if
 	while tile != targetTile
-		for step in findPath(targetTile)
+		if punctual and not canWalkIn(targetTile) then return false
+		path = findPath(targetTile, punctual)
+		if not path then return false
+		for step in path
 			if tile.position != step then
 				midPoint = lerp(tile.position, step, 1/2)
 				moveTo midPoint
@@ -18,7 +21,11 @@ into = function(target)
 			end if
 		end for
 	end while
-	moveTo targetPosition
+end function
+
+into = function(target)
+	walk target, true
+	moveTo target
 end function
 
 return { into: into }
