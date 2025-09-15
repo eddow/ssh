@@ -3,6 +3,7 @@
 	import { Badge } from 'flowbite-svelte'
 	import StatProgressBar from './StatProgressBar.svelte'
 	import { ms, m2s } from '$lib/mutts.svelte'
+	import { T } from '$lib/i18n'
 	let { character }: { character: Character } = $props()
 	const actions = ms(() => character.actionDescription, true)
 	const state = ms(() => ({
@@ -17,22 +18,22 @@
 <div class="character-properties">
 	{#if $state.triggerLevels}
 		<div class="mt-4">
-			<h3 class="font-medium mb-3">Character Stats</h3>
+			<h3 class="font-medium mb-3">{$T.character.characterStats}</h3>
 			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
 				<StatProgressBar
 					value={$state.hunger}
 					levels={$state.triggerLevels.hunger}
-					label="Hunger"
+					label={$T.character.hunger}
 				/>
 				<StatProgressBar
 					value={$state.Tiredness}
 					levels={$state.triggerLevels.Tiredness}
-					label="Tiredness"
+					label={$T.character.tiredness}
 				/>
 				<StatProgressBar
 					value={$state.fatigue}
 					levels={$state.triggerLevels.fatigue}
-					label="Fatigue"
+					label={$T.character.fatigue}
 				/>
 			</div>
 		</div>
@@ -41,11 +42,11 @@
 	<div class="mt-4">
 		<div class="space-y-2">
 			<div class="flex items-center gap-2">
-				<span class="font-medium">Current Activity:</span>
-				<Badge color="blue">{$state.stepDescription ?? 'Idle'}</Badge>
+				<span class="font-medium">{$T.character.currentActivity}:</span>
+				<Badge color="blue">{$state.stepDescription ?? $T.character.idle}</Badge>
 			</div>
 			<div class="flex flex-col gap-1">
-				<span class="font-medium">Activity Descriptions:</span>
+				<span class="font-medium">{$T.character.activityDescriptions}:</span>
 				{#if $actions.length > 0}
 					<ul
 						class="text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 p-2 rounded border border-gray-200 dark:border-gray-700 space-y-1"
@@ -60,7 +61,7 @@
 					<div
 						class="text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 p-2 rounded border border-gray-200 dark:border-gray-700 italic"
 					>
-						No activity
+						{$T.character.noActivity}
 					</div>
 				{/if}
 			</div>

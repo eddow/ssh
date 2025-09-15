@@ -2,6 +2,7 @@
 	import type { GoodType, UnBuiltLand } from '$lib/game/tile'
 	import { goods } from '$assets/game-content'
 	import { Badge } from 'flowbite-svelte'
+	import { T } from '$lib/i18n'
 
 	let { content }: { content: UnBuiltLand } = $props()
 </script>
@@ -10,17 +11,17 @@
 	<div class="space-y-2">
 		{#if content.deposit}
 			<div class="flex items-center gap-2">
-				<span class="font-medium">Deposit:</span>
+				<span class="font-medium">{$T.deposit}:</span>
 				<Badge color="purple">{content.deposit.name}</Badge>
 				<Badge color="blue">{content.deposit.amount}</Badge>
 			</div>
 		{/if}
 
-		{#if Object.keys(content.listGoods()).length > 0}
+		{#if Object.keys(content.goods).length > 0}
 			<div class="flex items-center gap-2">
-				<span class="font-medium">Goods:</span>
+				<span class="font-medium">{$T.goods}:</span>
 				<div class="flex flex-wrap gap-1">
-					{#each Object.entries(content.listGoods()) as [good, count]}
+					{#each Object.entries(content.goods) as [good, count]}
 						{@const goodDef = goods[good as GoodType]}
 						<Badge color="yellow">
 							{goodDef.name} × {count}

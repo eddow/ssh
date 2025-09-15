@@ -1,6 +1,8 @@
 <script lang="ts" module>
+	import { getTranslation } from '$lib/i18n'
+
 	export function title(params: Record<string, any>) {
-		return `Configuration`
+		return getTranslation('ui.configuration')
 	}
 </script>
 
@@ -11,6 +13,7 @@
 	import { Alert } from 'flowbite-svelte'
 	import DarkMode from '$components/dark-mode.svelte'
 	import { configuration } from '$lib/globals.svelte'
+	import { T } from '$lib/i18n'
 
 	let darkMode = $state(configuration.darkMode)
 
@@ -25,6 +28,6 @@
 
 <DarkMode bind:darkMode />
 <Alert>
-	<p>Wheel = zoom + look-at</p>
-	<p>Both left+right down = pan</p>
+	<p>{$T.ui.wheelZoomLookAt}</p>
+	<p>{$T.ui.bothButtonsPan}</p>
 </Alert>

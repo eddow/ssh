@@ -27,6 +27,7 @@
     "flowbite-svelte-icons": "^3.0.0",
     "mutts": "file:../mutts",
     "npc-script": "file:../npcs",
+    "omni18n": "file:../omni18n",
     "phaser": "^3.90.0",
     "phaser3-rex-plugins": "^1.80.16",
     "pixi.js": "^8.13.0",

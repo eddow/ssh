@@ -4,7 +4,7 @@ dropAll = function()
 		if not good then break
 		spot = find.freeSpot(good)
 		if not spot then return false
-		if not walk.into spot.tile then return false
+		walk.into spot.tile
 		drop good, carriedAmount
 	end while
 end function

@@ -1,8 +1,9 @@
 <script lang="ts" module>
+	import { getTranslation } from '$lib/i18n'
 	const game = games.game('GameX')
 	export function title({ uid }: Record<string, any>) {
 		const obj = game.getObject(uid)
-		return obj?.title ?? `Unknown object ${uid}`
+		return obj?.title ?? getTranslation('game.unknownObject', { uid })
 	}
 </script>
 
@@ -17,6 +18,7 @@
 	import TileProperties from '$components/TileProperties.svelte'
 	import CharacterProperties from '$components/CharacterProperties.svelte'
 	import { toWorldCoord } from '$lib/game/position'
+	import { T } from '$lib/i18n'
 
 	let { uid }: { uid: string } = $props()
 	let object: InteractiveGameObject | undefined = $state(undefined)
@@ -85,7 +87,7 @@
 			<TileProperties tile={object} />
 		{:else}
 			<div class="error">
-				<p>Unknown object type</p>
+				<p>{$T.game.unknownObjectType}</p>
 			</div>
 		{/if}
 	</div>

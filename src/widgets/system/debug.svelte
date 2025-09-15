@@ -1,6 +1,8 @@
 <script lang="ts" module>
+	import { getTranslation } from '$lib/i18n'
+
 	export function title(params: Record<string, any>) {
-		return `Debug Info`
+		return getTranslation('ui.debugInfo')
 	}
 </script>
 
@@ -15,6 +17,7 @@
 	} from 'flowbite-svelte'
 	import { debugInfo, mrg } from '$lib/globals.svelte'
 	import { effect } from 'mutts'
+	import { T } from '$lib/i18n'
 	function ownEntries(value: any) {
 		return Object.entries(Object.getOwnPropertyDescriptors(value))
 			.filter(([_, v]) => v.enumerable)
@@ -52,11 +55,11 @@
 	})
 </script>
 
-<Button class="w-full" onclick={resetLayout}>Reset layout</Button>
-<h1>Selection : {mrgHoveredObject?.title ?? 'None'}</h1>
+<Button class="w-full" onclick={resetLayout}>{$T.ui.resetLayout}</Button>
+<h1>{$T.ui.selection} : {mrgHoveredObject?.title ?? $T.ui.none}</h1>
 {#if mrgHoveredObject}
 	<Table>
-		<TableBody title="Debug info">
+		<TableBody title={$T.ui.debugInfo}>
 			{#each ownEntries(mrgHoveredObject.debugInfo) as kvp}
 				<TableBodyRow>
 					<TableHeadCell>{kvp[0]}</TableHeadCell>
@@ -70,7 +73,7 @@
 	<h2>{content[0]}</h2>
 	<Table>
 		{#if typeof content[1] === 'object'}
-			<TableBody title="Debug info">
+			<TableBody title={$T.ui.debugInfo}>
 				{#each ownEntries(content[1]) as kvp}
 					<TableBodyRow>
 						<TableHeadCell>{kvp[0]}</TableHeadCell>

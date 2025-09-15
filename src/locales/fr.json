@@ -1,0 +1,50 @@
+{
+	"ui": {
+		"configuration": "Configuration",
+		"debug": "Débogage",
+		"games": "Jeux",
+		"select": "Sélectionner",
+		"toggleDarkMode": "Basculer le mode sombre",
+		"resetLayout": "Réinitialiser la disposition",
+		"debugInfo": "Informations de débogage",
+		"selection": "Sélection",
+		"none": "Aucun",
+		"wheelZoomLookAt": "Molette = zoom + regarder",
+		"bothButtonsPan": "Boutons gauche+droite enfoncés = panoramique"
+	},
+	"game": {
+		"gameTitle": "Jeu {game}",
+		"unknownObject": "Objet inconnu {uid}",
+		"unknownObjectType": "Type d'objet inconnu"
+	},
+	"tile": {
+		"content": "Contenu",
+		"walkTime": "Temps de marche",
+		"unwalkable": "Impraticable"
+	},
+	"character": {
+		"characterStats": "Statistiques du personnage",
+		"hunger": "Faim",
+		"tiredness": "Épuisement",
+		"fatigue": "Fatigue",
+		"currentActivity": "Activité actuelle",
+		"idle": "Inactif",
+		"activityDescriptions": "Descriptions d'activité",
+		"noActivity": "Aucune activité"
+	},
+	"module": {
+		"module": "Module",
+		"output": "Sortie",
+		"workers": "Ouvriers",
+		"action": "Action",
+		"time": "Temps",
+		"moduleConfiguration": "Configuration du Module",
+		"walkway": "Passage",
+		"conveyor": "Convoyeur",
+		"walkwayTooltip": "Permettre aux personnages de marcher à travers ce module",
+		"conveyorTooltip": "Permettre aux marchandises non liées de passer à travers ce module",
+		"typesStored": "{count} types stockés"
+	},
+	"deposit": "Dépôt",
+	"goods": "Marchandises"
+}

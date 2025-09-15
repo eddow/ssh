@@ -9,6 +9,9 @@
 	import widgets from './widgets'
 	import ResourceImage from '$components/resourceImage.svelte'
 	import Icon from '@iconify/svelte'
+	import { T } from '$lib/i18n'
+	import FlagLanguageSelector from '$components/FlagLanguageSelector.svelte'
+	import DarkMode from '$components/dark-mode.svelte'
 
 	$effect(() => {
 		if (configuration.darkMode) document.documentElement.classList.add('dark')
@@ -48,7 +51,7 @@
 	const layoutJson = location.host.startsWith('localhost') ? localStorage.getItem('layout') : null
 	let dockview = $state<DockView | undefined>(undefined)
 	let api = $state<DockviewApi | undefined>(undefined)
-	onMount(() => {
+	onMount(async () => {
 		if (layoutJson)
 			try {
 				api!.fromJSON(JSON.parse(layoutJson))
@@ -86,13 +89,13 @@
 <div class="screen bg-white dark:bg-gray-900">
 	<Toolbar>
 		<ToolbarGroup>
-			<ToolbarButton onclick={showSystem('configuration')} title="Configuration">
+			<ToolbarButton onclick={showSystem('configuration')} title={$T.ui.configuration}>
 				<Icon icon="mdi:settings" width="24" height="24" />
 			</ToolbarButton>
-			<ToolbarButton onclick={addGame} title="Games">
+			<ToolbarButton onclick={addGame} title={$T.ui.games}>
 				<Icon icon="mdi:plus" width="24" height="24" />
 			</ToolbarButton>
-			<ToolbarButton onclick={showSystem('debug')} title="Debug">
+			<ToolbarButton onclick={showSystem('debug')} title={$T.ui.debug}>
 				<Icon icon="mdi:bug" width="24" height="24" />
 			</ToolbarButton>
 		</ToolbarGroup>
@@ -103,7 +106,7 @@
 					value=""
 					bind:group={interactionMode.selectedAction}
 					checkedClass="!bg-gray-200 !text-gray-900 !border-2 !border-gray-400 dark:!bg-gray-700 dark:!text-gray-100 dark:!border-gray-500"
-					title="Select"
+					title={$T.ui.select}
 					outline
 				>
 					<ResourceImage {game} sprite="select" width={24} height={24} alt="Select" />
@@ -132,6 +135,13 @@
 				{/each}
 			</ButtonGroup>
 		</ToolbarGroup>
+
+		{#snippet end()}
+			<ToolbarGroup>
+				<FlagLanguageSelector />
+				<DarkMode bind:darkMode={configuration.darkMode} />
+			</ToolbarGroup>
+		{/snippet}
 	</Toolbar>
 	<DockView
 		singleTabMode="fullwidth"

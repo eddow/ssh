@@ -1,6 +1,8 @@
 <script lang="ts" module>
+	import { getTranslation } from '$lib/i18n'
+
 	export function title(params: Record<string, any>) {
-		return `Game ${params.game}`
+		return getTranslation('game.gameTitle', { game: params.game })
 	}
 </script>
 

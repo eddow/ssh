@@ -1,0 +1,50 @@
+{
+	"ui": {
+		"configuration": "Configuration",
+		"debug": "Debug",
+		"games": "Games",
+		"select": "Select",
+		"toggleDarkMode": "Toggle dark mode",
+		"resetLayout": "Reset layout",
+		"debugInfo": "Debug Info",
+		"selection": "Selection",
+		"none": "None",
+		"wheelZoomLookAt": "Wheel = zoom + look-at",
+		"bothButtonsPan": "Both left+right down = pan"
+	},
+	"game": {
+		"gameTitle": "Game {game}",
+		"unknownObject": "Unknown object {uid}",
+		"unknownObjectType": "Unknown object type"
+	},
+	"tile": {
+		"content": "Content",
+		"walkTime": "Walk Time",
+		"unwalkable": "Unwalkable"
+	},
+	"character": {
+		"characterStats": "Character Stats",
+		"hunger": "Hunger",
+		"tiredness": "Tiredness",
+		"fatigue": "Fatigue",
+		"currentActivity": "Current Activity",
+		"idle": "Idle",
+		"activityDescriptions": "Activity Descriptions",
+		"noActivity": "No activity"
+	},
+	"module": {
+		"module": "Module",
+		"output": "Output",
+		"workers": "Workers",
+		"action": "Action",
+		"time": "Time",
+		"moduleConfiguration": "Module Configuration",
+		"walkway": "Walkway",
+		"conveyor": "Conveyor",
+		"walkwayTooltip": "Allow characters to walk through this module",
+		"conveyorTooltip": "Allow unrelated goods to pass through this module",
+		"typesStored": "{count} types stored"
+	},
+	"deposit": "Deposit",
+	"goods": "Goods"
+}

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Button } from 'flowbite-svelte'
 	import Icon from '@iconify/svelte'
+	import { T } from '$lib/i18n'
 
 	let {
 		darkMode = $bindable(false),
@@ -10,7 +11,7 @@
 
 <Button
 	class="{className} text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-xl p-2"
-	aria-label="Toggle dark mode"
+	aria-label={$T.ui.toggleDarkMode}
 	type="button"
 	onclick={() => (darkMode = !darkMode)}
 >
