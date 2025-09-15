@@ -1,22 +1,33 @@
-import { axial, cartesian, fromCartesian, type AxialRef } from '$lib/hex'
+import { unreactive } from 'mutts'
+import { type AxialRef, axial, cartesian, fromCartesian, type WorldCoord } from '$lib/hex'
 import { epsilon, tileSize } from '$lib/utils'
 
 function roughly(x: number) {
-	return Math.round(x * epsilon) / epsilon
+	return Math.round(x / epsilon) * epsilon
 }
+
+export type APosition = Position | { position: Position } | AxialRef | WorldCoord
 
 /**
  * Position type that can contain either x,y coordinates or q,r hex coordinates
  * The internal representation is not accessible from scripts - only toString() is available
  */
+@unreactive
 export class Position {
 	private xy?: { readonly x: number; readonly y: number }
 	private qr?: { readonly q: number; readonly r: number }
 
-	constructor(from: { x: number; y: number } | AxialRef) {
+	private constructor(from: WorldCoord | AxialRef) {
 		if (typeof from === 'number') from = axial.keyAccess(from)
 		this.xy = 'x' in from ? from : undefined
 		this.qr = 'q' in from ? from : undefined
+	}
+	static from(from: APosition): Position {
+		if (typeof from === 'object') {
+			if (from instanceof Position) return from
+			if ('position' in from) return from.position
+		}
+		return new Position(from)
 	}
 
 	// Factory method for creating Position from x,y coordinates
@@ -24,7 +35,7 @@ export class Position {
 		return new Position({ x, y })
 	}
 
-	// Factory method for creating Position from q,r coordinates  
+	// Factory method for creating Position from q,r coordinates
 	static fromQR(q: number, r: number): Position {
 		return new Position({ q, r })
 	}
@@ -65,11 +76,21 @@ export class Position {
 	}
 
 	toString(): string {
-		return this.qr !== undefined ?
-			`<${this.qr.q}, ${this.qr.r}, ${-this.qr.q - this.qr.r}>` :
-			`(${this.xy!.x}, ${this.xy!.y})`
+		return this.qr !== undefined
+			? `<${this.qr.q}, ${this.qr.r}, ${-this.qr.q - this.qr.r}>`
+			: `(${this.xy!.x}, ${this.xy!.y})`
 	}
 
+	roughly(): Position {
+		return this.qr ?
+			new Position({ q: roughly(this.q), r: roughly(this.r) }) :
+			new Position({ x: roughly(this.x), y: roughly(this.y) })
+	}
+	roughlyEquals(other: Position): boolean {
+		if (this.xy !== undefined && other.xy !== undefined)
+			return Math.abs(this.x - other.x) + Math.abs(this.y - other.y) < epsilon
+		return this.axial.q === other.axial.q && this.axial.r === other.axial.r
+	}
 	equals(other: Position): boolean {
 		if (this.xy !== undefined && other.xy !== undefined)
 			return this.xy.x === other.xy.x && this.xy.y === other.xy.y
@@ -81,9 +102,7 @@ export class Position {
 	}
 
 	lerpTo(other: Position, t: number): Position {
-		return Position.fromXY(
-			this.world.x + (other.world.x - this.world.x) * t,
-			this.world.y + (other.world.y - this.world.y) * t
-		)
+		const { x, y } = this.world
+		return Position.fromXY(x + (other.world.x - x) * t, y + (other.world.y - y) * t)
 	}
 }

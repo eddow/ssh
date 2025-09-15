@@ -3,10 +3,10 @@ import { ColorMatrixFilter, Container, Graphics, Point, type Sprite, TilingSprit
 import { deposits, terrain as terrainDetails } from '$assets/game-content'
 import {
 	GameObject,
-	withGenerator,
-	withInteractive,
 	withContainer,
+	withGenerator,
 	withHittable,
+	withInteractive,
 } from '$lib/game/object'
 import { mrg } from '$lib/globals.svelte'
 import { tileSize } from '$lib/utils'
@@ -25,8 +25,8 @@ import {
 } from '../hex'
 import { AxialKeyMap } from '../mem'
 import type { Game } from './game'
-import { type Deposit, Module, type TerrainType, type TileContent, UnBuiltLand } from './tile'
 import { Position } from './position'
+import { type Deposit, Module, type TerrainType, type TileContent, UnBuiltLand } from './tile'
 // TODO: check container.cacheAsTexture() for background
 
 @reactive
@@ -37,7 +37,7 @@ export class HexTile extends withInteractive(withGenerator(GameObject)) {
 		public content: TileContent,
 	) {
 		super(hex.game, `hex-tile:${coord.q},${coord.r}`)
-		this.position = new Position(coord)
+		this.position = Position.from(coord)
 	}
 	readonly position: Position
 
@@ -74,6 +74,9 @@ export class HexTile extends withInteractive(withGenerator(GameObject)) {
 		// Create and set the new module
 		const newModule = new ModuleClass()
 		this.content = newModule
+		// TODO: Temporary, move char0
+		const char = this.game.population.getAllCharacters()[0]
+		char.abandonAnd(char.scriptsContext.walk.into(this.position))
 
 		return true
 	}
@@ -165,11 +168,7 @@ export class HexBoard extends withContainer(withHittable(GameObject)) {
 
 	// Container functionality is provided by withContainer mixin
 
-	hitTest(
-		worldX: number,
-		worldY: number,
-		selectedAction?: string,
-	): any {
+	hitTest(worldX: number, worldY: number, selectedAction?: string): any {
 		const coord = axial.round(this.world2axial({ x: worldX, y: worldY }))
 		if (axial.distance(coord, { q: 0, r: 0 }) > this.boardSize) return false
 		const tile = this.getTile(coord)

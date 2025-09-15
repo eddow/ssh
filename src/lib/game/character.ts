@@ -1,26 +1,49 @@
-import { computed, effect, reactive, type ScopedCallback, untracked, watch } from 'mutts'
+import { effect, reactive, type ScopedCallback, watch } from 'mutts'
 import { ColorMatrixFilter, Sprite } from 'pixi.js'
 import { mrg } from '$lib/globals.svelte'
-import { type AxialCoord, axial, type WorldCoord } from '$lib/hex'
+import { type AxialCoord, axial } from '$lib/hex'
 import { AxialSet } from '$lib/mem'
 import { type RandGenerator, uuid } from '$lib/numbers'
 import type { Game } from './game'
+import type { HexTile } from './hexboard'
+import CharacterContext from './npcs/character'
+import type { ASingleStep } from './npcs/steps'
 import {
 	GameObject,
-	withGenerator,
-	withInteractive,
-	withTicked,
 	withContainer,
+	withGenerator,
 	withHittable,
+	withInteractive,
+	withScripted,
+	withTicked,
 } from './object'
+import { type APosition, Position } from './position'
 import { type GoodType, type Module, UnBuiltLand } from './tile'
-import { Position } from './position'
 
 //import * as allScripts from "./npcs/scripts"
 //console.log(allScripts)
 
+type ActionType = 'idle' | 'walk' | 'work'
+
+export function withCharacterStep<
+	Args extends any[],
+	T extends new (
+		...args: any[]
+	) => ASingleStep,
+>(Base: T, actionType: ActionType) {
+	abstract class CharacterStepMixin extends Base {
+		constructor(...args: any[]) {
+			super(...(args as Args))
+		}
+		readonly actionType: ActionType = actionType
+	}
+	return CharacterStepMixin
+}
+
 @reactive
-export class Character extends withInteractive(withTicked(withGenerator(GameObject))) {
+export class Character extends withInteractive(
+	withScripted(withTicked(withGenerator(GameObject))),
+) {
 	readonly triggerLevels = {
 		hunger: {
 			high: 700,
@@ -60,22 +83,24 @@ export class Character extends withInteractive(withTicked(withGenerator(GameObje
 
 	// Character needs levels (starting at 0, incrementing 1 per second)
 	public hunger: number = 0
-	public Tiredness: number = 0
+	public tiredness: number = 0
 	public fatigue: number = 0
 
 	// Character inventory
 	public carriedType?: GoodType
 	public carriedAmount: number = 0
 	public carryingCapacity: number = 10
-
+	public scriptsContext = new CharacterContext(this)
+	public tile: HexTile
 	constructor(
-		public readonly game: Game,
-		public readonly uid: string,
+		game: Game,
+		uid: string,
 		public name: string,
-		coord: AxialCoord,
+		position: APosition,
 	) {
 		super(game, uid)
-		this.position = new Position(coord)
+		this.position = Position.from(position)
+		this.tile = game.hex.getTile(this.position)!
 		watch(
 			() => this.assignedModule,
 			() => {
@@ -122,7 +147,7 @@ export class Character extends withInteractive(withTicked(withGenerator(GameObje
 	// Update character needs levels based on time elapsed
 	update(deltaTime: number) {
 		this.hunger += deltaTime
-		this.Tiredness += deltaTime
+		this.tiredness += deltaTime
 		this.fatigue += deltaTime
 
 		/*if (!this.activityManager.activity)
@@ -140,6 +165,7 @@ export class Character extends withInteractive(withTicked(withGenerator(GameObje
 		if (this.fatigue > this.triggerLevels.fatigue.high && this.assignedModule !== undefined)
 			return goRest(this.activityManager.plan)
 		return this.activityManager.idle(1)*/
+		return undefined
 	}
 
 	render(): ScopedCallback | undefined {

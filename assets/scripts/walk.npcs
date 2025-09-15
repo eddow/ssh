@@ -1,4 +1,22 @@
-// 1- positions are given independently (black box) xy/qr
-// walk (xy, time)
+into = function(target)
+	if target isa tile then
+		targetTile = target
+		targetPosition = target.position
+	else if target isa position then
+		targetTile = tileAt(target)
+		targetPosition = target
+	else
+		error "Expected: tile or position, got " + target
+	end if
+	if tile == targetTile then
+		return moveTo(targetPosition)
+	end if
+	for step in findPath(targetTile)
+		midPoint = lerp(tile.position, step, 1/2)
+		moveTo midPoint
+		tile = tileAt(step)
+	end for
+	moveTo targetPosition
+end function
 
-// 
+return { into: into }

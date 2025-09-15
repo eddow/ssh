@@ -35,7 +35,9 @@ export async function goTo(
 		const center = hex.axial2world(character.position)
 		let tile = hex.getTile(character.position)
 		if (!tile)
-			throw new Error(`No tile at character position ${character.position.q}, ${character.position.r}`)
+			throw new Error(
+				`No tile at character position ${character.position.q}, ${character.position.r}`,
+			)
 
 		const distanceToCenter = Math.sqrt((position.x - center.x) ** 2 + (position.y - center.y) ** 2)
 		if (distanceToCenter > 0.1) await walkTile(center, tile.content.walkTime)

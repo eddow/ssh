@@ -8,7 +8,7 @@
 	const actions = ms([] /*character.activityManager.descriptions*/)
 	const bars = ms(() => ({
 		hunger: character.hunger,
-		Tiredness: character.Tiredness,
+		Tiredness: character.tiredness,
 		fatigue: character.fatigue,
 		triggerLevels: character.triggerLevels
 	}))

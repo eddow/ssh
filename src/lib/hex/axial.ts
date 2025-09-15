@@ -96,15 +96,6 @@ export function pointInHex(point: WorldCoord, coord: AxialRef, size: number): bo
 	return axial.distance(pointAxial, { q, r }) <= 0.5
 }
 
-function lerp(a: number, b: number, t: number): number
-function lerp(a: WorldCoord, b: WorldCoord, t: number): WorldCoord
-function lerp(a: number | WorldCoord, b: number | WorldCoord, t: number): number | WorldCoord {
-	if (typeof a === 'number' && typeof b === 'number') return a + (b - a) * t
-	if (typeof a === 'object' && typeof b === 'object')
-		return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t }
-	throw new Error('Invalid type for lerp')
-}
-
 /**
  * Generate uniformly a valid {s,u,v} position in a tile
  * @returns {s,u,v}
@@ -232,11 +223,6 @@ export const axial = {
 		if (typeof aRef !== 'object') return aRef === 0
 		const { q, r } = axial.coord(aRef)
 		return q === 0 && r === 0
-	},
-
-	lerp(a: AxialCoord, b: AxialCoord, t: number) {
-		// epsilon to avoid straight mid-points (point exactly on the line between 2 hexagons)
-		return { q: lerp(a.q + 1e-6, b.q + 2e-6, t), r: lerp(a.r, b.r, t) }
 	},
 
 	round({ q, r }: AxialCoord) {

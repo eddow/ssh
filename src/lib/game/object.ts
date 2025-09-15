@@ -1,11 +1,12 @@
 // Library used by Pixi
 import EventEmitter from 'eventemitter3'
-import { effect, ReactiveBase, reactive, type ScopedCallback, unreactive, computed } from 'mutts'
+import { computed, effect, ReactiveBase, reactive, type ScopedCallback, unreactive } from 'mutts'
+import type { ExecutionContext } from 'npc-script/src'
 import { Ticker } from 'pixi.js'
 import type { Game } from './game'
+import { ScriptExecution } from './npcs/scripts'
+import { ASingleStep } from './npcs/steps'
 import type { Position } from './position'
-import { ScriptExecution, SingleStepExecutor } from './npcs/scripts'
-import type { ExecutionContext } from 'npc-script'
 
 // All pixi objects extend this `EventEmitter` and should be unreactive
 unreactive(EventEmitter)
@@ -21,7 +22,6 @@ export class GameObject extends ReactiveBase {
 
 	destroy() {}
 }
-
 
 // Mixin functions for composition
 export function withGenerator<T extends new (...args: any[]) => GameObject>(Base: T) {
@@ -117,11 +117,7 @@ export function withHittable<T extends new (...args: any[]) => GameObject>(Base:
 		 * @param selectedAction - Currently selected action (optional)
 		 * @returns true if the point is inside the object
 		 */
-		abstract hitTest(
-			worldX: number,
-			worldY: number,
-			selectedAction?: string,
-		): any
+		abstract hitTest(worldX: number, worldY: number, selectedAction?: string): any
 	}
 	return HittableMixin
 }
@@ -180,23 +176,22 @@ export function withContainer<T extends new (...args: any[]) => GameObject>(Base
 
 export function withScripted<T extends new (...args: any[]) => TickedGameObject>(Base: T) {
 	abstract class ScriptedMixin extends Base {
-		public stepExecutor: SingleStepExecutor | undefined
+		public stepExecutor: ASingleStep | undefined
 		public runningScripts: ScriptExecution[] = []
-
-		abstract readonly scriptContext: ExecutionContext
+		abstract scriptsContext: ExecutionContext
 		abstract findAction(): ScriptExecution | undefined
 
 		@computed
-		get actionDescription() {
+		get actionDescription(): string[] {
 			return this.runningScripts.map((s) => s.script.name).reverse()
 		}
 		nextStep() {
 			while (this.runningScripts.length && !this.stepExecutor) {
-				const { type, value } = this.runningScripts[0].run(this.scriptContext)
+				const { type, value } = this.runningScripts[0].run(this.scriptsContext)
 				if (type === 'return') this.runningScripts.shift()
 				if (value) {
 					if (value instanceof ScriptExecution) this.runningScripts.unshift(value)
-					else if (value instanceof SingleStepExecutor) this.stepExecutor = value
+					else if (value instanceof ASingleStep) this.stepExecutor = value
 					else throw new Error(`Unexpected next action: ${value}`)
 				} else if (!this.runningScripts.length) {
 					const nextAction = this.findAction()
@@ -215,6 +210,11 @@ export function withScripted<T extends new (...args: any[]) => TickedGameObject>
 				}
 			}
 		}
+
+		abandonAnd(exec: ScriptExecution) {
+			this.runningScripts = [exec]
+			this.nextStep()
+		}
 	}
 	return ScriptedMixin
 }
@@ -223,7 +223,10 @@ export function withScripted<T extends new (...args: any[]) => TickedGameObject>
 export type GeneratorObject = InstanceType<ReturnType<typeof withGenerator<typeof GameObject>>>
 export type RenderableContainer = InstanceType<ReturnType<typeof withContainer<typeof GameObject>>>
 export type HittableGameObject = InstanceType<ReturnType<typeof withHittable<typeof GameObject>>>
-export type InteractiveGameObject = InstanceType<ReturnType<typeof withInteractive<typeof GameObject>>>
+export type InteractiveGameObject = InstanceType<
+	ReturnType<typeof withInteractive<typeof GameObject>>
+>
 export type TickedGameObject = InstanceType<ReturnType<typeof withTicked<typeof GameObject>>>
-export type ScriptedObject = InstanceType<ReturnType<typeof withScripted<ReturnType<typeof withTicked<typeof GameObject>>>>>
-
+export type ScriptedObject = InstanceType<
+	ReturnType<typeof withScripted<ReturnType<typeof withTicked<typeof GameObject>>>>
+>

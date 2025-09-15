@@ -74,7 +74,10 @@ export function goEat(plan: Plan<Character>) {
 
 				while (
 					foodType &&
-					!(character.position.q === targetTile.coord.q && character.position.r === targetTile.coord.r)
+					!(
+						character.position.q === targetTile.coord.q &&
+						character.position.r === targetTile.coord.r
+					)
 				) {
 					await goForGoods(plan, targetTile, foodType as GoodType)
 					const currentTile = hex.getTile(character.position)
@@ -147,10 +150,10 @@ export function goSleep(plan: Plan<Character>) {
 		await evolveStep(
 			{
 				get value() {
-					return character.Tiredness
+					return character.tiredness
 				},
 				set value(v) {
-					character.Tiredness = v
+					character.tiredness = v
 				},
 				factor: -50,
 				bound: 0,
