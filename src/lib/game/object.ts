@@ -7,6 +7,7 @@ import type { Game } from './game'
 import { ScriptExecution } from './npcs/scripts'
 import { ASingleStep } from './npcs/steps'
 import type { Position } from './position'
+import type { HexTile } from './hexboard'
 
 // All pixi objects extend this `EventEmitter` and should be unreactive
 unreactive(EventEmitter)
@@ -83,6 +84,7 @@ export function withInteractive<T extends new (...args: any[]) => GameObject>(Ba
 		abstract readonly title: string
 		abstract readonly debugInfo?: Record<string, any>
 		abstract readonly position: Position
+		abstract readonly tile: HexTile
 
 		destroy(): void {
 			this.game.unregister(this as any)
@@ -130,7 +132,7 @@ export function withTicked<T extends new (...args: any[]) => GameObject>(Base: T
 		}
 
 		updateCallback = (timer: Ticker) => {
-			reactive(this).update(timer.elapsedMS / 1000)
+			this.update(timer.elapsedMS / 1000)
 		}
 
 		abstract update(deltaTime: number): void

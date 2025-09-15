@@ -8,14 +8,16 @@ into = function(target)
 	else
 		error "Expected: tile or position, got " + target
 	end if
-	if tile == targetTile then
-		return moveTo(targetPosition)
-	end if
-	for step in findPath(targetTile)
-		midPoint = lerp(tile.position, step, 1/2)
-		moveTo midPoint
-		tile = tileAt(step)
-	end for
+	while tile != targetTile
+		for step in findPath(targetTile)
+			if tile.position != step then
+				midPoint = lerp(tile.position, step, 1/2)
+				moveTo midPoint
+				if not canWalkIn(tile) then break
+				tile = tileAt(step)
+			end if
+		end for
+	end while
 	moveTo targetPosition
 end function
 

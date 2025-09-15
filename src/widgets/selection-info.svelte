@@ -16,6 +16,7 @@
 	import { watch } from 'mutts'
 	import TileProperties from '$components/TileProperties.svelte'
 	import CharacterProperties from '$components/CharacterProperties.svelte'
+	import { toWorldCoord } from '$lib/game/position'
 
 	let { uid }: { uid: string } = $props()
 	let object: InteractiveGameObject | undefined = $state(undefined)
@@ -48,7 +49,7 @@
 	}
 
 	function goTo() {
-		const { x, y } = object!.position
+		const { x, y } = toWorldCoord(object!.position)
 		game.stage.position.set(-x, -y)
 	}
 	function mouseIn() {

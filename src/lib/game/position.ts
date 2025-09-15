@@ -1,108 +1,115 @@
-import { unreactive } from 'mutts'
-import { type AxialRef, axial, cartesian, fromCartesian, type WorldCoord } from '$lib/hex'
+import { type AxialRef, axial, cartesian, fromCartesian, type WorldCoord, type AxialCoord } from '$lib/hex'
 import { epsilon, tileSize } from '$lib/utils'
 
 function roughly(x: number) {
 	return Math.round(x / epsilon) * epsilon
 }
 
-export type APosition = Position | { position: Position } | AxialRef | WorldCoord
+// Position concept - can be any coordinate representation
+export type Position = WorldCoord | AxialRef | { position: Position }
 
-/**
- * Position type that can contain either x,y coordinates or q,r hex coordinates
- * The internal representation is not accessible from scripts - only toString() is available
- */
-@unreactive
-export class Position {
-	private xy?: { readonly x: number; readonly y: number }
-	private qr?: { readonly q: number; readonly r: number }
-
-	private constructor(from: WorldCoord | AxialRef) {
-		if (typeof from === 'number') from = axial.keyAccess(from)
-		this.xy = 'x' in from ? from : undefined
-		this.qr = 'q' in from ? from : undefined
+// Type guards
+export function isPosition(value: any): value is Position {
+	if (typeof value === 'number') return true // AxialKey
+	if (typeof value === 'object' && value !== null) {
+		if ('x' in value && 'y' in value) return true // WorldCoord
+		if ('q' in value && 'r' in value) return true // AxialCoord
+		if ('position' in value) return true // { position: Position }
 	}
-	static from(from: APosition): Position {
-		if (typeof from === 'object') {
-			if (from instanceof Position) return from
-			if ('position' in from) return from.position
+	return false
+}
+
+export function isWorldCoord(value: any): value is WorldCoord {
+	return typeof value === 'object' && value !== null && 'x' in value && 'y' in value
+}
+
+export function isAxialRef(value: any): value is AxialRef {
+	return typeof value === 'number' || 
+		   (typeof value === 'object' && value !== null && 'q' in value && 'r' in value)
+}
+
+// Conversion functions
+export function toWorldCoord(position: Position): WorldCoord {
+	if (isWorldCoord(position)) return position
+	if(typeof position === 'number') 
+		return cartesian(position, tileSize)
+	if (isAxialRef(position)) {
+		Object.assign(position, cartesian(position, tileSize))
+		return position as unknown as WorldCoord
+	}
+	if ('position' in position) {
+		return toWorldCoord(position.position)
+	}
+	throw new Error('Invalid position type')
+}
+
+export function toAxialCoord(position: Position): { q: number; r: number } {
+	if (isAxialRef(position)) {
+		return axial.access(position)
+	}
+	if (isWorldCoord(position)) {
+		Object.assign(position, fromCartesian(position, tileSize))
+		return position as unknown as AxialCoord
+	}
+	if ('position' in position) {
+		return toAxialCoord(position.position)
+	}
+	throw new Error('Invalid position type')
+}
+
+// Position operations
+export function positionToString(position: Position): string {
+	const axial = toAxialCoord(position)
+	return `<${axial.q}, ${axial.r}, ${-axial.q - axial.r}>`
+}
+
+export function positionDistance(a: Position, b: Position): number {
+	return axial.distance(toAxialCoord(a), toAxialCoord(b))
+}
+
+export function positionRoughly(position: Position): Position {
+	if (isWorldCoord(position)) {
+		return { x: roughly(position.x), y: roughly(position.y) }
+	}
+	if (isAxialRef(position)) {
+		const { q, r } = toAxialCoord(position)
+		return { q: roughly(q), r: roughly(r) }
+	}
+	if ('position' in position) {
+		return positionRoughly(position.position)
+	}
+	throw new Error('Invalid position type')
+}
+
+export function positionRoughlyEquals(a: Position, b: Position): boolean {
+	if (isWorldCoord(a) && isWorldCoord(b)) {
+		return Math.abs(a.x - b.x) + Math.abs(a.y - b.y) < epsilon
+	}
+	const aAxial = toAxialCoord(a)
+	const bAxial = toAxialCoord(b)
+	return aAxial.q === bAxial.q && aAxial.r === bAxial.r
+}
+
+export function positionEquals(a: Position, b: Position): boolean {
+	if (isWorldCoord(a) && isWorldCoord(b)) {
+		return a.x === b.x && a.y === b.y
+	}
+	const aAxial = toAxialCoord(a)
+	const bAxial = toAxialCoord(b)
+	return aAxial.q === bAxial.q && aAxial.r === bAxial.r
+}
+
+export function positionLerp(a: Position, b: Position, t: number): Position {
+	if(isWorldCoord(a) && isWorldCoord(b)) {
+		return {
+			x: a.x + (b.x - a.x) * t,
+			y: a.y + (b.y - a.y) * t
 		}
-		return new Position(from)
 	}
-
-	// Factory method for creating Position from x,y coordinates
-	static fromXY(x: number, y: number): Position {
-		return new Position({ x, y })
-	}
-
-	// Factory method for creating Position from q,r coordinates
-	static fromQR(q: number, r: number): Position {
-		return new Position({ q, r })
-	}
-
-	public get world() {
-		if (this.xy === undefined) {
-			const { x, y } = cartesian(this.axial, tileSize)
-			this.xy = { x: roughly(x), y: roughly(y) }
-		}
-		return this.xy
-	}
-
-	public get axial() {
-		if (this.qr === undefined) {
-			const { q, r } = fromCartesian(this.world, tileSize)
-			this.qr = { q: roughly(q), r: roughly(r) }
-		}
-		return this.qr
-	}
-
-	get x(): number {
-		return this.world.x
-	}
-	get y(): number {
-		return this.world.y
-	}
-
-	get q(): number {
-		return this.axial.q
-	}
-
-	get r(): number {
-		return this.axial.r
-	}
-
-	distanceTo(other: Position): number {
-		return axial.distance(this.axial, other.axial)
-	}
-
-	toString(): string {
-		return this.qr !== undefined
-			? `<${this.qr.q}, ${this.qr.r}, ${-this.qr.q - this.qr.r}>`
-			: `(${this.xy!.x}, ${this.xy!.y})`
-	}
-
-	roughly(): Position {
-		return this.qr ?
-			new Position({ q: roughly(this.q), r: roughly(this.r) }) :
-			new Position({ x: roughly(this.x), y: roughly(this.y) })
-	}
-	roughlyEquals(other: Position): boolean {
-		if (this.xy !== undefined && other.xy !== undefined)
-			return Math.abs(this.x - other.x) + Math.abs(this.y - other.y) < epsilon
-		return this.axial.q === other.axial.q && this.axial.r === other.axial.r
-	}
-	equals(other: Position): boolean {
-		if (this.xy !== undefined && other.xy !== undefined)
-			return this.xy.x === other.xy.x && this.xy.y === other.xy.y
-		return this.axial.q === other.axial.q && this.axial.r === other.axial.r
-	}
-
-	notEquals(other: Position): boolean {
-		return !this.equals(other)
-	}
-
-	lerpTo(other: Position, t: number): Position {
-		const { x, y } = this.world
-		return Position.fromXY(x + (other.world.x - x) * t, y + (other.world.y - y) * t)
+	const aAxial = toAxialCoord(a)
+	const bAxial = toAxialCoord(b)
+	return {
+		q: aAxial.q + (bAxial.q - aAxial.q) * t,
+		r: aAxial.r + (bAxial.r - aAxial.r) * t
 	}
 }

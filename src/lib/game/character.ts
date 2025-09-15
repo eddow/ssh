@@ -17,7 +17,7 @@ import {
 	withScripted,
 	withTicked,
 } from './object'
-import { type APosition, Position } from './position'
+import { type Position, toAxialCoord, toWorldCoord } from './position'
 import { type GoodType, type Module, UnBuiltLand } from './tile'
 
 //import * as allScripts from "./npcs/scripts"
@@ -96,11 +96,11 @@ export class Character extends withInteractive(
 		game: Game,
 		uid: string,
 		public name: string,
-		position: APosition,
+		position: Position,
 	) {
 		super(game, uid)
-		this.position = Position.from(position)
-		this.tile = game.hex.getTile(this.position)!
+		this.position = position
+		this.tile = game.hex.getTile(toAxialCoord(this.position))!
 		watch(
 			() => this.assignedModule,
 			() => {
@@ -141,7 +141,7 @@ export class Character extends withInteractive(
 		if (selectedAction && !this.canAct(selectedAction)) {
 			return false
 		}
-		return axial.distance(coord, this.position) <= 0.3
+		return axial.distance(coord, toAxialCoord(this.position)) <= 0.3
 	}
 
 	// Update character needs levels based on time elapsed
@@ -149,7 +149,7 @@ export class Character extends withInteractive(
 		this.hunger += deltaTime
 		this.tiredness += deltaTime
 		this.fatigue += deltaTime
-
+		super.update(deltaTime)
 		/*if (!this.activityManager.activity)
 			this.findAction().catch((error) => {
 				if (!(error instanceof CancelledError)) console.error(error.stack)
@@ -189,7 +189,7 @@ export class Character extends withInteractive(
 			}
 		})
 		effect(() => {
-			const { x, y } = this.position
+			const { x, y } = toWorldCoord(this.position)
 			characterSprite.position.set(x, y)
 		})
 
@@ -294,7 +294,7 @@ export class Population extends withContainer(withHittable(GameObject)) {
 			if (character.assignedModule !== undefined) continue
 
 			// Calculate distance using axial distance
-			const distance = axial.distance(coord, character.position)
+			const distance = axial.distance(coord, toAxialCoord(character.position))
 
 			if (distance < nearestDistance) {
 				nearestDistance = distance

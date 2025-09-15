@@ -25,7 +25,7 @@ import {
 } from '../hex'
 import { AxialKeyMap } from '../mem'
 import type { Game } from './game'
-import { Position } from './position'
+import { type Position, toAxialCoord, toWorldCoord } from './position'
 import { type Deposit, Module, type TerrainType, type TileContent, UnBuiltLand } from './tile'
 // TODO: check container.cacheAsTexture() for background
 
@@ -37,12 +37,14 @@ export class HexTile extends withInteractive(withGenerator(GameObject)) {
 		public content: TileContent,
 	) {
 		super(hex.game, `hex-tile:${coord.q},${coord.r}`)
-		this.position = Position.from(coord)
+		this.position = coord
 	}
 	readonly position: Position
+	get tile(): HexTile { return this }
 
 	get title(): string {
-		return `Tile ${this.position.q}, ${this.position.r}`
+		const axial = toAxialCoord(this.position)
+		return `Tile ${axial.q}, ${axial.r}`
 	}
 
 	get debugInfo(): Record<string, any> {
@@ -84,7 +86,7 @@ export class HexTile extends withInteractive(withGenerator(GameObject)) {
 	render() {
 		const { background } = this.content
 		const { position, game } = this
-		const { x: wpx, y: wpy } = position
+		const { x: wpx, y: wpy } = toWorldCoord(position)
 
 		// Container for this tile
 		const tileContainer = new Container()
@@ -116,7 +118,7 @@ export class HexTile extends withInteractive(withGenerator(GameObject)) {
 			() => this.content,
 			(content) => {
 				const fg = content.render(this)
-				const { x, y } = position
+				const { x, y } = toWorldCoord(position)
 				fg.position.set(x, y)
 				game.objectLayer.addChild(fg as any)
 				return () => {

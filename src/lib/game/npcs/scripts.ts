@@ -12,7 +12,7 @@ import {
 import { epsilon, objectMap } from '$lib/utils'
 import { HexTile } from '../hexboard'
 import type { GameObject } from '../object'
-import { Position } from '../position'
+import { isPosition, type Position, positionDistance, positionLerp, positionRoughly, positionRoughlyEquals, toAxialCoord } from '../position'
 import { unreactive } from 'mutts'
 
 unreactive(MiniScriptExecutor)
@@ -23,22 +23,22 @@ unreactive(NpcScript)
 export const gameOperators: Operators = Object.setPrototypeOf(
 	{
 		'=='(left: any, right: any) {
-			return left instanceof Position && right instanceof Position
-				? left.roughlyEquals(right)
+			return isPosition(left) && isPosition(right)
+				? positionRoughlyEquals(left, right)
 				: typeof left === 'number' && typeof right === 'number'
 					? Math.abs(left - right) < epsilon
 					: left === right
 		},
 		'!='(left: any, right: any) {
-			return left instanceof Position && right instanceof Position
-				? !left.roughlyEquals(right)
+			return isPosition(left) && isPosition(right)
+				? !positionRoughlyEquals(left, right)
 				: typeof left === 'number' && typeof right === 'number'
 					? Math.abs(left - right) >= epsilon
 					: left !== right
 		},
 		'-'(left: any, right: any) {
-			if (left instanceof Position && right instanceof Position) {
-				return left.distanceTo(right)
+			if (isPosition(left) && isPosition(right)) {
+				return positionDistance(left, right)
 			}
 			return jsOperators['-'](left, right)
 		},
@@ -51,7 +51,7 @@ export const gameOperators: Operators = Object.setPrototypeOf(
  */
 export const gameIsaTypes: IsaTypes = Object.setPrototypeOf(
 	{
-		position: (value: any) => value instanceof Position,
+		position: (value: any) => isPosition(value),
 		tile: (value: any) => value instanceof HexTile,
 	},
 	jsIsaTypes,
@@ -92,8 +92,9 @@ class GlobalUtils implements ExecutionContext {
 		if (typeof a === 'number') {
 			return Math.round(a) as T
 		}
-		if (a instanceof Position) {
-			return Position.fromQR(Math.round(a.q), Math.round(a.r)) as T
+		if (isPosition(a)) {
+			const axial = toAxialCoord(a)
+			return { q: Math.round(axial.q), r: Math.round(axial.r) } as T
 		}
 		throw new Error(`Invalid round type: ${typeof a}`)
 	}
@@ -101,11 +102,8 @@ class GlobalUtils implements ExecutionContext {
 		if (typeof a === 'number') {
 			return (Math.round(a / usedEpsilon) * usedEpsilon) as T
 		}
-		if (a instanceof Position) {
-			return Position.fromQR(
-				Math.round(a.q / usedEpsilon) * usedEpsilon,
-				Math.round(a.r / usedEpsilon) * usedEpsilon,
-			) as T
+		if (isPosition(a)) {
+			return positionRoughly(a) as T
 		}
 		throw new Error(`Invalid roughly type: ${typeof a}`)
 	}
@@ -118,7 +116,7 @@ export class GameUtils extends GlobalUtils {
 		this.#subject = gameObject
 	}
 	tileAt(position: Position) {
-		return this.#subject.game.hex.getTile(position)
+		return this.#subject.game.hex.getTile(toAxialCoord(position))
 	}
 }
 class GameScript extends NpcScript {
@@ -195,8 +193,8 @@ export function lerp<T extends number | Position>(a: T, b: T, t: number): T {
 	if (typeof a === 'number' && typeof b === 'number') {
 		return (a + (b - a) * t) as T
 	}
-	if (a instanceof Position && b instanceof Position) {
-		return a.lerpTo(b, t) as T
+	if (isPosition(a) && isPosition(b)) {
+		return positionLerp(a, b, t) as T
 	}
 	throw new Error(`Invalid lerp types: ${typeof a} and ${typeof b}`)
 }
