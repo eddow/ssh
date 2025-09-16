@@ -1,12 +1,3 @@
-<script lang="ts" module>
-	import { getTranslation } from '$lib/i18n'
-	const game = games.game('GameX')
-	export function title({ uid }: Record<string, any>) {
-		const obj = game.getObject(uid)
-		return obj?.title ?? getTranslation('game.unknownObject', { uid })
-	}
-</script>
-
 <script lang="ts">
 	import { games, interactionMode } from '$lib/globals.svelte'
 	import { Button } from 'flowbite-svelte'
@@ -18,12 +9,26 @@
 	import TileProperties from '$components/TileProperties.svelte'
 	import CharacterProperties from '$components/CharacterProperties.svelte'
 	import { toWorldCoord } from '$lib/game/position'
+	import type { Writable } from 'svelte/store'
 	import { T } from '$lib/i18n'
+	import { TabContent } from 'dockview-svelte/src'
+	import type { DockviewPanelApi } from 'dockview-core'
 
-	let { uid }: { uid: string } = $props()
+	let {
+		uid,
+		title,
+		tabContent,
+		panelApi
+	}: {
+		uid: string
+		title: Writable<string>
+		tabContent: Writable<HTMLElement | null>
+		panelApi: DockviewPanelApi
+	} = $props()
 	let object: InteractiveGameObject | undefined = $state(undefined)
 	let logLastLine = $state(true) // Flag to track if we should auto-scroll to last line
 	let logsContainer: HTMLDivElement | undefined = $state(undefined)
+	const game = games.game('GameX')
 
 	// Auto-scroll to bottom when new logs are added and logLastLine is true
 	mns(() => {
@@ -41,6 +46,9 @@
 				}
 			})
 	})
+	$effect(() => {
+		title.set(object?.title ?? $T.game.unknownObject({ uid }))
+	})
 
 	function handleLogScroll() {
 		if (!logsContainer) return
@@ -52,7 +60,7 @@
 
 	function goTo() {
 		const { x, y } = toWorldCoord(object!.position)
-		game.stage.position.set(-x, -y)
+		game.gameView?.stage.position.set(-x, -y)
 	}
 	function mouseIn() {
 		mrg.hoveredObject = object
@@ -68,18 +76,17 @@
 	}
 </script>
 
-<div class="selection-info" role="presentation" onmouseenter={mouseIn} onmouseleave={mouseOut}>
-	<div class="header">
-		<Button onclick={goTo} size="sm">
-			<Icon icon="mdi:eye" width="16" height="16" />
-		</Button>
+<TabContent {panelApi} bind:el={$tabContent}>
+	{#snippet right()}
+		<Icon onclick={goTo} icon="mdi:eye" width="16" height="16" />
 		{#if interactionMode.selectedAction && object?.canInteract?.(interactionMode.selectedAction)}
 			<Button onclick={act} size="sm">
 				<Icon icon="mdi:play" width="16" height="16" />
 			</Button>
 		{/if}
-	</div>
-
+	{/snippet}
+</TabContent>
+<div class="selection-info" role="presentation" onmouseenter={mouseIn} onmouseleave={mouseOut}>
 	<div class="content">
 		{#if object instanceof Character}
 			<CharacterProperties character={object} />

@@ -28,4 +28,4 @@ into = function(target)
 	walk.moveTo target
 end function
 
-return { into: into }
+return { into }

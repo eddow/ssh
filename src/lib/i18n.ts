@@ -1,17 +1,17 @@
 import {
 	I18nClient,
 	type Locale,
-	type Translator,
 	type LocaleFlagsEngine,
-	type TextKey
+	type TextKey,
+	type Translator,
 } from 'omni18n/ts/s-a'
 import { writable } from 'svelte/store'
 
 // PoI: Manage your locales here
 export const locales = ['en', 'fr'] as const
 
-export interface TextInfos {}
-export interface KeyInfos {}
+export type TextInfos = {}
+export type KeyInfos = {}
 
 // Import translation dictionaries
 import enTranslations from '../locales/en.json'
@@ -19,7 +19,7 @@ import frTranslations from '../locales/fr.json'
 
 const translations = {
 	en: enTranslations,
-	fr: frTranslations
+	fr: frTranslations,
 }
 
 class ClientSideClient extends I18nClient {
@@ -47,7 +47,7 @@ async function condense() {
 		console.warn(`No translations found for locale: ${queryLocale}`)
 		return [translations.en]
 	}
-	
+
 	return [translationData]
 }
 
@@ -56,20 +56,6 @@ export async function initTranslator() {
 }
 
 export const localeFlags = writable<LocaleFlagsEngine>()
-
-// Helper function for module scripts
-export function getTranslation(key: string, params?: Record<string, string>): string {
-	// This is a fallback for module scripts - in practice, the T store should be used
-	const keys = key.split('.')
-	// For now, return the key as fallback - this should be improved with a proper lookup
-	if (params) {
-		return Object.entries(params).reduce(
-			(str, [paramKey, paramValue]) => str.replace(`{${paramKey}}`, paramValue),
-			key
-		)
-	}
-	return key
-}
 
 export function setLocale(newLocale: Locale) {
 	locale.set(newLocale)

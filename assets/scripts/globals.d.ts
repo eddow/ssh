@@ -13,4 +13,7 @@ export type CharacterScripts = {
 	inventory: {
 		dropAll(): ScriptExecution<Character>
 	}
+	selfCare: {
+		goEat(): ScriptExecution<Character>
+	}
 }

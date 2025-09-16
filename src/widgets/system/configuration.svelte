@@ -1,11 +1,3 @@
-<script lang="ts" module>
-	import { getTranslation } from '$lib/i18n'
-
-	export function title(params: Record<string, any>) {
-		return getTranslation('ui.configuration')
-	}
-</script>
-
 <script lang="ts">
 	//https://uxwing.com/?s=Mouse+left+
 	//https://boxy-svg.com/
@@ -15,6 +7,10 @@
 	import { configuration } from '$lib/globals.svelte'
 	import { T } from '$lib/i18n'
 
+	let { title }: { title: Writable<string> } = $props()
+	$effect(() => {
+		title.set($T.ui.configuration)
+	})
 	let darkMode = $state(configuration.darkMode)
 
 	$effect(() => {

@@ -12,6 +12,7 @@ import {
 	NpcScript,
 	type Operators,
 } from 'npc-script/src'
+import * as gameContent from '$assets/game-content'
 import { epsilon, objectMap } from '$lib/utils'
 import { HexTile } from '../hexboard'
 import type { GameObject, InteractiveGameObject } from '../object'
@@ -56,10 +57,10 @@ export const gameOperators: Operators = Object.setPrototypeOf(
 	jsOperators,
 )
 
-function extendContext<
-	Parent extends ExecutionContext,
-	Child extends ExecutionContext,
->(parent: Parent, child: Child): Parent & Child {
+function extendContext<Parent extends ExecutionContext, Child extends ExecutionContext>(
+	parent: Parent,
+	child: Child,
+): Parent & Child {
 	return Object.setPrototypeOf(child, parent) as Parent & Child
 }
 
@@ -133,12 +134,9 @@ export class GlobalContext {
 }
 
 export const subject = Symbol('subject')
-export function protoCtx<
-	Class extends abstract new () => object,
-	Ext extends object
->(
+export function protoCtx<Class extends abstract new () => object, Ext extends object>(
 	concept: Class,
-	ext?: Ext
+	ext?: Ext,
 ): InstanceType<Class> & Ext {
 	const cp = concept.prototype
 	delete cp.constructor
@@ -152,7 +150,9 @@ export class GameContext<Subject extends GameObject> extends GlobalContext {
 }
 export const gameContext = protoCtx(GameContext)
 
-export class InteractiveContext<Subject extends InteractiveGameObject> extends GameContext<Subject> {
+export class InteractiveContext<
+	Subject extends InteractiveGameObject,
+> extends GameContext<Subject> {
 	get tile() {
 		return this[subject].tile
 	}

@@ -44,6 +44,7 @@ export class Game extends Eventful<GameEvents> {
 	public lcg(seed: string | number) {
 		return LCG('gameSeed', seed)
 	}
+	public gameView?: GameView
 	public stage: Container
 	public backgroundLayer: Container
 	public objectLayer: Container
@@ -139,6 +140,7 @@ export class GameView {
 		public game: Game,
 		into: HTMLElement,
 	) {
+		this.game.gameView ??= this
 		this.container = into
 		this.initializePixi()
 	}

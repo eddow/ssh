@@ -1,3 +1,4 @@
+import * as gameContent from '$assets/game-content'
 import { goods as goodsCatalog } from '$assets/game-content'
 import type { CharacterScripts } from '$assets/scripts/globals'
 import { type AxialRef, axial } from '$lib/hex'
@@ -8,7 +9,7 @@ import type { Position } from '../position'
 import { positionRoughlyEquals, toAxialCoord } from '../position'
 import type { GoodType } from '../tile'
 import { InteractiveContext, loadNpcScripts, protoCtx, subject } from './scripts'
-import { DropStep, GrabStep, MoveToStep } from './steps'
+import { DropStep, EatStep, GrabStep, MoveToStep } from './steps'
 
 const maxWalkTime = 24
 
@@ -101,6 +102,13 @@ class WalkFunctions {
 	}
 }
 
+class SelfCareFunctions {
+	declare [subject]: Character
+	eat() {
+		return new EatStep(this[subject])
+	}
+}
+
 class CharacterContext extends InteractiveContext<Character> {
 	get tile() {
 		return this[subject].tile
@@ -116,12 +124,23 @@ class CharacterContext extends InteractiveContext<Character> {
 	get carriedAmount() {
 		return this[subject].carriedAmount
 	}
+	get hunger() {
+		return this[subject].hunger
+	}
+	get satisfiedHunger() {
+		return this[subject].triggerLevels.hunger.satisfied
+	}
+	get triggerLevels() {
+		return this[subject].triggerLevels
+	}
 }
 
 const characterContext = protoCtx(CharacterContext, {
 	find: protoCtx(FindFunctions),
 	inventory: protoCtx(InventoryFunctions),
 	walk: protoCtx(WalkFunctions),
+	selfCare: protoCtx(SelfCareFunctions),
+	...gameContent,
 })
 
 const modules = import.meta.glob('$assets/scripts/**/*.npcs', {
@@ -135,5 +154,5 @@ loadNpcScripts(
 export default function aCharacterContext(character: Character) {
 	return Object.create(characterContext, {
 		[subject]: { value: character },
-	}) as (CharacterScripts & typeof characterContext)
+	}) as CharacterScripts & typeof characterContext
 }

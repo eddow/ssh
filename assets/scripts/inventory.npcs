@@ -9,6 +9,6 @@ dropAll = function()
 	end while
 end function
 
-return { dropAll: dropAll }
+return { dropAll }
 
 

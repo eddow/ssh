@@ -7,8 +7,8 @@ import { initTranslator } from './lib/i18n'
 // Wait for translations to load before mounting the app
 async function initApp() {
 	await initTranslator()
-	
-	const app = mount(App, {
+
+	mount(App, {
 		target: document.getElementById('app')!,
 	})
 }

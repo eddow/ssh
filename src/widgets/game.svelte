@@ -1,24 +1,25 @@
-<script lang="ts" module>
-	import { getTranslation } from '$lib/i18n'
-
-	export function title(params: Record<string, any>) {
-		return getTranslation('game.gameTitle', { game: params.game })
-	}
-</script>
-
 <script lang="ts">
-	import type { Writable } from 'svelte/store'
+	import type { Readable, Writable } from 'svelte/store'
 	import { onMount, onDestroy } from 'svelte'
 	import { debugInfo, games, interactionMode } from '$lib/globals.svelte'
 	import { type InteractiveGameObject, GameView } from '$lib/game'
 	import { getDockviewContext } from 'dockview-svelte/src'
 	import { HexTile } from '$lib/game/hexboard'
-
+	import { T } from '$lib/i18n'
 	const dvContext = getDockviewContext()
 	let {
 		size,
-		game: gameName
-	}: { size: Writable<{ width: number; height: number }>; game: string } = $props()
+		game: gameName,
+		title
+	}: {
+		size: Readable<{ width: number; height: number }>
+		game: string
+		title: Writable<string>
+	} = $props()
+
+	$effect(() => {
+		title.set($T.game.gameTitle({ game: gameName }))
+	})
 
 	const game = games.game(gameName)
 	let gameView = $state<GameView | undefined>(undefined)

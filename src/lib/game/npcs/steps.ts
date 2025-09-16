@@ -1,3 +1,4 @@
+import { goods as goodsCatalog } from '$assets/game-content'
 import type { Character } from '../character'
 import type { Position } from '../position'
 import type { GoodType } from '../tile'
@@ -150,6 +151,28 @@ export class DropStep extends AEvolutionStep {
 		if (this.character.carriedAmount <= 0) {
 			this.character.carriedType = undefined
 		}
+	}
+}
+const eatingDuration = 2
+export class EatStep extends AEvolutionStep {
+	get type() {
+		return 'eat' as const
+	}
+	private readonly feedingValue: number
+	constructor(readonly character: Character) {
+		super(eatingDuration)
+		this.feedingValue = goodsCatalog[character.carriedType!]?.feedingValue ?? 0
+		if (this.feedingValue) {
+			--this.character.carriedAmount
+
+			if (this.character.carriedAmount <= 0) this.character.carriedType = undefined
+		}
+	}
+	evolve(evolution: number): void {
+		this.character.hunger = Math.max(
+			0,
+			this.character.hunger - (this.feedingValue * evolution) / this.duration,
+		)
 	}
 }
 
