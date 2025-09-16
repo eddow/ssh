@@ -6,7 +6,8 @@ import { AxialSet } from '$lib/mem'
 import { type RandGenerator, uuid } from '$lib/numbers'
 import type { Game } from './game'
 import type { HexTile } from './hexboard'
-import CharacterContext from './npcs/character'
+import aCharacterContext from './npcs/character'
+import { subject } from './npcs/scripts'
 import type { ActivityType, ASingleStep } from './npcs/steps'
 import {
 	GameObject,
@@ -91,7 +92,7 @@ export class Character extends withInteractive(
 	public carriedType?: GoodType
 	public carriedAmount: number = 0
 	public carryingCapacity: number = 10
-	public scriptsContext = new CharacterContext(this)
+	public scriptsContext = aCharacterContext(this)
 	public tile: HexTile
 	constructor(
 		game: Game,

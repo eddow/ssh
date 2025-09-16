@@ -56,6 +56,13 @@ export const gameOperators: Operators = Object.setPrototypeOf(
 	jsOperators,
 )
 
+function extendContext<
+	Parent extends ExecutionContext,
+	Child extends ExecutionContext,
+>(parent: Parent, child: Child): Parent & Child {
+	return Object.setPrototypeOf(child, parent) as Parent & Child
+}
+
 /**
  * Custom isa types that extend JavaScript isa types with position support
  */
@@ -68,8 +75,11 @@ export const gameIsaTypes: IsaTypes = Object.setPrototypeOf(
 )
 //!TODO: Heavy argument validation
 // Math utilities
+
+type XOrDictX<X> = X | { [k: string]: XOrDictX<X> }
+
 @unreactive
-class GlobalContext implements ExecutionContext {
+export class GlobalContext {
 	debugger(value: any) {
 		console.dir(value, { depth: null })
 		debugger
@@ -78,20 +88,20 @@ class GlobalContext implements ExecutionContext {
 		throw new Error(message)
 	}
 	// Basic math functions
-	min(...args: any[]) {
+	min(...args: number[]) {
 		return Math.min(...args)
 	}
-	max(...args: any[]) {
+	max(...args: number[]) {
 		return Math.max(...args)
 	}
-	abs(args: any) {
-		return Math.abs(args)
+	abs(arg: number) {
+		return Math.abs(arg)
 	}
-	floor(args: any) {
-		return Math.floor(args)
+	floor(arg: number) {
+		return Math.floor(arg)
 	}
-	ceil(args: any) {
-		return Math.ceil(args)
+	ceil(arg: number) {
+		return Math.ceil(arg)
 	}
 	clamp(value: number, min: number, max: number) {
 		return Math.max(min, Math.min(max, value))
@@ -122,28 +132,32 @@ class GlobalContext implements ExecutionContext {
 	}
 }
 
-export class GameContext extends GlobalContext {
-	readonly #gameObject: GameObject
-	constructor(gameObject: GameObject) {
-		super()
-		this.#gameObject = gameObject
-	}
+export const subject = Symbol('subject')
+export function protoCtx<
+	Class extends abstract new () => object,
+	Ext extends object
+>(
+	concept: Class,
+	ext?: Ext
+): InstanceType<Class> & Ext {
+	const cp = concept.prototype
+	delete cp.constructor
+	return ext ? Object.setPrototypeOf(ext, cp) : cp
+}
+export class GameContext<Subject extends GameObject> extends GlobalContext {
+	declare [subject]: Subject
 	tileAt(position: Position) {
-		return this.#gameObject.game.hex.getTile(toAxialCoord(position))
+		return this[subject].game.hex.getTile(toAxialCoord(position))
 	}
 }
+export const gameContext = protoCtx(GameContext)
 
-export class InteractiveContext extends GameContext {
-	#interactive: InteractiveGameObject
-	constructor(interactive: InteractiveGameObject) {
-		super(interactive)
-		this.#interactive = interactive
-	}
+export class InteractiveContext<Subject extends InteractiveGameObject> extends GameContext<Subject> {
 	get tile() {
-		return this.#interactive.tile
+		return this[subject].tile
 	}
 	log(...args: any[]) {
-		this.#interactive.log(...args)
+		this[subject].log(...args)
 	}
 }
 
@@ -156,8 +170,6 @@ class GameScript extends NpcScript {
 		super(source, gameOperators, gameIsaTypes)
 	}
 }
-
-type XOrDictX<X> = X | { [k: string]: XOrDictX<X> }
 
 function isXOrDictX<X>(x: XOrDictX<X>, Class: new (...args: any[]) => X): x is XOrDictX<X> {
 	return (
