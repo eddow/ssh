@@ -1,0 +1,25 @@
+export const prefix = "/assets/"
+// Note: resources are grouped/tree in files but not in the record
+export const resources: Record<string, string> = {
+	rocks: "objects/rocks.json",
+	trees: "objects/trees.json",
+	bushes: "objects/bushes.json",
+	"terrain-rocky": "terrain/stone.jpg",
+	"terrain-grass": "terrain/grass.jpg",
+	"terrain-forest": "terrain/forest.jpg",
+	"terrain-water": "terrain/water.jpg",
+	"terrain-sand": "terrain/sand.jpg",
+	"terrain-snow": "terrain/snow.jpg",
+	concrete: "terrain/concrete.jpg",
+	cabin: "buildings/cabin.png",
+	chopper: "buildings/chopper.png",
+	cutter: "buildings/cutter.png",
+	sawmill: "buildings/sawmill.png",
+	berries: "goods/berries.png",
+	mushrooms: "goods/mushrooms.png",
+	planks: "goods/planks.png",
+	wood: "goods/wood.png",
+	stone: "goods/stone.png",
+	select: "commands/click.png",
+	character: "character.png",
+}

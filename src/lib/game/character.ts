@@ -67,7 +67,7 @@ export class Character extends withInteractive(
 		hunger: {
 			high: 700,
 			critical: 1000,
-			satisfied: 100,
+			satisfied: 300,
 		},
 		Tiredness: {
 			high: 2100,
@@ -159,14 +159,9 @@ export class Character extends withInteractive(
 	}
 
 	findAction() {
-		/* TODO: Script
-		if (this.hunger > this.triggerLevels.hunger.high) return goEat(this.activityManager.plan)
-		if (this.Tiredness > this.triggerLevels.Tiredness.high)
-			return goSleep(this.activityManager.plan)
-		if (this.fatigue > this.triggerLevels.fatigue.high && this.assignedModule !== undefined)
-			return goRest(this.activityManager.plan)
-		return this.activityManager.idle(1)*/
-		return undefined
+		if(this.hunger > this.triggerLevels.hunger.high) return this.scriptsContext.selfCare.goEat()
+		// Default to wandering when no specific action is needed
+		return this.scriptsContext.selfCare.wander()
 	}
 
 	render(): ScopedCallback | undefined {

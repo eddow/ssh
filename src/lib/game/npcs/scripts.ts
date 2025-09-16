@@ -12,7 +12,7 @@ import {
 	NpcScript,
 	type Operators,
 } from 'npc-script/src'
-import * as gameContent from '$assets/game-content'
+import { terrain, deposits, modules, goods } from '$assets/game-content'
 import { epsilon, objectMap } from '$lib/utils'
 import { HexTile } from '../hexboard'
 import type { GameObject, InteractiveGameObject } from '../object'
@@ -56,13 +56,6 @@ export const gameOperators: Operators = Object.setPrototypeOf(
 	},
 	jsOperators,
 )
-
-function extendContext<Parent extends ExecutionContext, Child extends ExecutionContext>(
-	parent: Parent,
-	child: Child,
-): Parent & Child {
-	return Object.setPrototypeOf(child, parent) as Parent & Child
-}
 
 /**
  * Custom isa types that extend JavaScript isa types with position support
@@ -148,7 +141,8 @@ export class GameContext<Subject extends GameObject> extends GlobalContext {
 		return this[subject].game.hex.getTile(toAxialCoord(position))
 	}
 }
-export const gameContext = protoCtx(GameContext)
+
+Object.assign(GameContext.prototype, { terrain, deposits, modules, goods })
 
 export class InteractiveContext<
 	Subject extends InteractiveGameObject,
@@ -182,6 +176,7 @@ function isXOrDictX<X>(x: XOrDictX<X>, Class: new (...args: any[]) => X): x is X
 export class ScriptExecution {
 	constructor(
 		public readonly script: GameScript,
+		public readonly name: string,
 		public state?: ExecutionState,
 	) {}
 	run(context: ExecutionContext) {
@@ -224,14 +219,14 @@ export function loadNpcScripts(modules: Record<string, string>, context: Executi
 	)
 
 	type XoDe = XOrDictX<(...args: any[]) => ScriptExecution>
-	function exposeScripts(script: GameScript, entryPoint: XOrDictX<FunctionDefinition>): XoDe {
+	function exposeScripts(script: GameScript, entryPoint: XOrDictX<FunctionDefinition>, name: string): XoDe {
 		return entryPoint instanceof FunctionDefinition
-			? (...args: any[]) => new ScriptExecution(script, entryPoint.call(args))
-			: (objectMap(entryPoint, (value) => exposeScripts(script, value)) as XoDe)
+			? (...args: any[]) => new ScriptExecution(script, name, entryPoint.call(args))
+			: (objectMap(entryPoint, (value, key) => exposeScripts(script, value, `${name}.${key}`)) as XoDe)
 	}
 
 	for (const [name, { gameScript, value }] of Object.entries(npcScripts)) {
-		const exposed = exposeScripts(gameScript, value)
+		const exposed = exposeScripts(gameScript, value, name)
 		const existing = (context as any)[name]
 		if (name in context && typeof context[name] === 'object') {
 			Object.assign(existing, exposed)

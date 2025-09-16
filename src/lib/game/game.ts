@@ -1,6 +1,7 @@
 import { Eventful, reactive, unreactive, zip } from 'mutts'
 import { Application, Assets, Container, Point, Spritesheet, Texture } from 'pixi.js'
 import * as gameContent from '$assets/game-content'
+import { resources, prefix } from '$assets/resources'
 import { interactionMode, mrg } from '$lib/globals.svelte'
 import { registerPixiApp, unregisterPixiApp } from '$lib/hmr-pixi'
 import { LCG } from '$lib/numbers'
@@ -10,13 +11,13 @@ import type { HittableGameObject, InteractiveGameObject } from './object'
 
 unreactive(gameContent)
 
-const assetsToLoad = Object.entries(gameContent.resources)
+const assetsToLoad = Object.entries(resources)
 export const assetUrls = Object.fromEntries(
-	assetsToLoad.map(([key, resource]) => [key, `${gameContent.prefix}${resource}`]),
+	assetsToLoad.map(([key, resource]) => [key, `${prefix}${resource}`]),
 )
 const assetsLoading = Promise.all(
 	assetsToLoad.map(async ([_, resource]) => {
-		const texture = await Assets.load(`${gameContent.prefix}${resource}`)
+		const texture = await Assets.load(`${prefix}${resource}`)
 		if ('defaultAnchor' in texture) texture.defaultAnchor = { x: 0.5, y: 0.5 }
 		return texture
 	}),

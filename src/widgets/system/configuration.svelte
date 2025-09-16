@@ -6,6 +6,7 @@
 	import DarkMode from '$components/dark-mode.svelte'
 	import { configuration } from '$lib/globals.svelte'
 	import { T } from '$lib/i18n'
+	import type { Writable } from 'svelte/store'
 
 	let { title }: { title: Writable<string> } = $props()
 	$effect(() => {

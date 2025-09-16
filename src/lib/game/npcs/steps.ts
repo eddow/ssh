@@ -9,7 +9,6 @@ export type ActivityType =
 	| 'idle'
 	| 'walk'
 	| 'work'
-	| 'fun'
 	| 'eat'
 	| 'sleep'
 	| 'rest'
@@ -26,15 +25,15 @@ export abstract class AEvolutionStep extends ASingleStep {
 		super()
 	}
 	evolution = 0
-	abstract evolve(evolution: number): void
+	evolve(evolution: number, dt: number): void {}
 	finish(): void {}
 	tick(dt: number): number | undefined {
 		this.evolution += dt / this.duration
 		if (this.evolution >= 1) {
-			this.evolve(1)
+			this.evolve(1, this.evolution-1)
 			this.finish()
 			return (this.evolution - 1) * this.duration
-		} else this.evolve(this.evolution)
+		} else this.evolve(this.evolution, dt/this.duration)
 	}
 }
 
@@ -78,49 +77,36 @@ export class GrabStep extends AEvolutionStep {
 		return 'grab' as const
 	}
 	constructor(
-		readonly character: Character,
-		readonly goodType: GoodType,
-		readonly maxAmount: number,
+		character: Character,
+		goodType: GoodType,
+		maxAmount: number,
 	) {
-		super(maxAmount * transferDuration)
-	}
-
-	evolve(evolution: number): void {
-		// Grab logic is handled in finish() to ensure it happens once
-	}
-
-	finish(): void {
-		const tile = this.character.tile
+		const tile = character.tile
 
 		// Check if we need to drop current goods first
 		if (
-			this.character.carriedType &&
-			this.character.carriedType !== this.goodType &&
-			this.character.carriedAmount > 0
+			character.carriedType &&
+			character.carriedType !== goodType &&
+			character.carriedAmount > 0
 		) {
 			// Drop all current goods
-			while (this.character.carriedAmount > 0) {
-				const dropped = tile.content.addGood(
-					this.character.carriedType,
-					this.character.carriedAmount,
-				)
-				this.character.carriedAmount -= dropped
-				if (this.character.carriedAmount <= 0) {
-					this.character.carriedType = undefined
-					break
-				}
-			}
+			const dropped = tile.content.addGood(
+				character.carriedType,
+				character.carriedAmount,
+			)
+			character.carriedAmount -= dropped
+			if (character.carriedAmount <= 0) character.carriedType = undefined
 		}
 
-		const canGrab = this.character.carryingCapacity - (this.character.carriedAmount || 0)
-		const amount = Math.min(canGrab, this.maxAmount)
-		if (amount <= 0) return
+		const canGrab = character.carryingCapacity - (character.carriedAmount || 0)
+		const amount = Math.min(canGrab, maxAmount)
 
-		const taken = tile.content.removeGood(this.goodType, amount)
-		if (taken <= 0) return
-
-		this.character.carriedType = this.goodType
-		this.character.carriedAmount = (this.character.carriedAmount || 0) + taken
+		const taken = amount <= 0 ? 0 : tile.content.removeGood(goodType, amount)
+		if (taken > 0) {
+			character.carriedType = goodType
+			character.carriedAmount = (character.carriedAmount || 0) + taken
+		}
+		super(taken * transferDuration)
 	}
 }
 
@@ -129,29 +115,21 @@ export class DropStep extends AEvolutionStep {
 		return 'drop' as const
 	}
 	constructor(
-		readonly character: Character,
-		readonly goodType: GoodType,
-		readonly maxAmount: number,
+		character: Character,
+		goodType: GoodType,
+		maxAmount: number,
 	) {
-		super(maxAmount * transferDuration)
+
+		const tile = character.tile
+
+		const amount = Math.min(character.carriedAmount, maxAmount)
+		const dropped = tile.content.addGood(goodType, amount)
+		character.carriedAmount -= dropped
+		if (character.carriedAmount <= 0) character.carriedType = undefined
+		super(amount * transferDuration)
 	}
 
-	evolve(evolution: number): void {
-		// Drop logic is handled in finish() to ensure it happens once
-	}
-
-	finish(): void {
-		const tile = this.character.tile
-
-		if (this.character.carriedType !== this.goodType) return
-
-		const amount = Math.min(this.character.carriedAmount, this.maxAmount)
-		const dropped = tile.content.addGood(this.goodType, amount)
-		this.character.carriedAmount -= dropped
-		if (this.character.carriedAmount <= 0) {
-			this.character.carriedType = undefined
-		}
-	}
+	finish(): void {}
 }
 const eatingDuration = 2
 export class EatStep extends AEvolutionStep {
@@ -168,12 +146,30 @@ export class EatStep extends AEvolutionStep {
 			if (this.character.carriedAmount <= 0) this.character.carriedType = undefined
 		}
 	}
-	evolve(evolution: number): void {
+	evolve(_: number, dt: number): void {
 		this.character.hunger = Math.max(
 			0,
-			this.character.hunger - (this.feedingValue * evolution) / this.duration,
+			this.character.hunger - this.feedingValue * dt,
 		)
 	}
 }
 
+//#endregion
+
+//#region PonderingStep
+const ponderingFatigueRecovery = 1
+export class PonderingStep extends AEvolutionStep {
+	get type() {
+		return 'rest' as const
+	}
+	evolve(_: number, dt: number): void {
+		this.character.fatigue = Math.max(
+			0,
+			this.character.fatigue - ponderingFatigueRecovery * dt,
+		)
+	}
+	constructor(readonly character: Character, duration: number = 3 + Math.random() * 3) {
+		super(duration)
+	}
+}
 //#endregion

@@ -23,5 +23,5 @@
       "$assets/*": ["./assets/*"]
     }
   },
-  "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.js", "src/**/*.svelte", "assets/game-content.ts", "assets/scripts/**/*.d.ts"]
+  "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.js", "src/**/*.svelte", "assets/**/*.ts"]
 }

@@ -1,7 +1,7 @@
 import * as gameContent from '$assets/game-content'
 import { goods as goodsCatalog } from '$assets/game-content'
 import type { CharacterScripts } from '$assets/scripts/globals'
-import { type AxialRef, axial } from '$lib/hex'
+import { type AxialCoord, type AxialRef, axial } from '$lib/hex'
 import { objectMap } from '$lib/utils'
 import type { Character } from '../character'
 import type { HexTile } from '../hexboard'
@@ -9,11 +9,9 @@ import type { Position } from '../position'
 import { positionRoughlyEquals, toAxialCoord } from '../position'
 import type { GoodType } from '../tile'
 import { InteractiveContext, loadNpcScripts, protoCtx, subject } from './scripts'
-import { DropStep, EatStep, GrabStep, MoveToStep } from './steps'
+import { DropStep, EatStep, GrabStep, MoveToStep, PonderingStep } from './steps'
 
 const maxWalkTime = 24
-
-type SubFunctions<T> = { [k: string]: (this: T, ...args: any[]) => any }
 
 class FindFunctions {
 	declare [subject]: Character
@@ -72,6 +70,35 @@ class FindFunctions {
 		const targetTile = hex.getTile(targetCoord)!
 		return { tile: targetTile, path }
 	}
+	wanderingTile() {
+		const { hex } = this[subject].game
+		const start = toAxialCoord(this[subject].tile.position)
+		const distance = 2 + Math.random() * 3 // 2-5 tiles away
+		
+		// Find all walkable tiles within the distance range
+		const walkableTiles: { coord: AxialCoord; tile: HexTile }[] = []
+		
+		for (let q = -Math.ceil(distance); q <= Math.ceil(distance); q++) {
+			for (let r = -Math.ceil(distance); r <= Math.ceil(distance); r++) {
+				const coord = axial.linear({ q, r }, start)
+				const actualDistance = axial.distance(start, coord)
+				if (actualDistance >= 2) {
+					const tile = hex.getTile(coord)
+					if (tile && Number.isFinite(tile.content.walkTime)) {
+						walkableTiles.push({ coord, tile })
+					}
+				}
+			}
+		}
+		
+		if (walkableTiles.length === 0) return false
+		
+		// Pick a random walkable tile
+		const randomIndex = Math.floor(Math.random() * walkableTiles.length)
+		const { coord: targetCoord, tile: targetTile } = walkableTiles[randomIndex]
+		
+		return { tile: targetTile, coord: targetCoord }
+	}
 }
 
 class InventoryFunctions {
@@ -106,6 +133,9 @@ class SelfCareFunctions {
 	declare [subject]: Character
 	eat() {
 		return new EatStep(this[subject])
+	}
+	pondering() {
+		return new PonderingStep(this[subject])
 	}
 }
 

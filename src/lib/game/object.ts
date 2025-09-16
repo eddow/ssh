@@ -178,6 +178,14 @@ export function withContainer<T extends new (...args: any[]) => GameObject>(Base
 
 export function withScripted<T extends new (...args: any[]) => TickedGameObject>(Base: T) {
 	abstract class ScriptedMixin extends Base {
+		constructor(...args: any[]) {
+			super(...args)
+			setTimeout(() => {
+				if(this.stepExecutor) return
+				const firstAction = this.findAction()
+				if (firstAction) this.begin(firstAction)
+			}, 100)
+		}
 		public stepExecutor: ASingleStep | undefined
 		public runningScripts: ScriptExecution[] = []
 		abstract scriptsContext: ExecutionContext
@@ -185,18 +193,30 @@ export function withScripted<T extends new (...args: any[]) => TickedGameObject>
 
 		@computed
 		get actionDescription(): string[] {
-			return this.runningScripts.map((s) => s.script.name).reverse()
+			return this.runningScripts.map((s) => s.name).reverse()
 		}
 		nextStep() {
+			if(this.stepExecutor) throw new Error('Cannot begin a new script while another is running')
+			if(!this.runningScripts.length) {
+				const nextAction = this.findAction()
+				if (nextAction) this.runningScripts.unshift(nextAction)
+			}
+			let reentered = false
 			while (this.runningScripts.length && !this.stepExecutor) {
+				const executingName = this.runningScripts[0].name
 				const { type, value } = this.runningScripts[0].run(this.scriptsContext)
 				if (type === 'return') this.runningScripts.shift()
 				if (value) {
+					reentered = false
 					if (value instanceof ScriptExecution) this.runningScripts.unshift(value)
 					else if (value instanceof ASingleStep) this.stepExecutor = value
 					else throw new Error(`Unexpected next action: ${value}`)
 				} else if (!this.runningScripts.length) {
 					const nextAction = this.findAction()
+					if (nextAction?.name === executingName) {
+						if(reentered) throw new Error(`Action infinite fail/foundAction: ${executingName}`)
+						reentered = true
+					}
 					if (nextAction) this.runningScripts.unshift(nextAction)
 				}
 			}
@@ -212,11 +232,16 @@ export function withScripted<T extends new (...args: any[]) => TickedGameObject>
 				}
 			}
 		}
-
-		abandonAnd(exec: ScriptExecution) {
-			this.runningScripts.splice(0, this.runningScripts.length)
-			this.runningScripts.push(exec)
+		begin(exec: ScriptExecution) {
+			if(this.stepExecutor) throw new Error('Cannot begin a new script while another is running')
+			this.runningScripts.unshift(exec)
 			this.nextStep()
+		}
+		abandonAnd(exec: ScriptExecution) {
+			// TODO: `abandon`?
+			this.runningScripts.splice(0, this.runningScripts.length)
+			this.stepExecutor = undefined
+			this.begin(exec)
 		}
 	}
 	return ScriptedMixin

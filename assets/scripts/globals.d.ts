@@ -15,5 +15,6 @@ export type CharacterScripts = {
 	}
 	selfCare: {
 		goEat(): ScriptExecution<Character>
+		wander(): ScriptExecution<Character>
 	}
 }

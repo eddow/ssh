@@ -162,8 +162,6 @@ export const axial = {
 	/**
 	 * Get the axial-ref as an axial: an object `{q, r}`
 	 * @returns AxialCoord
-	 * @todo Remove all refs
-	 * @deprecated use AxialAccess
 	 */
 	coord(aRef: AxialRef | string): AxialCoord {
 		switch (typeof aRef) {
@@ -180,8 +178,6 @@ export const axial = {
 	/**
 	 * Get the axial-ref as a key
 	 * @returns string
-	 * @todo Remove all refs
-	 * @deprecated use AxialAccess
 	 */
 	key(aRef: AxialRef | string): AxialKey {
 		switch (typeof aRef) {
