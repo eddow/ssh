@@ -27,7 +27,6 @@ export const terrain = {
 
 export const deposits = {
 	berry_bush: {
-		name: 'Berry Bush',
 		maxAmount: 18,
 		regenerate: .01,
 		sprites: ["bushes/bush1"],
@@ -36,7 +35,6 @@ export const deposits = {
 		},
 	},
 	rock: {
-		name: "Rock",
 		maxAmount: 18,
 		sprites: ["rocks/rock1", "rocks/rock2", "rocks/rock3", "rocks/rock4", "rocks/rock5", "rocks/rock6"],
 		generation: {
@@ -44,7 +42,6 @@ export const deposits = {
 		},
 	},
 	tree: {
-		name: "Tree",
 		maxAmount: 12,
 		sprites: ["trees/tree1", "trees/tree2", "trees/tree3", "trees/tree4", "trees/tree5", "trees/tree6", "trees/tree7", "trees/tree8", "trees/tree9", "trees/tree10", "trees/tree11"],
 		regenerate: 0.01,
@@ -56,9 +53,7 @@ export const deposits = {
 
 export const modules = {
 	tree_chopper: {
-		name: "Tree Chopper",
-		maxWorkers: 2,
-		restEase: 10,
+		preparationTime: 2,
 		action: { type: "harvest", deposit: "tree" },
 		output: "wood",
 		time: 3,
@@ -66,9 +61,7 @@ export const modules = {
 		icon: "chopper",
 	},
 	stonecutter: {
-		name: "Stone Cutter",
-		maxWorkers: 2,
-		restEase: 10,
+		preparationTime: 3,
 		action: { type: "harvest", deposit: "rock" },
 		output: "stone",
 		time: 4,
@@ -76,9 +69,7 @@ export const modules = {
 		icon: "cutter",
 	},
 	sawmill: {
-		name: "Sawmill",
-		maxWorkers: 3,
-		restEase: 50,
+		preparationTime: 1,
 		action: { type: "transform", inputs: { wood: 1 } },
 		output: 'planks',
 		time: 2,
@@ -89,31 +80,26 @@ export const modules = {
 
 export const goods = {
 	berries: {
-		name: "Berries",
 		feedingValue: 72,
 		sprites: ["berries"],
 		icon: "berries",
 	},
 	mushrooms: {
-		name: "Mushrooms",
 		feedingValue: 160,
 		sprites: ["mushrooms"],
 		icon: "mushrooms",
 	},
 	planks: {
-		name: "Planks",
 		feedingValue: 0,
 		sprites: ["planks"],
 		icon: "planks",
 	},
 	stone: {
-		name: "Stone",
 		feedingValue: 0,
 		sprites: ["stone"],
 		icon: "stone",
 	},
 	wood: {
-		name: "Wood",
 		feedingValue: 0,
 		sprites: ["wood"],
 		icon: "wood",

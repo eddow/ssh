@@ -1,6 +1,6 @@
-// TODO: Load all .npcs files as raw text at build time
+// TODO: Load all .npcs files as raw text at "build time"
 
-import { unreactive } from 'mutts'
+import { Eventful, unreactive } from 'mutts'
 import type { ExecutionContext, ExecutionState } from 'npc-script/src'
 import {
 	ExecutionError,
@@ -12,7 +12,7 @@ import {
 	NpcScript,
 	type Operators,
 } from 'npc-script/src'
-import { terrain, deposits, modules, goods } from '$assets/game-content'
+import { deposits, goods, modules, terrain } from '$assets/game-content'
 import { epsilon, objectMap } from '$lib/utils'
 import { HexTile } from '../hexboard'
 import type { GameObject, InteractiveGameObject } from '../object'
@@ -172,19 +172,30 @@ function isXOrDictX<X>(x: XOrDictX<X>, Class: new (...args: any[]) => X): x is X
 	)
 }
 
+export type AsyncActionEvents = {
+	cancel: () => void
+	finish: () => void
+}
+
 @unreactive
-export class ScriptExecution {
+export class ScriptExecution extends Eventful<AsyncActionEvents> {
 	constructor(
 		public readonly script: GameScript,
 		public readonly name: string,
 		public state?: ExecutionState,
-	) {}
+	) {
+		super()
+	}
+	cancel() {
+		this.emit('cancel')
+	}
 	run(context: ExecutionContext) {
 		if (!this.state) throw new Error('ScriptExecution was finished')
 		const executor = this.script.executor(context, this.state)
 		try {
 			const result = executor.execute()
 			this.state = result.type === 'yield' ? executor.state : undefined
+			if (result.type === 'return') this.emit('finish')
 			return result
 		} catch (error) {
 			if (error instanceof ExecutionError)
@@ -219,10 +230,16 @@ export function loadNpcScripts(modules: Record<string, string>, context: Executi
 	)
 
 	type XoDe = XOrDictX<(...args: any[]) => ScriptExecution>
-	function exposeScripts(script: GameScript, entryPoint: XOrDictX<FunctionDefinition>, name: string): XoDe {
+	function exposeScripts(
+		script: GameScript,
+		entryPoint: XOrDictX<FunctionDefinition>,
+		name: string,
+	): XoDe {
 		return entryPoint instanceof FunctionDefinition
 			? (...args: any[]) => new ScriptExecution(script, name, entryPoint.call(args))
-			: (objectMap(entryPoint, (value, key) => exposeScripts(script, value, `${name}.${key}`)) as XoDe)
+			: (objectMap(entryPoint, (value, key) =>
+					exposeScripts(script, value, `${name}.${key}`),
+				) as XoDe)
 	}
 
 	for (const [name, { gameScript, value }] of Object.entries(npcScripts)) {

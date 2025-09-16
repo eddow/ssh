@@ -1,5 +1,10 @@
 import { effect, reactive, type ScopedCallback, watch } from 'mutts'
 import { ColorMatrixFilter, Sprite } from 'pixi.js'
+import {
+	characterCapacity,
+	characterEvolutionRates,
+	characterTriggerLevels,
+} from '$assets/constants'
 import { mrg } from '$lib/globals.svelte'
 import { type AxialCoord, axial } from '$lib/hex'
 import { AxialSet } from '$lib/mem'
@@ -7,8 +12,9 @@ import { type RandGenerator, uuid } from '$lib/numbers'
 import type { Game } from './game'
 import type { HexTile } from './hexboard'
 import aCharacterContext from './npcs/character'
+// biome-ignore lint/correctness/noUnusedImports: We need it for mixins tranquility: all propertyKeys are known
 import { subject } from './npcs/scripts'
-import type { ActivityType, ASingleStep } from './npcs/steps'
+import type { ASingleStep } from './npcs/steps'
 import {
 	GameObject,
 	withContainer,
@@ -40,46 +46,12 @@ export function withCharacterStep<
 	}
 	return CharacterStepMixin
 }
-const evolutionRates = {
-	// Need evolution per activity, with '*' as default fallback
-	hunger: {
-		'*': 2,
-		walk: 8,
-		work: 12,
-	} as Partial<Record<ActivityType | '*', number>>,
-	tiredness: {
-		'*': 2,
-		walk: 5,
-		work: 8,
-	} as Partial<Record<ActivityType | '*', number>>,
-	fatigue: {
-		'*': 0,
-		walk: 10,
-		work: 15,
-	} as Partial<Record<ActivityType | '*', number>>,
-} as const
 
 @reactive
 export class Character extends withInteractive(
 	withScripted(withTicked(withGenerator(GameObject))),
 ) {
-	readonly triggerLevels = {
-		hunger: {
-			high: 700,
-			critical: 1000,
-			satisfied: 300,
-		},
-		Tiredness: {
-			high: 2100,
-			critical: 2500,
-			satisfied: 100,
-		},
-		fatigue: {
-			high: 140,
-			critical: 180,
-			satisfied: 10,
-		},
-	} as const
+	readonly triggerLevels = characterTriggerLevels
 
 	public assignedModule: Module | undefined = undefined
 
@@ -91,7 +63,7 @@ export class Character extends withInteractive(
 	// Character inventory
 	public carriedType?: GoodType
 	public carriedAmount: number = 0
-	public carryingCapacity: number = 10
+	public carryingCapacity: number = characterCapacity.carryingCapacity
 	public scriptsContext = aCharacterContext(this)
 	public tile: HexTile
 	constructor(
@@ -148,10 +120,13 @@ export class Character extends withInteractive(
 
 	// Update character needs levels based on time elapsed
 	update(deltaTime: number) {
-		const activity: ActivityType = (this.stepExecutor?.type ?? 'idle') as ActivityType
-		const hungerRate = evolutionRates.hunger[activity] ?? evolutionRates.hunger['*'] ?? 0
-		const tirednessRate = evolutionRates.tiredness[activity] ?? evolutionRates.tiredness['*'] ?? 0
-		const fatigueRate = evolutionRates.fatigue[activity] ?? evolutionRates.fatigue['*'] ?? 0
+		const activity: Ssh.ActivityType = (this.stepExecutor?.type ?? 'idle') as Ssh.ActivityType
+		const hungerRate =
+			characterEvolutionRates.hunger[activity] ?? characterEvolutionRates.hunger['*'] ?? 0
+		const tirednessRate =
+			characterEvolutionRates.tiredness[activity] ?? characterEvolutionRates.tiredness['*'] ?? 0
+		const fatigueRate =
+			characterEvolutionRates.fatigue[activity] ?? characterEvolutionRates.fatigue['*'] ?? 0
 		this.hunger += hungerRate * deltaTime
 		this.tiredness += tirednessRate * deltaTime
 		this.fatigue += fatigueRate * deltaTime
@@ -159,7 +134,7 @@ export class Character extends withInteractive(
 	}
 
 	findAction() {
-		if(this.hunger > this.triggerLevels.hunger.high) return this.scriptsContext.selfCare.goEat()
+		if (this.hunger > this.triggerLevels.hunger.high) return this.scriptsContext.selfCare.goEat()
 		// Default to wandering when no specific action is needed
 		return this.scriptsContext.selfCare.wander()
 	}

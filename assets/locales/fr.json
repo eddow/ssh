@@ -1,0 +1,19 @@
+{
+	"deposits": {
+		"berry_bush": "Buisson de Baies",
+		"rock": "Rocher",
+		"tree": "Arbre"
+	},
+	"modules": {
+		"tree_chopper": "Bûcheron",
+		"stonecutter": "Tailleur de Pierre",
+		"sawmill": "Scierie"
+	},
+	"goods": {
+		"berries": "Baies",
+		"mushrooms": "Champignons",
+		"planks": "Planches",
+		"stone": "Pierre",
+		"wood": "Bois"
+	}
+}

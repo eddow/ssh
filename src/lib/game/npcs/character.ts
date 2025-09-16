@@ -74,10 +74,10 @@ class FindFunctions {
 		const { hex } = this[subject].game
 		const start = toAxialCoord(this[subject].tile.position)
 		const distance = 2 + Math.random() * 3 // 2-5 tiles away
-		
+
 		// Find all walkable tiles within the distance range
 		const walkableTiles: { coord: AxialCoord; tile: HexTile }[] = []
-		
+
 		for (let q = -Math.ceil(distance); q <= Math.ceil(distance); q++) {
 			for (let r = -Math.ceil(distance); r <= Math.ceil(distance); r++) {
 				const coord = axial.linear({ q, r }, start)
@@ -90,13 +90,13 @@ class FindFunctions {
 				}
 			}
 		}
-		
+
 		if (walkableTiles.length === 0) return false
-		
+
 		// Pick a random walkable tile
 		const randomIndex = Math.floor(Math.random() * walkableTiles.length)
 		const { coord: targetCoord, tile: targetTile } = walkableTiles[randomIndex]
-		
+
 		return { tile: targetTile, coord: targetCoord }
 	}
 }

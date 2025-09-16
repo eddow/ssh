@@ -1,6 +1,5 @@
 <script lang="ts">
-	import { setContext } from 'svelte'
-	import { assetUrls, type Game } from '$lib/game'
+	import { type Game } from '$lib/game'
 
 	const props = $props<{
 		game: Game

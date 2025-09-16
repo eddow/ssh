@@ -14,7 +14,7 @@ export type GoodType = keyof typeof goods
 export type DepositType = keyof typeof deposits
 export type ModuleType = keyof typeof modules
 export interface TileContent {
-	name: string
+	readonly name?: string
 	readonly debugInfo: Record<string, any>
 	readonly walkTime: number
 	readonly background: string
@@ -74,38 +74,25 @@ function GcClasses<BaseCtor extends Ctor<any>>(Base: BaseCtor, entries: Record<s
 	)
 }
 
-export class Deposit implements Ssh.DepositDefinition {
-	static class = GcClasses(Deposit, deposits)
-	declare name: DepositType
-	declare maxAmount: number
-	declare sprites: string[]
-	declare regenerate?: number
-	declare terrain: string
-	declare generation?: {
-		goods?: Record<string, number>
-	}
-	constructor(public amount: number) {}
+function NoConstructor<T extends object>() {
+	return class {} as new () => T
 }
 
-export class Module implements Ssh.ModuleDefinition, TileContent {
+export class Deposit extends NoConstructor<Ssh.DepositDefinition>() {
+	static class = GcClasses(Deposit, deposits)
+	constructor(public amount: number) {
+		super()
+	}
+}
+
+export class Module extends NoConstructor<Ssh.ModuleDefinition>() implements TileContent {
 	static class = GcClasses(Module, modules)
-	declare name: ModuleType
-	declare maxWorkers: number
-	declare carryingCapacity: number
-	declare restEase: number
-	declare action: Ssh.Action
-	declare output: GoodType
-	declare time: number
-	declare sprites: string[]
-	declare icon: string
 	public assignedWorker: Character | undefined
 	public goods: { [k in GoodType]?: number } = {}
 
 	// Configurable properties
 	public walkway: boolean = true
 	public conveyor: boolean = true
-	// TODO: configure or let it on "is there a connected deposit?"
-	public gather: boolean = true
 
 	canStoreGood(goodType: GoodType): number {
 		const inputs = this.action.type === 'transform' ? this.action.inputs[goodType] || 0 : 0
@@ -214,7 +201,7 @@ export class Module implements Ssh.ModuleDefinition, TileContent {
 	}
 
 	private renderOutputGoods(root: Container, game: Game, size: number, goods: any) {
-		const outputQty = this.goods[this.output] || 0
+		const outputQty = this.goods[this.output as GoodType] || 0
 		if (outputQty <= 0) return
 
 		// Render output goods on the right side

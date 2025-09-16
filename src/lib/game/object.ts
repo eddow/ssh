@@ -181,7 +181,7 @@ export function withScripted<T extends new (...args: any[]) => TickedGameObject>
 		constructor(...args: any[]) {
 			super(...args)
 			setTimeout(() => {
-				if(this.stepExecutor) return
+				if (this.stepExecutor) return
 				const firstAction = this.findAction()
 				if (firstAction) this.begin(firstAction)
 			}, 100)
@@ -196,8 +196,8 @@ export function withScripted<T extends new (...args: any[]) => TickedGameObject>
 			return this.runningScripts.map((s) => s.name).reverse()
 		}
 		nextStep() {
-			if(this.stepExecutor) throw new Error('Cannot begin a new script while another is running')
-			if(!this.runningScripts.length) {
+			if (this.stepExecutor) throw new Error('Cannot begin a new script while another is running')
+			if (!this.runningScripts.length) {
 				const nextAction = this.findAction()
 				if (nextAction) this.runningScripts.unshift(nextAction)
 			}
@@ -214,7 +214,7 @@ export function withScripted<T extends new (...args: any[]) => TickedGameObject>
 				} else if (!this.runningScripts.length) {
 					const nextAction = this.findAction()
 					if (nextAction?.name === executingName) {
-						if(reentered) throw new Error(`Action infinite fail/foundAction: ${executingName}`)
+						if (reentered) throw new Error(`Action infinite fail/foundAction: ${executingName}`)
 						reentered = true
 					}
 					if (nextAction) this.runningScripts.unshift(nextAction)
@@ -233,12 +233,13 @@ export function withScripted<T extends new (...args: any[]) => TickedGameObject>
 			}
 		}
 		begin(exec: ScriptExecution) {
-			if(this.stepExecutor) throw new Error('Cannot begin a new script while another is running')
+			if (this.stepExecutor) throw new Error('Cannot begin a new script while another is running')
 			this.runningScripts.unshift(exec)
 			this.nextStep()
 		}
 		abandonAnd(exec: ScriptExecution) {
-			// TODO: `abandon`?
+			if (this.stepExecutor) this.stepExecutor.cancel()
+			for (const script of this.runningScripts) script.cancel()
 			this.runningScripts.splice(0, this.runningScripts.length)
 			this.stepExecutor = undefined
 			this.begin(exec)

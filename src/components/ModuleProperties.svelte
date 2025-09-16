@@ -32,11 +32,6 @@
 		</div>
 
 		<div class="flex items-center gap-2">
-			<span class="font-medium">{$T.module.workers}:</span>
-			<Badge color="green">{$module.assignedWorker ? '1' : '0'} / {$module.maxWorkers}</Badge>
-		</div>
-
-		<div class="flex items-center gap-2">
 			<span class="font-medium">{$T.module.action}:</span>
 			<Badge color="indigo">{$module.action.type}</Badge>
 		</div>

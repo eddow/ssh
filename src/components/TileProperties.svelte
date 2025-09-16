@@ -16,7 +16,7 @@
 	<div class="space-y-2">
 		<div class="flex items-center gap-2">
 			<span class="font-medium">{$T.tile.content}:</span>
-			<Badge color="green">{$tileContent.name}</Badge>
+			<Badge color="green">{$tileContent.constructor.name}</Badge>
 		</div>
 
 		<div class="flex items-center gap-2">

@@ -2,7 +2,7 @@ declare namespace Ssh {
 	type SpriteDefinition = string
 	type Sprite = string
 	interface DepositDefinition {
-		name: string
+		name?: string
 		maxAmount: number
 		regenerate?: number
 		sprites: Sprite[]
@@ -23,9 +23,8 @@ declare namespace Ssh {
 	type Action = HarvestingAction | TransformationAction
 
 	interface ModuleDefinition {
-		name: string
-		maxWorkers: number
-		restEase: number
+		name?: string
+		preparationTime: number
 		action: Action
 		output: string
 		time: number
@@ -33,7 +32,7 @@ declare namespace Ssh {
 		sprites: Sprite[]
 	}
 	interface GoodsDefinition {
-		name: string
+		name?: string
 		feedingValue: number
 		icon: Sprite
 		sprites: Sprite[]
@@ -44,4 +43,8 @@ declare namespace Ssh {
 			goods?: Record<string, number>
 		}
 	}
+
+	type ActivityType = 'idle' | 'walk' | 'work' | 'eat' | 'sleep' | 'rest' | 'grab' | 'drop'
+
+	type NeedType = 'hunger' | 'tiredness' | 'fatigue'
 }

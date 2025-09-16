@@ -1,7 +1,7 @@
 import { Eventful, reactive, unreactive, zip } from 'mutts'
 import { Application, Assets, Container, Point, Spritesheet, Texture } from 'pixi.js'
 import * as gameContent from '$assets/game-content'
-import { resources, prefix } from '$assets/resources'
+import { prefix, resources } from '$assets/resources'
 import { interactionMode, mrg } from '$lib/globals.svelte'
 import { registerPixiApp, unregisterPixiApp } from '$lib/hmr-pixi'
 import { LCG } from '$lib/numbers'
@@ -37,7 +37,7 @@ export type GameEvents = {
 	objectUp(pointer: any, object: InteractiveGameObject): void
 	objectClick(pointer: any, object: InteractiveGameObject): void
 }
-
+unreactive(Eventful)
 export class Game extends Eventful<GameEvents> {
 	public get name() {
 		return 'GameX'

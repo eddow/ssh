@@ -116,18 +116,6 @@
 		flex-direction: column;
 	}
 
-	.header {
-		justify-content: space-between;
-		align-items: center;
-		padding: 0.5rem;
-		border-bottom: 1px solid #e5e7eb;
-		border-bottom-color: rgb(229 231 235);
-	}
-
-	:global(.dark) .header {
-		border-bottom-color: rgb(55 65 81);
-	}
-
 	.content {
 		flex: 0 1 auto; /* Don't grow, can shrink, use natural size */
 		overflow-y: auto;

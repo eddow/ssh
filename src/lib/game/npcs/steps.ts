@@ -1,23 +1,22 @@
+import { Eventful } from 'mutts'
+import { activityDurations, ponderingFatigueRecovery } from '$assets/constants'
 import { goods as goodsCatalog } from '$assets/game-content'
 import type { Character } from '../character'
 import type { Position } from '../position'
 import type { GoodType } from '../tile'
-import { lerp } from './scripts'
+import { type AsyncActionEvents, lerp } from './scripts'
 
 //#region Abstracts
-export type ActivityType =
-	| 'idle'
-	| 'walk'
-	| 'work'
-	| 'eat'
-	| 'sleep'
-	| 'rest'
-	| 'grab'
-	| 'drop'
 
-export abstract class ASingleStep {
+export abstract class ASingleStep extends Eventful<AsyncActionEvents> {
 	abstract tick(dt: number): number | undefined
-	abstract readonly type: ActivityType
+	cancel() {
+		this.emit('cancel')
+	}
+	finish(): void {
+		this.emit('finish')
+	}
+	abstract readonly type: Ssh.ActivityType
 }
 
 export abstract class AEvolutionStep extends ASingleStep {
@@ -25,15 +24,14 @@ export abstract class AEvolutionStep extends ASingleStep {
 		super()
 	}
 	evolution = 0
-	evolve(evolution: number, dt: number): void {}
-	finish(): void {}
+	evolve(_evolution: number, _dt: number): void {}
 	tick(dt: number): number | undefined {
 		this.evolution += dt / this.duration
 		if (this.evolution >= 1) {
-			this.evolve(1, this.evolution-1)
+			this.evolve(1, this.evolution - 1)
 			this.finish()
 			return (this.evolution - 1) * this.duration
-		} else this.evolve(this.evolution, dt/this.duration)
+		} else this.evolve(this.evolution, dt / this.duration)
 	}
 }
 
@@ -70,17 +68,11 @@ export class MoveToStep extends ALerpStep<Position> {
 	}
 }
 
-const transferDuration = 0.5
-
 export class GrabStep extends AEvolutionStep {
 	get type() {
 		return 'grab' as const
 	}
-	constructor(
-		character: Character,
-		goodType: GoodType,
-		maxAmount: number,
-	) {
+	constructor(character: Character, goodType: GoodType, maxAmount: number) {
 		const tile = character.tile
 
 		// Check if we need to drop current goods first
@@ -90,10 +82,7 @@ export class GrabStep extends AEvolutionStep {
 			character.carriedAmount > 0
 		) {
 			// Drop all current goods
-			const dropped = tile.content.addGood(
-				character.carriedType,
-				character.carriedAmount,
-			)
+			const dropped = tile.content.addGood(character.carriedType, character.carriedAmount)
 			character.carriedAmount -= dropped
 			if (character.carriedAmount <= 0) character.carriedType = undefined
 		}
@@ -106,7 +95,7 @@ export class GrabStep extends AEvolutionStep {
 			character.carriedType = goodType
 			character.carriedAmount = (character.carriedAmount || 0) + taken
 		}
-		super(taken * transferDuration)
+		super(taken * activityDurations.transfer)
 	}
 }
 
@@ -114,31 +103,25 @@ export class DropStep extends AEvolutionStep {
 	get type() {
 		return 'drop' as const
 	}
-	constructor(
-		character: Character,
-		goodType: GoodType,
-		maxAmount: number,
-	) {
-
+	constructor(character: Character, goodType: GoodType, maxAmount: number) {
 		const tile = character.tile
 
 		const amount = Math.min(character.carriedAmount, maxAmount)
 		const dropped = tile.content.addGood(goodType, amount)
 		character.carriedAmount -= dropped
 		if (character.carriedAmount <= 0) character.carriedType = undefined
-		super(amount * transferDuration)
+		super(amount * activityDurations.transfer)
 	}
 
 	finish(): void {}
 }
-const eatingDuration = 2
 export class EatStep extends AEvolutionStep {
 	get type() {
 		return 'eat' as const
 	}
 	private readonly feedingValue: number
 	constructor(readonly character: Character) {
-		super(eatingDuration)
+		super(activityDurations.eating)
 		this.feedingValue = goodsCatalog[character.carriedType!]?.feedingValue ?? 0
 		if (this.feedingValue) {
 			--this.character.carriedAmount
@@ -147,28 +130,24 @@ export class EatStep extends AEvolutionStep {
 		}
 	}
 	evolve(_: number, dt: number): void {
-		this.character.hunger = Math.max(
-			0,
-			this.character.hunger - this.feedingValue * dt,
-		)
+		this.character.hunger = Math.max(0, this.character.hunger - this.feedingValue * dt)
 	}
 }
 
 //#endregion
 
 //#region PonderingStep
-const ponderingFatigueRecovery = 1
 export class PonderingStep extends AEvolutionStep {
 	get type() {
 		return 'rest' as const
 	}
 	evolve(_: number, dt: number): void {
-		this.character.fatigue = Math.max(
-			0,
-			this.character.fatigue - ponderingFatigueRecovery * dt,
-		)
+		this.character.fatigue = Math.max(0, this.character.fatigue - ponderingFatigueRecovery * dt)
 	}
-	constructor(readonly character: Character, duration: number = 3 + Math.random() * 3) {
+	constructor(
+		readonly character: Character,
+		duration: number = lerp(activityDurations.restMin, activityDurations.restMax, Math.random()),
+	) {
 		super(duration)
 	}
 }

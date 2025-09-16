@@ -27,7 +27,7 @@
 				/>
 				<StatProgressBar
 					value={$state.Tiredness}
-					levels={$state.triggerLevels.Tiredness}
+					levels={$state.triggerLevels.tiredness}
 					label={$T.character.tiredness}
 				/>
 				<StatProgressBar

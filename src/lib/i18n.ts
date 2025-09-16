@@ -1,4 +1,5 @@
 import {
+	type CondensedDictionary,
 	I18nClient,
 	type Locale,
 	type LocaleFlagsEngine,
@@ -6,21 +7,10 @@ import {
 	type Translator,
 } from 'omni18n/ts/s-a'
 import { writable } from 'svelte/store'
-
-// PoI: Manage your locales here
 export const locales = ['en', 'fr'] as const
 
 export type TextInfos = {}
 export type KeyInfos = {}
-
-// Import translation dictionaries
-import enTranslations from '../locales/en.json'
-import frTranslations from '../locales/fr.json'
-
-const translations = {
-	en: enTranslations,
-	fr: frTranslations,
-}
 
 class ClientSideClient extends I18nClient {
 	report(key: TextKey, error: string, spec: object) {
@@ -30,7 +20,9 @@ class ClientSideClient extends I18nClient {
 
 export const i18nClient = new ClientSideClient(['en'], condense)
 export const T = writable<Translator>()
-export const locale = writable<Locale>('en')
+// Get saved locale from localStorage or default to 'en'
+const savedLocale = localStorage.getItem('locale') as Locale | null
+export const locale = writable<Locale>(savedLocale || 'en')
 let queryLocale: string
 
 locale.subscribe(async (locale) => {
@@ -39,24 +31,26 @@ locale.subscribe(async (locale) => {
 	await i18nClient.setLocales([locale])
 	await initTranslator()
 })
-
-async function condense() {
+const zonePaths = {
+	'': '..',
+	gameX: '../../assets',
+}
+async function condense(lng: string[], zones: string[]) {
 	// Return the translations for the requested locale
-	const translationData = translations[queryLocale as keyof typeof translations]
-	if (!translationData) {
-		console.warn(`No translations found for locale: ${queryLocale}`)
-		return [translations.en]
-	}
-
-	return [translationData]
+	return Promise.all(
+		zones.map(
+			(zone) => import(`${zonePaths[zone as keyof typeof zonePaths]}/locales/${queryLocale}.json`),
+		),
+	).then((cds) => cds.map((cd) => cd.default) as CondensedDictionary[])
 }
 
 export async function initTranslator() {
-	T.set(await i18nClient.enter())
+	T.set(await i18nClient.enter('gameX'))
 }
 
 export const localeFlags = writable<LocaleFlagsEngine>()
 
 export function setLocale(newLocale: Locale) {
 	locale.set(newLocale)
+	localStorage.setItem('locale', newLocale)
 }
