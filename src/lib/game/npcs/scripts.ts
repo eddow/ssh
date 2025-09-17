@@ -1,5 +1,3 @@
-// TODO: Load all .npcs files as raw text at "build time"
-
 import { type } from 'arktype'
 import { Eventful, unreactive } from 'mutts'
 import type { ExecutionContext, ExecutionState } from 'npc-script/src'

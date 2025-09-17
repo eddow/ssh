@@ -213,8 +213,7 @@ export class GameView {
 	private panStartCamera = { x: 0, y: 0 }
 	public setupInput(game: Game, canvas: HTMLCanvasElement) {
 		const getCanvasPoint = (e: MouseEvent | WheelEvent) => {
-			const rect = canvas.getBoundingClientRect()
-			return { x: e.clientX - rect.left, y: e.clientY - rect.top }
+			return { x: e.offsetX, y: e.offsetY }
 		}
 
 		const getWorldPoint = (x: number, y: number) => {
@@ -262,7 +261,6 @@ export class GameView {
 				const deltaY = this.panStartPosition.y - e.offsetY
 				this.stage.x = this.panStartCamera.x - deltaX
 				this.stage.y = this.panStartCamera.y - deltaY
-				// TODO: zoom on mouse cursor
 				//console.log(this.stage.x, this.stage.y)
 			} else {
 				const { x, y } = getCanvasPoint(e)
@@ -271,6 +269,27 @@ export class GameView {
 				emitOverOutIfNeeded(hit, e)
 			}
 		})
+
+		canvas.addEventListener(
+			'wheel',
+			(e) => {
+				// Prevent page scroll while zooming the canvas
+				e.preventDefault()
+
+				const zoomSpeed = 0.9
+				const zoomDelta = zoomSpeed ** (e.deltaY / 120)
+				const newZoom = Math.max(0.1, Math.min(3, this.stage.scale.x * zoomDelta))
+				if (newZoom === this.stage.scale.x) return
+				let s = this.stage.scale.x;
+				let tx = (e.offsetX - this.stage.x) / s;
+				let ty = (e.offsetY - this.stage.y) / s;
+				// Apply new scale and adjust position so the mouse point stays fixed
+				this.stage.scale.set(newZoom);
+				this.stage.x = e.offsetX - tx * newZoom;
+				this.stage.y = e.offsetY - ty * newZoom;
+			},
+			{ passive: false },
+		)
 
 		canvas.addEventListener('mouseenter', (e) => {
 			const { x, y } = getCanvasPoint(e)
@@ -316,14 +335,6 @@ export class GameView {
 				canvas.style.cursor = 'default'
 				return
 			}
-		})
-
-		canvas.addEventListener('wheel', (e) => {
-			const deltaY = e.deltaY
-			const zoomSpeed = 0.9
-			const zoomDelta = zoomSpeed ** (deltaY / 120)
-			const newZoom = Math.max(0.1, Math.min(3, this.stage.scale.x * zoomDelta))
-			this.stage.scale.set(newZoom)
 		})
 
 		// Prevent default context menu on right-click

@@ -51,7 +51,7 @@ export abstract class ALerpStep<T extends number | Positioned> extends AEvolutio
 
 //#endregion
 //#region Commons
-
+// TODO: Some steps should appear in the action descriptions[]
 export class MoveToStep extends ALerpStep<Positioned> {
 	get type() {
 		return 'walk' as const

@@ -109,7 +109,7 @@
 					title={$T.ui.select}
 					outline
 				>
-					<ResourceImage {game} sprite="select" width={24} height={24} alt="Select" />
+					<ResourceImage {game} sprite="select" width={24} height={24} alt={$T.ui.select} />
 				</RadioButton>
 			</ButtonGroup>
 		</ToolbarGroup>

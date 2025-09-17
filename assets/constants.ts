@@ -5,14 +5,12 @@ export const characterEvolutionRates: {[k in Ssh.NeedType]: Partial<Record<Ssh.A
 	// Need evolution per activity, with '*' as default fallback
 	hunger: {
 		'*': 2,
-		idle: 2,
 		walk: 8,
 		work: 12,
 		eat: 0,
 	} as const,
 	tiredness: {
 		'*': 2,
-		idle: 2,
 		walk: 5,
 		work: 8,
 		sleep: 0,
