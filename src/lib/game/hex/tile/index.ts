@@ -6,21 +6,18 @@ import {
 	type ContainerChild,
 	Graphics,
 	Point,
-	Sprite,
 	TilingSprite,
 } from 'pixi.js'
-import type { GoodType, ModuleType, TerrainType } from '$lib/arktype'
+import type { GoodType, ModuleType } from '$lib/arktype'
 import { mrg } from '$lib/globals.svelte'
 import type { AxialCoord } from '$lib/hex'
 import { tileSize } from '$lib/utils'
-import type { Character } from '../../character'
-import type { Game } from '../../game'
+import { gameIsaTypes } from '../../npcs/scripts'
 import { GameObject, withGenerator, withInteractive } from '../../object'
 import { type Position, toAxialCoord, toWorldCoord } from '../../position'
-import type { HexBoard } from '../board'
-import { gameIsaTypes } from '../../npcs/scripts'
-import type { TileBorder } from '../border'
 import type { Storage } from '../../storage'
+import type { HexBoard } from '../board'
+import type { TileBorder } from '../border'
 import { Module } from './module'
 
 export interface TileContent extends Storage {

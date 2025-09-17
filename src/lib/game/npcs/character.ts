@@ -5,10 +5,9 @@ import type { CharacterContract } from '$assets/scripts/contracts'
 import { contract, GoodType } from '$lib/arktype'
 import { type AxialCoord, type AxialRef, axial } from '$lib/hex'
 import { objectMap } from '$lib/utils'
-import type { get } from 'svelte/store'
 import type { Character } from '../character'
 import { type Tile, TileType } from '../hex'
-import { axialDistance, Positioned, positionRoughlyEquals, toAxialCoord } from '../position'
+import { Positioned, positionRoughlyEquals, toAxialCoord } from '../position'
 import { InteractiveContext, loadNpcScripts, protoCtx, subject } from './scripts'
 import { DropStep, EatStep, GrabStep, MoveToStep, PonderingStep } from './steps'
 
@@ -107,7 +106,7 @@ class FindFunctions {
 				targetCoord,
 				maxWalkTime,
 				true,
-			)
+			),
 		}
 	}
 }
@@ -180,6 +179,7 @@ const characterContext = protoCtx(CharacterContext, {
 	inventory: protoCtx(InventoryFunctions),
 	walk: protoCtx(WalkFunctions),
 	selfCare: protoCtx(SelfCareFunctions),
+	//work: protoCtx(WorkFunctions),
 	...gameContent,
 })
 

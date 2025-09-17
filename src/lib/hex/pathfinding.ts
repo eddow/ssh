@@ -3,18 +3,47 @@ import type { AxialCoord, AxialRef } from './axial'
 import { axial } from './axial'
 
 export type GetNeighbors = (coord: AxialRef) => (NeighborInfo | AxialCoord)[]
-export type IsGoal<T> = (coord: AxialRef, walkTime: number) => T | false
+export type Scoring<T> = (coord: AxialRef) => T | false
 export interface NeighborInfo {
 	coord: AxialCoord
 	walkTime: number
 }
 
-export interface PathfindingNode {
+interface PathfindingNode {
 	coord: AxialCoord
 	gCost: number // Time cost from start
-	hCost: number // Heuristic cost to goal
-	fCost?: number // Total cost (g + h) - calculated after creation
 	parent?: AxialCoord
+}
+
+interface HeuristicPathfindingNode extends PathfindingNode {
+	fCost: number // Total cost (g + h)
+}
+
+/**
+ * Reconstruct path from goal back to start using parent map
+ */
+function reconstructPath(
+	goal: AxialCoord,
+	start: AxialCoord,
+	parentMap: AxialKeyMap<AxialCoord>,
+): AxialCoord[] {
+	const path: AxialCoord[] = []
+	let current: AxialCoord = goal
+
+	// Build path from goal to start
+	while (current) {
+		path.unshift(current)
+		const parent = parentMap.get(current)
+		if (!parent || axial.distance(parent, current) === 0) break
+		current = parent
+	}
+
+	// Ensure start is included
+	if (path.length === 0 || axial.distance(path[0], start) !== 0) {
+		path.unshift(start)
+	}
+
+	return path
 }
 
 /**
@@ -40,19 +69,18 @@ export function findPath(
 
 	// Initialize data structures
 	const openSet = new HeapMin<number, number>()
-	const openSetMap = new AxialKeyMap<PathfindingNode>()
+	const openSetMap = new AxialKeyMap<HeuristicPathfindingNode>()
 	const closedSet = new AxialKeyMap<PathfindingNode>()
 	const gCosts = new AxialKeyMap<number>()
 	const parentMap = new AxialKeyMap<AxialCoord>()
 
+	const hCost = heuristic(startCoord, goalCoord)
 	// Initialize start node
-	const startNode: PathfindingNode = {
+	const startNode: HeuristicPathfindingNode = {
 		coord: startCoord,
 		gCost: 0,
-		hCost: heuristic(startCoord, goalCoord),
-		fCost: 0,
+		fCost: hCost,
 	}
-	startNode.fCost = startNode.gCost + startNode.hCost
 
 	openSet.set(axial.key(startCoord), startNode.fCost)
 	openSetMap.set(startCoord, startNode)
@@ -94,14 +122,14 @@ export function findPath(
 			const existingGCost = gCosts.get(neighborCoord)
 			if (existingGCost !== undefined && tentativeGCost >= existingGCost) continue
 
+			const hCost = heuristic(neighborCoord, goalCoord)
 			// Create neighbor node
-			const neighborNode: PathfindingNode = {
+			const neighborNode: HeuristicPathfindingNode = {
 				coord: neighborCoord,
 				gCost: tentativeGCost,
-				hCost: heuristic(neighborCoord, goalCoord),
+				fCost: tentativeGCost + hCost,
 				parent: currentCoord,
 			}
-			neighborNode.fCost = neighborNode.gCost + neighborNode.hCost
 
 			// Update costs and add to open set
 			gCosts.set(neighborCoord, tentativeGCost)
@@ -126,33 +154,6 @@ export function heuristic(a: AxialRef, b: AxialRef): number {
 }
 
 /**
- * Reconstruct path from goal back to start using parent map
- */
-function reconstructPath(
-	goal: AxialCoord,
-	start: AxialCoord,
-	parentMap: AxialKeyMap<AxialCoord>,
-): AxialCoord[] {
-	const path: AxialCoord[] = []
-	let current: AxialCoord = goal
-
-	// Build path from goal to start
-	while (current) {
-		path.unshift(current)
-		const parent = parentMap.get(current)
-		if (!parent || axial.distance(parent, current) === 0) break
-		current = parent
-	}
-
-	// Ensure start is included
-	if (path.length === 0 || axial.distance(path[0], start) !== 0) {
-		path.unshift(start)
-	}
-
-	return path
-}
-
-/**
  * Find the nearest coordinate that satisfies a condition within maxTime
  * @param getNeighbors Function to get neighbors with walk times
  * @param start Starting coordinate
@@ -164,7 +165,7 @@ function reconstructPath(
 export function findNearest<_T>(
 	getNeighbors: GetNeighbors,
 	start: AxialRef,
-	isGoal: IsGoal<true>,
+	isGoal: Scoring<true>,
 	stop: number | ((coord: AxialRef, walkTime: number) => boolean),
 	punctual: boolean = true,
 ): AxialCoord[] | undefined {
@@ -175,7 +176,7 @@ export function findNearest<_T>(
 				walkTime > stop
 		)(stop)
 	// Check if start position already satisfies the goal condition
-	if (isGoal(startCoord, 0)) return [startCoord]
+	if (isGoal(startCoord)) return [startCoord]
 	if (stop(startCoord, 0)) return undefined
 
 	// Initialize data structures
@@ -189,11 +190,9 @@ export function findNearest<_T>(
 	const startNode: PathfindingNode = {
 		coord: startCoord,
 		gCost: 0,
-		hCost: 0, // No heuristic for nearest search
 	}
-	startNode.fCost = startNode.gCost + startNode.hCost
 
-	openSet.set(startCoord, startNode.fCost)
+	openSet.set(startCoord, startNode.gCost)
 	openSetMap.set(startCoord, startNode)
 	gCosts.set(startCoord, 0)
 
@@ -207,7 +206,7 @@ export function findNearest<_T>(
 		openSetMap.delete(currentCoord)
 
 		// Check if we reached a valid goal
-		if (punctual && isGoal(currentCoord, currentNode.gCost)) {
+		if (punctual && isGoal(currentCoord)) {
 			return reconstructPath(currentCoord, startCoord, parentMap)
 		}
 
@@ -222,7 +221,7 @@ export function findNearest<_T>(
 
 			// Skip if already in closed set
 			if (closedSet.has(neighborCoord)) continue
-			if (!punctual && isGoal(neighborCoord, currentNode.gCost)) {
+			if (!punctual && isGoal(neighborCoord)) {
 				return reconstructPath(currentCoord, startCoord, parentMap)
 			}
 
@@ -240,19 +239,131 @@ export function findNearest<_T>(
 			const neighborNode: PathfindingNode = {
 				coord: neighborCoord,
 				gCost: tentativeGCost,
-				hCost: 0, // No heuristic for nearest search
 				parent: currentCoord,
 			}
-			neighborNode.fCost = neighborNode.gCost + neighborNode.hCost
 
 			// Update costs and add to open set
 			gCosts.set(neighborCoord, tentativeGCost)
 			parentMap.set(neighborCoord, currentCoord)
-			openSet.set(neighborCoord, neighborNode.fCost)
+			openSet.set(neighborCoord, neighborNode.gCost)
 			openSetMap.set(neighborCoord, neighborNode)
 		}
 	}
 
 	// No valid goal found within maxTime
 	return undefined
+}
+
+function relativeScore(score: number, walkTime: number): number {
+	return score / (walkTime + 1)
+}
+
+/**
+ * Find the nearest coordinate that satisfies a condition within maxTime
+ * @param getNeighbors Function to get neighbors with walk times
+ * @param start Starting coordinate
+ * @param isGoal Function that returns true if the coordinate is a valid goal
+ * @param maxTime Maximum walking time allowed for the path
+ * @param punctual Whether to aim for the goal or a direct neighbor
+ * @returns Path to the nearest valid goal if found within maxTime, undefined otherwise
+ */
+export function findBest<_T>(
+	getNeighbors: GetNeighbors,
+	start: AxialRef,
+	scoring: Scoring<number>,
+	stop: number | ((coord: AxialRef, walkTime: number) => boolean),
+	bestPossibleScore: number,
+	punctual: boolean = true,
+): AxialCoord[] | undefined {
+	const startCoord = axial.access(start)
+	if (typeof stop === 'number')
+		stop = (
+			(stop) => (_, walkTime: number) =>
+				walkTime > stop
+		)(stop)
+	// Check if start position already satisfies the goal condition
+	if (stop(startCoord, 0)) return undefined
+
+	// Initialize data structures
+	const openSet = new HeapMin<AxialCoord, number>()
+	const openSetMap = new AxialKeyMap<PathfindingNode>()
+	const closedSet = new AxialKeyMap<PathfindingNode>()
+	const gCosts = new AxialKeyMap<number>()
+	const parentMap = new AxialKeyMap<AxialCoord>()
+	const homeScore = scoring(startCoord)
+	let [bestScore, bestScoreCoord]: [number, AxialCoord | undefined] =
+		homeScore !== false
+			? [relativeScore(homeScore, 0), startCoord]
+			: [Number.NEGATIVE_INFINITY, undefined]
+
+	// Initialize start node
+	const startNode: PathfindingNode = {
+		coord: startCoord,
+		gCost: 0,
+	}
+
+	function considerScore(coord: AxialCoord, score: number | false, walkTime: number): void {
+		if (score === false) return
+		const relative = relativeScore(score, walkTime)
+		if (relative > bestScore) {
+			bestScore = relative
+			bestScoreCoord = coord
+		}
+	}
+
+	openSet.set(startCoord, startNode.gCost)
+	openSetMap.set(startCoord, startNode)
+	gCosts.set(startCoord, 0)
+
+	while (!openSet.isEmpty) {
+		// Get node with lowest fCost
+		const currentCoord = openSet.pop()![0]
+		const currentNode = openSetMap.get(currentCoord)!
+		if (relativeScore(bestPossibleScore, currentNode.gCost) < bestScore) continue
+		// Move to closed set
+		closedSet.set(currentCoord, currentNode)
+		openSetMap.delete(currentCoord)
+
+		// Check if we reached a valid goal
+		if (punctual) considerScore(currentCoord, scoring(currentCoord), currentNode.gCost)
+
+		// Explore neighbors
+		const neighbors = getNeighbors(currentCoord)
+		for (const neighbor of neighbors) {
+			const { coord: neighborCoord, walkTime } =
+				'coord' in neighbor ? neighbor : { coord: neighbor, walkTime: 1 }
+
+			// Skip if tile is unwalkable
+			if (!Number.isFinite(walkTime)) continue
+
+			// Skip if already in closed set
+			if (closedSet.has(neighborCoord)) continue
+			if (!punctual)
+				considerScore(neighborCoord, scoring(neighborCoord), currentNode.gCost + walkTime)
+
+			// Calculate tentative gCost
+			const tentativeGCost = currentNode.gCost + walkTime
+
+			// Skip if this path cannot be followed
+			if (stop(neighborCoord, tentativeGCost)) continue
+
+			// Check if this path to neighbor is better
+			const existingGCost = gCosts.get(neighborCoord)
+			if (existingGCost !== undefined && tentativeGCost >= existingGCost) continue
+
+			// Create neighbor node
+			const neighborNode: PathfindingNode = {
+				coord: neighborCoord,
+				gCost: tentativeGCost,
+				parent: currentCoord,
+			}
+
+			// Update costs and add to open set
+			gCosts.set(neighborCoord, tentativeGCost)
+			parentMap.set(neighborCoord, currentCoord)
+			openSet.set(neighborCoord, neighborNode.gCost)
+			openSetMap.set(neighborCoord, neighborNode)
+		}
+	}
+	return bestScoreCoord && reconstructPath(bestScoreCoord, startCoord, parentMap)
 }

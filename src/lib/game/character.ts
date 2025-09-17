@@ -13,7 +13,6 @@ import { type RandGenerator, uuid } from '$lib/numbers'
 import type { Game } from './game'
 import { type Module, type Tile, UnBuiltLand } from './hex/tile'
 import aCharacterContext from './npcs/character'
-import type { Storage } from './storage'
 // biome-ignore lint/correctness/noUnusedImports: We need it for mixins tranquility: all propertyKeys are known
 import { subject } from './npcs/scripts'
 import type { ASingleStep } from './npcs/steps'
@@ -27,6 +26,7 @@ import {
 	withTicked,
 } from './object'
 import { axialDistance, type Position, toAxialCoord, toWorldCoord } from './position'
+import type { Storage } from './storage'
 
 //import * as allScripts from "./npcs/scripts"
 //console.log(allScripts)
@@ -49,9 +49,10 @@ export function withCharacterStep<
 }
 
 @reactive
-export class Character extends withInteractive(
-	withScripted(withTicked(withGenerator(GameObject))),
-) implements Storage {
+export class Character
+	extends withInteractive(withScripted(withTicked(withGenerator(GameObject))))
+	implements Storage
+{
 	readonly triggerLevels = characterTriggerLevels
 
 	public assignedModule: Module | undefined = undefined
@@ -65,11 +66,11 @@ export class Character extends withInteractive(
 	public carriedType?: GoodType
 	public carriedAmount: number = 0
 	public carryingCapacity: number = characterCapacity.carryingCapacity
-    public readonly scriptsContext = aCharacterContext(this)
-    private _tile!: Tile
-    get tile(): Tile {
-        return this._tile
-    }
+	public readonly scriptsContext = aCharacterContext(this)
+	private _tile!: Tile
+	get tile(): Tile {
+		return this._tile
+	}
 	constructor(
 		game: Game,
 		uid: string,
@@ -77,9 +78,9 @@ export class Character extends withInteractive(
 		public position: Position,
 	) {
 		super(game, uid)
-        this._tile = game.hex.getTile(toAxialCoord(this.position))!
-        // Allocate initial occupancy on the board
-        this.game.hex.moveCharacter(this, toAxialCoord(this._tile.position))
+		this._tile = game.hex.getTile(toAxialCoord(this.position))!
+		// Allocate initial occupancy on the board
+		this.game.hex.moveCharacter(this, toAxialCoord(this._tile.position))
 		watch(
 			() => this.assignedModule,
 			() => {
@@ -92,16 +93,15 @@ export class Character extends withInteractive(
 		)
 	}
 
-    /** Attempt to step onto a tile, managing board occupancy. */
-    stepOn(tile: Tile): boolean {
-		if(axialDistance(this.position, tile.position) > 1.1)
-			return false
-        const to = toAxialCoord(tile.position)
-        const from = toAxialCoord(this._tile.position)
-        if (!this.game.hex.moveCharacter(this, to, from)) return false
-        this._tile = tile
-        return true
-    }
+	/** Attempt to step onto a tile, managing board occupancy. */
+	stepOn(tile: Tile): boolean {
+		if (axialDistance(this.position, tile.position) > 1.1) return false
+		const to = toAxialCoord(tile.position)
+		const from = toAxialCoord(this._tile.position)
+		if (!this.game.hex.moveCharacter(this, to, from)) return false
+		this._tile = tile
+		return true
+	}
 
 	get title(): string {
 		return this.name
@@ -131,6 +131,17 @@ export class Character extends withInteractive(
 
 	get goods(): { [k in GoodType]?: number } {
 		return this.carriedType ? { [this.carriedType]: this.carriedAmount } : {}
+	}
+
+	/**
+	 * Calculate job score based on distance and job properties
+	 */
+	calculateJobScore(job: any): number {
+		// Higher urgency and closer distance = better score
+		return job.urgency
+	}
+	get bestPossibleJobScore(): number {
+		return 3
 	}
 
 	canInteract(action: string): boolean {
@@ -176,6 +187,9 @@ export class Character extends withInteractive(
 
 	findAction() {
 		if (this.hunger > this.triggerLevels.hunger.high) return this.scriptsContext.selfCare.goEat()
+
+		// TODO: find a job
+
 		// Default to wandering when no specific action is needed
 		return this.scriptsContext.selfCare.wander()
 	}

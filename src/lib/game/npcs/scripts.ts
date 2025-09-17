@@ -18,10 +18,10 @@ import { contract, overloadContract } from '$lib/arktype'
 import { epsilon, objectMap } from '$lib/utils'
 import type { GameObject, InteractiveGameObject } from '../object'
 import {
+	axialDistance,
 	isPosition,
 	Position,
 	Positioned,
-	axialDistance,
 	positionLerp,
 	positionRoughly,
 	positionRoughlyEquals,
@@ -91,8 +91,7 @@ export class GlobalContext {
 	}
 	@contract('string', '...', 'unknown[]')
 	error(message: string, ...args: any[]) {
-		if(args.length > 0)
-			console.error(...args)
+		if (args.length > 0) console.error(...args)
 		throw new Error(message)
 	}
 	// Basic math functions

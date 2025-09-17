@@ -1,16 +1,19 @@
-import { effect } from 'mutts'
 import { Container, type ContainerChild, Sprite } from 'pixi.js'
 import { goods, modules } from '$assets/game-content'
 import type { GoodType } from '$lib/arktype'
 import { tileSize } from '$lib/utils'
 import type { Character } from '../../character'
 import type { Game } from '../../game'
+import type { Job, JobProvider } from '../../job'
 import type { Tile, TileContent } from './index'
-import { NoConstructor, GcClasses } from './utils'
+import { GcClasses, NoConstructor } from './utils'
 
 //#region  Content
 
-export class Module extends NoConstructor<Ssh.ModuleDefinition>() implements TileContent {
+export class Module
+	extends NoConstructor<Ssh.ModuleDefinition>()
+	implements TileContent, JobProvider
+{
 	static class = GcClasses(Module, modules)
 	public assignedWorker: Character | undefined
 	public goods: { [k in GoodType]?: number } = {}
@@ -191,5 +194,50 @@ export class Module extends NoConstructor<Ssh.ModuleDefinition>() implements Til
 	canInteract(action: string): boolean {
 		// Modules can't be built on (they already exist)
 		return false
+	}
+
+	// JobProvider implementation
+	getJob(): Job | undefined {
+		// If already assigned to a worker, no job available
+		if (this.assignedWorker) return undefined
+
+		// Check if module can perform its action based on available resources
+		if (this.action.type === 'harvest') {
+			// For harvesters, check if there are resources to harvest
+			// For now, assume there are always resources available
+			// TODO: check there is a deposit available in the working zone
+			// (for now: around the module to a certain distance, 6?))
+			// Use that information to calculate the fatigue
+			return {
+				type: this.action.type,
+				fatigue: this.getFatigueCost(),
+				urgency: 1,
+			}
+		} else if (this.action.type === 'transform') {
+			// For transformers, check if we have required inputs
+			const hasInputs = Object.entries(this.action.inputs || {}).every(([goodType, required]) => {
+				return (this.goods[goodType as GoodType] || 0) >= (required as number)
+			})
+
+			if (hasInputs) {
+				return {
+					type: this.action.type,
+					fatigue: this.getFatigueCost(),
+					urgency: 1,
+				}
+			}
+		}
+
+		return undefined
+	}
+
+	private getFatigueCost(): number {
+		// TODO: use this.time
+		// Base fatigue based on action type
+		const baseFatigue = this.action.type === 'harvest' ? 2 : 3
+
+		// Add time-based fatigue (if module has time configuration)
+		// For now, just return base fatigue
+		return baseFatigue
 	}
 }

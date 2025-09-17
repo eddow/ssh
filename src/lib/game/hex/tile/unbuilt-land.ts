@@ -4,7 +4,7 @@ import { deposits, goods } from '$assets/game-content'
 import type { GoodType, TerrainType } from '$lib/arktype'
 import { tileSize } from '$lib/utils'
 import type { Tile, TileContent } from './index'
-import { NoConstructor, GcClasses } from './utils'
+import { GcClasses, NoConstructor } from './utils'
 
 export class Deposit extends NoConstructor<Ssh.DepositDefinition>() {
 	static class = GcClasses(Deposit, deposits)

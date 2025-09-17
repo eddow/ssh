@@ -10,18 +10,17 @@ import {
 	findNearest,
 	findPath,
 	fromCartesian,
-	type IsGoal,
 	type NeighborInfo,
 	PerlinTerrainGenerator,
+	type Scoring,
 	type WorldCoord,
 } from '$lib/hex'
 import { AxialKeyMap } from '$lib/mem'
-import type { Character } from '../character'
 import { isInteger, tileSize } from '$lib/utils'
+import type { Character } from '../character'
 import type { Game } from '../game'
 import { TileBorder, type TileBorderContent } from './border'
 import { type Deposit, Tile, type TileContent, UnBuiltLand } from './tile'
-
 
 export class HexBoard extends withContainer(withHittable(GameObject)) {
 	private contents: AxialKeyMap<TileContent | TileBorderContent>
@@ -205,7 +204,12 @@ export class HexBoard extends withContainer(withHittable(GameObject)) {
 		return findPath((c) => this.getNeighbors(c), start, goal, maxTime, punctual)
 	}
 
-	findNearest(start: AxialRef, isGoal: IsGoal<true>, maxTime: number, punctual: boolean = true) {
-		return findNearest((c) => this.getNeighbors(c), start, isGoal, maxTime, punctual)
+	findNearest(
+		start: AxialRef,
+		isGoal: Scoring<true>,
+		stop: number | ((coord: AxialRef, walkTime: number) => boolean),
+		punctual: boolean = true,
+	) {
+		return findNearest((c) => this.getNeighbors(c), start, isGoal, stop, punctual)
 	}
 }

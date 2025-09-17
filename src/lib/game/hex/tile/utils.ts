@@ -1,4 +1,3 @@
-
 type Ctor<T extends object = any> = abstract new (...args: any[]) => T
 
 export function GcClass<BaseCtor extends Ctor<any>, TDef extends object>(
