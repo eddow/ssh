@@ -80,7 +80,7 @@ export function positionToString(positioned: Positioned): string {
 	return `<${axial.q}, ${axial.r}, ${-axial.q - axial.r}>`
 }
 
-export function positionDistance(a: Positioned, b: Positioned): number {
+export function axialDistance(a: Positioned, b: Positioned): number {
 	return axial.distance(toAxialCoord(a), toAxialCoord(b))
 }
 

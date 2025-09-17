@@ -1,9 +1,13 @@
 import { type Axial, type AxialRef, axial } from '$lib/hex'
-import type { HexBoard } from './board'
-import type { Tile } from './tile'
+import type { HexBoard } from '../board'
+import type { Tile } from '../tile'
+
+// Re-export content classes
+export * from './module-gate'
 
 export interface TileBorderContent {
 	readonly border: TileBorder
+	destroy?(): void
 }
 
 export class TileBorder {
@@ -30,6 +34,7 @@ export class TileBorder {
 		return this.hex.getBorderContent(this.coord)
 	}
 	set content(content: TileBorderContent | undefined) {
+		this.content?.destroy?.()
 		this.hex.setBorderContent(this.coord, content)
 	}
 }

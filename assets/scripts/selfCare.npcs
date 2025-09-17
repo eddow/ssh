@@ -7,15 +7,15 @@ goEat = function()
 		end if
 		found = find.food()
 		if not found then return false
-		walk.into found.tile
+		walk.into found.path
 		inventory.grab found.good, 1
 	end while
 end function
 
 wander = function()
 	destination = find.wanderingTile()
-	if not destination then return false
-	walk.into destination.tile
+	if not destination.path then return false
+	walk.into destination.path
 	selfCare.pondering
 end function
 

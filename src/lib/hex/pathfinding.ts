@@ -33,6 +33,7 @@ export function findPath(
 	maxTime: number,
 	punctual: boolean = true,
 ): AxialCoord[] | undefined {
+	// TODO: use bidirectional if the function becomes used
 	const startCoord = axial.access(start)
 	const goalCoord = axial.access(goal)
 	const goalDistance = punctual ? 0 : 1

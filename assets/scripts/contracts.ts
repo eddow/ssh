@@ -1,11 +1,10 @@
 import type { ContractType } from '$lib/arktype'
-import { Positioned } from '$lib/game/position'
-
-
-// Const → Type contracts (declarative shape used for typings)
+import '$lib/game/position'
+import { Position } from '$lib/game/position'
 export const CharacterContract = {
 	walk: {
-		into: [Positioned],
+		into: [Position.array()],
+		until: [Position.array()],
 	},
 	inventory: {
 		dropAll: [],

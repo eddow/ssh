@@ -21,7 +21,7 @@ import {
 	isPosition,
 	Position,
 	Positioned,
-	positionDistance,
+	axialDistance,
 	positionLerp,
 	positionRoughly,
 	positionRoughlyEquals,
@@ -51,7 +51,7 @@ export const gameOperators: Operators = Object.setPrototypeOf(
 		},
 		'-'(left: any, right: any) {
 			if (isPosition(left) && isPosition(right)) {
-				return positionDistance(left, right)
+				return axialDistance(left, right)
 			}
 			return jsOperators['-'](left, right)
 		},
@@ -89,7 +89,7 @@ export class GlobalContext {
 		console.dir(value, { depth: null })
 		debugger
 	}
-	@contract('string', '...', 'any[]')
+	@contract('string', '...', 'unknown[]')
 	error(message: string, ...args: any[]) {
 		if(args.length > 0)
 			console.error(...args)

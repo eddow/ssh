@@ -5,9 +5,10 @@ import type { CharacterContract } from '$assets/scripts/contracts'
 import { contract, GoodType } from '$lib/arktype'
 import { type AxialCoord, type AxialRef, axial } from '$lib/hex'
 import { objectMap } from '$lib/utils'
+import type { get } from 'svelte/store'
 import type { Character } from '../character'
 import { type Tile, TileType } from '../hex'
-import { Positioned, positionRoughlyEquals, toAxialCoord } from '../position'
+import { axialDistance, Positioned, positionRoughlyEquals, toAxialCoord } from '../position'
 import { InteractiveContext, loadNpcScripts, protoCtx, subject } from './scripts'
 import { DropStep, EatStep, GrabStep, MoveToStep, PonderingStep } from './steps'
 
@@ -99,7 +100,15 @@ class FindFunctions {
 		const randomIndex = Math.floor(Math.random() * walkableTiles.length)
 		const { coord: targetCoord, tile: targetTile } = walkableTiles[randomIndex]
 
-		return { tile: targetTile, coord: targetCoord }
+		return {
+			tile: targetTile,
+			path: this[subject].game.hex.findPath(
+				toAxialCoord(this[subject].tile.position),
+				targetCoord,
+				maxWalkTime,
+				true,
+			)
+		}
 	}
 }
 
@@ -130,6 +139,10 @@ class WalkFunctions {
 			)
 	}
 	@contract(TileType)
+	stepOn(tile: Tile) {
+		return this[subject].stepOn(tile)
+	}
+	@contract(TileType)
 	can(tile: Tile) {
 		return Number.isFinite(this[subject].tile.content!.walkTime)
 	}
@@ -148,13 +161,6 @@ class SelfCareFunctions {
 }
 
 class CharacterContext extends InteractiveContext<Character> {
-	get tile() {
-		return this[subject].tile
-	}
-	set tile(value: Tile) {
-		// ArkType validation can be added here if needed for setter validation
-		this[subject].tile = value
-	}
 	get carriedType() {
 		return this[subject].carriedType
 	}

@@ -16,6 +16,7 @@ import {
 	type WorldCoord,
 } from '$lib/hex'
 import { AxialKeyMap } from '$lib/mem'
+import type { Character } from '../character'
 import { isInteger, tileSize } from '$lib/utils'
 import type { Game } from '../game'
 import { TileBorder, type TileBorderContent } from './border'
@@ -24,6 +25,7 @@ import { type Deposit, Tile, type TileContent, UnBuiltLand } from './tile'
 
 export class HexBoard extends withContainer(withHittable(GameObject)) {
 	private contents: AxialKeyMap<TileContent | TileBorderContent>
+	private occupied: AxialKeyMap<Character>
 	private terrainGenerator: PerlinTerrainGenerator
 
 	axial2world(coord: AxialRef): WorldCoord {
@@ -40,6 +42,7 @@ export class HexBoard extends withContainer(withHittable(GameObject)) {
 	) {
 		super(game)
 		this.contents = new AxialKeyMap()
+		this.occupied = new AxialKeyMap()
 		this.zIndex = -1
 		this.terrainGenerator = new PerlinTerrainGenerator(12345)
 	}
@@ -160,6 +163,27 @@ export class HexBoard extends withContainer(withHittable(GameObject)) {
 		return content?.border ?? new TileBorder(this, ref)
 	}
 
+	// Occupancy management (regular coordinates, not */2)
+	getCharacterAt(ref: AxialRef): Character | undefined {
+		return this.occupied.get(axial.access(ref))
+	}
+
+	isOccupied(ref: AxialRef): boolean {
+		return this.occupied.has(axial.access(ref))
+	}
+
+	/** Attempts to move a character onto a coordinate. Returns true if successful. */
+	moveCharacter(character: Character, to: AxialRef, from?: AxialRef): boolean {
+		const toCoord = axial.access(to)
+		// TODO: if occupied by idle character, ask him to move away - if possible, still step on
+		if (this.isOccupied(toCoord)) return false
+		// allocate new position
+		this.occupied.set(toCoord, character)
+		// deallocate old position if provided and still pointing to this character
+		if (from && this.getCharacterAt(from) === character) this.occupied.delete(from)
+		return true
+	}
+
 	getNeighbors(coord: AxialRef): NeighborInfo[] {
 		const neighbors = axial.neighbors(coord)
 		return neighbors
@@ -168,7 +192,9 @@ export class HexBoard extends withContainer(withHittable(GameObject)) {
 				return tile
 					? {
 							coord: axial.coord(neighbor),
-							walkTime: tile.content!.walkTime,
+							walkTime: this.isOccupied(neighbor)
+								? Number.POSITIVE_INFINITY
+								: tile.content!.walkTime,
 						}
 					: null
 			})

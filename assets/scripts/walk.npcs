@@ -1,31 +1,23 @@
-walkTo = function(target, punctual)
-	if target isa tile then
-		targetTile = target
-		targetPosition = target.position
-	else if target isa position then
-		targetTile = tileAt(target)
-		targetPosition = target
-	else
-		error "Expected: tile or position, got " + target, target
+walkTo = function(path)
+	for step in path
+		if tile.position != step then
+			midPoint = lerp(tile.position, step, 1/2)
+			walk.moveTo midPoint
+			if not walk.stepOn(tileAt(step)) then return false
+		end if
+	end for
+	return true
+end function
+
+into = function(path)
+	target = path[path.length-1]
+	if walkTo(path) and tile == tileAt(target) then
+		walk.moveTo target
 	end if
-	while tile != targetTile
-		if punctual and not walk.can(targetTile) then return false
-		path = find.path(targetTile, punctual)
-		if not path then return false
-		for step in path
-			if tile.position != step then
-				midPoint = lerp(tile.position, step, 1/2)
-				walk.moveTo midPoint
-				if not walk.can(tile) then break
-				tile = tileAt(step)
-			end if
-		end for
-	end while
 end function
 
-into = function(target)
-	walkTo target, true
-	walk.moveTo target
+until = function(target)
+	walkTo(target)
 end function
 
-return { into }
+return { into, until }
