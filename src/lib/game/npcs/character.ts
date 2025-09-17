@@ -1,21 +1,19 @@
+import { maxWalkTime } from '$assets/constants'
 import * as gameContent from '$assets/game-content'
 import { goods as goodsCatalog } from '$assets/game-content'
-import type { CharacterScripts } from '$assets/scripts/globals'
+import type { CharacterContract } from '$assets/scripts/contracts'
+import { contract, GoodType, HexTileType } from '$lib/arktype'
 import { type AxialCoord, type AxialRef, axial } from '$lib/hex'
 import { objectMap } from '$lib/utils'
 import type { Character } from '../character'
 import type { HexTile } from '../hexboard'
-import type { Position } from '../position'
-import { positionRoughlyEquals, toAxialCoord } from '../position'
-import type { GoodType } from '../tile'
+import { Positioned, positionRoughlyEquals, toAxialCoord } from '../position'
 import { InteractiveContext, loadNpcScripts, protoCtx, subject } from './scripts'
 import { DropStep, EatStep, GrabStep, MoveToStep, PonderingStep } from './steps'
-
-const maxWalkTime = 24
-
 class FindFunctions {
 	declare [subject]: Character
-	path(to: Position, punctual: boolean = true) {
+	@contract(Positioned, 'boolean')
+	path(to: Positioned, punctual: boolean = true) {
 		return this[subject].game.hex.findPath(
 			toAxialCoord(this[subject].tile.position),
 			axial.round(toAxialCoord(to)),
@@ -23,6 +21,7 @@ class FindFunctions {
 			punctual,
 		)
 	}
+	@contract()
 	food() {
 		const { hex } = this[subject].game
 		function bestFoodOnTile(coord: AxialRef): GoodType | null {
@@ -52,6 +51,7 @@ class FindFunctions {
 		const good = bestFoodOnTile(targetCoord)!
 		return { tile: targetTile, good, path }
 	}
+	@contract(GoodType)
 	freeSpot(goodType: GoodType) {
 		const { hex } = this[subject].game
 		const start = toAxialCoord(this[subject].tile.position)
@@ -70,6 +70,7 @@ class FindFunctions {
 		const targetTile = hex.getTile(targetCoord)!
 		return { tile: targetTile, path }
 	}
+	@contract()
 	wanderingTile() {
 		const { hex } = this[subject].game
 		const start = toAxialCoord(this[subject].tile.position)
@@ -103,9 +104,11 @@ class FindFunctions {
 
 class InventoryFunctions {
 	declare [subject]: Character
+	@contract(GoodType, 'number?')
 	grab(goodType: GoodType, maxAmount: number = 1) {
 		return new GrabStep(this[subject], goodType, maxAmount)
 	}
+	@contract(GoodType, 'number?')
 	drop(goodType: GoodType, maxAmount: number = 1) {
 		return new DropStep(this[subject], goodType, maxAmount)
 	}
@@ -113,10 +116,11 @@ class InventoryFunctions {
 
 class WalkFunctions {
 	declare [subject]: Character
-	moveTo(to: Position) {
+	@contract(Positioned)
+	moveTo(to: Positioned) {
 		const toAxial = toAxialCoord(to)
 		const fromAxial = toAxialCoord(this[subject])
-		// TODO: hyper-validate, should be in the same tile
+		// ArkType validation now handles argument validation
 		if (!positionRoughlyEquals(fromAxial, toAxial))
 			return new MoveToStep(
 				this[subject].tile.content.walkTime * axial.distance(fromAxial, toAxial),
@@ -124,6 +128,7 @@ class WalkFunctions {
 				to,
 			)
 	}
+	@contract(HexTileType)
 	can(tile: HexTile) {
 		return Number.isFinite(this[subject].tile.content.walkTime)
 	}
@@ -131,9 +136,11 @@ class WalkFunctions {
 
 class SelfCareFunctions {
 	declare [subject]: Character
+	@contract()
 	eat() {
 		return new EatStep(this[subject])
 	}
+	@contract()
 	pondering() {
 		return new PonderingStep(this[subject])
 	}
@@ -144,8 +151,7 @@ class CharacterContext extends InteractiveContext<Character> {
 		return this[subject].tile
 	}
 	set tile(value: HexTile) {
-		// TODO: super-duper-validate (even with position)
-
+		// ArkType validation can be added here if needed for setter validation
 		this[subject].tile = value
 	}
 	get carriedType() {
@@ -156,9 +162,6 @@ class CharacterContext extends InteractiveContext<Character> {
 	}
 	get hunger() {
 		return this[subject].hunger
-	}
-	get satisfiedHunger() {
-		return this[subject].triggerLevels.hunger.satisfied
 	}
 	get triggerLevels() {
 		return this[subject].triggerLevels
@@ -184,5 +187,5 @@ loadNpcScripts(
 export default function aCharacterContext(character: Character) {
 	return Object.create(characterContext, {
 		[subject]: { value: character },
-	}) as CharacterScripts & typeof characterContext
+	}) as CharacterContract & typeof characterContext
 }

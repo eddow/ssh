@@ -1,5 +1,6 @@
 // TODO: Load all .npcs files as raw text at "build time"
 
+import { type } from 'arktype'
 import { Eventful, unreactive } from 'mutts'
 import type { ExecutionContext, ExecutionState } from 'npc-script/src'
 import {
@@ -13,12 +14,16 @@ import {
 	type Operators,
 } from 'npc-script/src'
 import { deposits, goods, modules, terrain } from '$assets/game-content'
+import { CharacterContract } from '$assets/scripts/contracts'
+import type { Contract } from '$lib/arktype'
+import { contract, overloadContract } from '$lib/arktype'
 import { epsilon, objectMap } from '$lib/utils'
 import { HexTile } from '../hexboard'
 import type { GameObject, InteractiveGameObject } from '../object'
 import {
 	isPosition,
-	type Position,
+	Position,
+	Positioned,
 	positionDistance,
 	positionLerp,
 	positionRoughly,
@@ -62,50 +67,69 @@ export const gameOperators: Operators = Object.setPrototypeOf(
  */
 export const gameIsaTypes: IsaTypes = Object.setPrototypeOf(
 	{
-		position: (value: any) => isPosition(value),
+		position: (value: any) => Position.infer,
 		tile: (value: any) => value instanceof HexTile,
 	},
 	jsIsaTypes,
 )
-//!TODO: Heavy argument validation
 // Math utilities
+
+export function lerp<T extends number | Positioned>(a: T, b: T, t: number): T {
+	if (typeof a === 'number' && typeof b === 'number') {
+		return (a + (b - a) * t) as T
+	}
+	if (isPosition(a) && isPosition(b)) {
+		return positionLerp(a, b, t) as T
+	}
+	throw new Error(`Invalid lerp types: ${typeof a} and ${typeof b}`)
+}
 
 type XOrDictX<X> = X | { [k: string]: XOrDictX<X> }
 
 @unreactive
 export class GlobalContext {
+	@contract('unknown')
 	debugger(value: any) {
 		console.dir(value, { depth: null })
 		debugger
 	}
+	@contract('string')
 	error(message: string) {
 		throw new Error(message)
 	}
 	// Basic math functions
+	@contract('...', 'number[]')
 	min(...args: number[]) {
 		return Math.min(...args)
 	}
+	@contract('...', 'number[]')
 	max(...args: number[]) {
 		return Math.max(...args)
 	}
+	@contract('number')
 	abs(arg: number) {
 		return Math.abs(arg)
 	}
+	@contract('number')
 	floor(arg: number) {
 		return Math.floor(arg)
 	}
+	@contract('number')
 	ceil(arg: number) {
 		return Math.ceil(arg)
 	}
+	@contract('number', 'number', 'number')
 	clamp(value: number, min: number, max: number) {
 		return Math.max(min, Math.min(max, value))
 	}
 
 	// Interpolation and rounding
-	lerp(a: number, b: number, t: number) {
+	@overloadContract(['number', 'number', 'number'], [Positioned, Positioned, 'number'])
+	lerp<T extends number | Positioned>(a: T, b: T, t: number): T {
 		return lerp(a, b, t)
 	}
-	round<T extends number | Position>(a: T): T {
+	@contract(type.or('number', Positioned))
+	round<T extends number | Positioned>(a: T): T {
 		if (typeof a === 'number') {
 			return Math.round(a) as T
 		}
@@ -115,7 +139,8 @@ export class GlobalContext {
 		}
 		throw new Error(`Invalid round type: ${typeof a}`)
 	}
-	roughly<T extends number | Position>(a: T, usedEpsilon = epsilon): T {
+	@contract(type.or('number', Positioned), 'number?')
+	roughly<T extends number | Positioned>(a: T, usedEpsilon = epsilon): T {
 		if (typeof a === 'number') {
 			return (Math.round(a / usedEpsilon) * usedEpsilon) as T
 		}
@@ -137,8 +162,8 @@ export function protoCtx<Class extends abstract new () => object, Ext extends ob
 }
 export class GameContext<Subject extends GameObject> extends GlobalContext {
 	declare [subject]: Subject
-	tileAt(position: Position) {
-		return this[subject].game.hex.getTile(toAxialCoord(position))
+	tileAt(positioned: Positioned) {
+		return this[subject].game.hex.getTile(toAxialCoord(positioned))
 	}
 }
 
@@ -234,16 +259,35 @@ export function loadNpcScripts(modules: Record<string, string>, context: Executi
 		script: GameScript,
 		entryPoint: XOrDictX<FunctionDefinition>,
 		name: string,
+		contract: Contract,
 	): XoDe {
-		return entryPoint instanceof FunctionDefinition
-			? (...args: any[]) => new ScriptExecution(script, name, entryPoint.call(args))
-			: (objectMap(entryPoint, (value, key) =>
-					exposeScripts(script, value, `${name}.${key}`),
-				) as XoDe)
+		if (entryPoint instanceof FunctionDefinition && Array.isArray(contract)) {
+			const validate = type.raw(contract)
+			return (...args: any[]) => {
+				const result = validate(args)
+				if (result instanceof type.errors) {
+					throw new Error(`Validation failed for ${name}: ${result.summary}`)
+				}
+				return new ScriptExecution(script, name, entryPoint.call(args))
+			}
+		}
+		if (!(entryPoint instanceof FunctionDefinition) && !Array.isArray(contract)) {
+			return objectMap(entryPoint, (value, key) => {
+				const nextName = `${name}.${key}`
+				const nextProto = (contract as { [K: string]: Contract })[key]
+				return exposeScripts(script, value, nextName, nextProto)
+			}) as XoDe
+		}
+		throw new Error(`Invalid contract type for entry point ${name}: ${typeof contract} ${contract}`)
 	}
 
 	for (const [name, { gameScript, value }] of Object.entries(npcScripts)) {
-		const exposed = exposeScripts(gameScript, value, name)
+		const exposed = exposeScripts(
+			gameScript,
+			value,
+			name,
+			CharacterContract[name as keyof typeof CharacterContract],
+		)
 		const existing = (context as any)[name]
 		if (name in context && typeof context[name] === 'object') {
 			Object.assign(existing, exposed)
@@ -252,14 +296,4 @@ export function loadNpcScripts(modules: Record<string, string>, context: Executi
 		}
 	}
 	return context
-}
-
-export function lerp<T extends number | Position>(a: T, b: T, t: number): T {
-	if (typeof a === 'number' && typeof b === 'number') {
-		return (a + (b - a) * t) as T
-	}
-	if (isPosition(a) && isPosition(b)) {
-		return positionLerp(a, b, t) as T
-	}
-	throw new Error(`Invalid lerp types: ${typeof a} and ${typeof b}`)
 }

@@ -1,6 +1,7 @@
 import { effect } from 'mutts'
 import { Container, type ContainerChild, Sprite } from 'pixi.js'
-import { deposits, goods, modules, type terrain } from '$assets/game-content'
+import { deposits, goods, modules } from '$assets/game-content'
+import type { GoodType, TerrainType } from '$lib/arktype'
 import { tileSize } from '$lib/utils'
 import type { Character } from './character'
 import type { Game } from './game'
@@ -9,10 +10,6 @@ import type { HexTile } from './hexboard'
 // TODO: translate-> name = translation set on load
 type Ctor<T extends object = any> = abstract new (...args: any[]) => T
 
-export type TerrainType = keyof typeof terrain
-export type GoodType = keyof typeof goods
-export type DepositType = keyof typeof deposits
-export type ModuleType = keyof typeof modules
 export interface TileContent {
 	readonly name?: string
 	readonly debugInfo: Record<string, any>

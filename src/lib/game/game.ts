@@ -150,7 +150,7 @@ export class GameView {
 		// Create PixiJS application
 		this.pixi = new Application()
 		this.stage = this.pixi.stage
-
+		
 		await this.pixi.init({
 			backgroundColor: 0x1099bb,
 			resolution: window.devicePixelRatio || 1,
@@ -185,7 +185,12 @@ export class GameView {
 
 		// Destroy PixiJS application
 		if (this.pixi) {
-			this.pixi.destroy(true, { children: true, texture: true })
+			this.pixi.destroy(
+				{
+					removeView: false,
+					releaseGlobalResources: true,
+				}
+			)
 		}
 
 		// Clear global reference

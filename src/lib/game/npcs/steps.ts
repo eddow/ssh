@@ -1,9 +1,9 @@
 import { Eventful } from 'mutts'
 import { activityDurations, ponderingFatigueRecovery } from '$assets/constants'
 import { goods as goodsCatalog } from '$assets/game-content'
+import type { GoodType } from '$lib/arktype'
 import type { Character } from '../character'
-import type { Position } from '../position'
-import type { GoodType } from '../tile'
+import type { Position, Positioned } from '../position'
 import { type AsyncActionEvents, lerp } from './scripts'
 
 //#region Abstracts
@@ -35,7 +35,7 @@ export abstract class AEvolutionStep extends ASingleStep {
 	}
 }
 
-export abstract class ALerpStep<T extends number | Position> extends AEvolutionStep {
+export abstract class ALerpStep<T extends number | Positioned> extends AEvolutionStep {
 	constructor(
 		duration: number,
 		public readonly from: T,
@@ -52,14 +52,14 @@ export abstract class ALerpStep<T extends number | Position> extends AEvolutionS
 //#endregion
 //#region Commons
 
-export class MoveToStep extends ALerpStep<Position> {
+export class MoveToStep extends ALerpStep<Positioned> {
 	get type() {
 		return 'walk' as const
 	}
 	constructor(
 		duration: number,
 		readonly who: { position: Position },
-		to: Position,
+		to: Positioned,
 	) {
 		super(duration, who.position, to)
 	}

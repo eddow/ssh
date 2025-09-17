@@ -3,7 +3,7 @@
  * Handles proper cleanup and reloading of PixiJS infrastructure during development
  */
 
-import type { Application } from 'pixi.js'
+import { type Application, BatchableGraphics } from 'pixi.js'
 
 // Global registry of active PixiJS applications for HMR cleanup
 const activePixiApps = new Set<Application>()
@@ -25,7 +25,7 @@ export function destroyAllPixiApps() {
 			}
 
 			// Destroy the application
-			app.destroy(true, { children: true, texture: true })
+			app.destroy(true)
 		} catch (error) {
 			console.warn('Error destroying PixiJS app during HMR:', error)
 		}
@@ -62,3 +62,20 @@ if (import.meta.hot) {
 		destroyAllPixiApps()
 	})
 }
+
+const BatchableGraphics_destroy = BatchableGraphics.prototype.destroy
+BatchableGraphics.prototype.destroy = function (this: BatchableGraphics) {
+	if (this._batcher) BatchableGraphics_destroy.call(this)
+}
+/*
+const ResizePlugin_destroy = ResizePlugin.destroy
+ResizePlugin.destroy = function(this: any) {
+	if(this._cancelResize)
+		ResizePlugin_destroy.call(this)
+}*/
+
+/*const Application_destroy = Application.prototype.destroy
+Application.prototype.destroy = function(this: Application) {
+	if(this.stage)
+		Application_destroy.call(this)
+}*/

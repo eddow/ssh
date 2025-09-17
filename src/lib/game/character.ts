@@ -5,6 +5,7 @@ import {
 	characterEvolutionRates,
 	characterTriggerLevels,
 } from '$assets/constants'
+import type { GoodType } from '$lib/arktype'
 import { mrg } from '$lib/globals.svelte'
 import { type AxialCoord, axial } from '$lib/hex'
 import { AxialSet } from '$lib/mem'
@@ -25,7 +26,7 @@ import {
 	withTicked,
 } from './object'
 import { type Position, toAxialCoord, toWorldCoord } from './position'
-import { type GoodType, type Module, UnBuiltLand } from './tile'
+import { type Module, UnBuiltLand } from './tile'
 
 //import * as allScripts from "./npcs/scripts"
 //console.log(allScripts)
@@ -70,10 +71,9 @@ export class Character extends withInteractive(
 		game: Game,
 		uid: string,
 		public name: string,
-		position: Position,
+		public position: Position,
 	) {
 		super(game, uid)
-		this.position = position
 		this.tile = game.hex.getTile(toAxialCoord(this.position))!
 		watch(
 			() => this.assignedModule,
@@ -86,7 +86,6 @@ export class Character extends withInteractive(
 			},
 		)
 	}
-	readonly position: Position
 
 	get title(): string {
 		return this.name
@@ -282,3 +281,7 @@ export class Population extends withContainer(withHittable(GameObject)) {
 		)
 	}
 }
+
+// ArkType validation for Character
+import { type } from 'arktype'
+export const CharacterType = type.instanceOf(Character)

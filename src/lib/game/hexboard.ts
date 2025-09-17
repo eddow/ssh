@@ -1,6 +1,7 @@
 import { effect, reactive, watch } from 'mutts'
 import { ColorMatrixFilter, Container, Graphics, Point, type Sprite, TilingSprite } from 'pixi.js'
 import { deposits, terrain as terrainDetails } from '$assets/game-content'
+import type { TerrainType } from '$lib/arktype'
 import {
 	GameObject,
 	withContainer,
@@ -26,7 +27,7 @@ import {
 import { AxialKeyMap } from '../mem'
 import type { Game } from './game'
 import { type Position, toAxialCoord, toWorldCoord } from './position'
-import { type Deposit, Module, type TerrainType, type TileContent, UnBuiltLand } from './tile'
+import { type Deposit, Module, type TileContent, UnBuiltLand } from './tile'
 // TODO: check container.cacheAsTexture() for background
 
 @reactive
@@ -78,10 +79,6 @@ export class HexTile extends withInteractive(withGenerator(GameObject)) {
 		// Create and set the new module
 		const newModule = new ModuleClass()
 		this.content = newModule
-		// TODO: Temporary, move char0
-		const char = this.game.population.getAllCharacters()[0]
-		char.abandonAnd(char.scriptsContext.walk.into(this.position))
-
 		return true
 	}
 
@@ -141,7 +138,7 @@ export class HexTile extends withInteractive(withGenerator(GameObject)) {
 		this.game.backgroundLayer.addChild(tileContainer)
 		return () => {
 			mouseoverEffect()
-			tileContainer.destroy({ children: true })
+			tileContainer.destroy({ children: false })
 			this.game.backgroundLayer.removeChild(tileContainer)
 		}
 	}
@@ -296,3 +293,7 @@ export class HexBoard extends withContainer(withHittable(GameObject)) {
 		return findNearest((c) => this.getNeighbors(c), start, isGoal, maxTime, punctual)
 	}
 }
+
+// ArkType validation for HexTile
+import { type } from 'arktype'
+export const HexTileType = type.instanceOf(HexTile)

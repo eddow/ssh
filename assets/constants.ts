@@ -52,4 +52,6 @@ export const activityDurations = {
 	restMin: 3,
 	restMax: 6,
 } as const
+
 export const ponderingFatigueRecovery = 10  // Fatigue recovery rate while resting
+export const maxWalkTime = 24	// Maximum walking time accepted to choose a tile for an action

@@ -1,3 +1,4 @@
+import { type } from 'arktype'
 import {
 	type AxialCoord,
 	type AxialRef,
@@ -13,10 +14,17 @@ function roughly(x: number) {
 }
 
 // Position concept - can be any coordinate representation
-export type Position = WorldCoord | AxialRef | { position: Position }
+export const { Position } = type.define({
+	Position: type.or({ q: 'number', r: 'number' }, { x: 'number', y: 'number' }),
+})
+export type Position = typeof Position.infer
+export const { Positioned } = type.define({
+	Positioned: type.or(Position, { position: Position }),
+})
+export type Positioned = typeof Positioned.infer
 
 // Type guards
-export function isPosition(value: any): value is Position {
+export function isPosition(value: any): value is Positioned {
 	if (typeof value === 'number') return true // AxialKey
 	if (typeof value === 'object' && value !== null) {
 		if ('x' in value && 'y' in value) return true // WorldCoord
@@ -38,58 +46,58 @@ export function isAxialRef(value: any): value is AxialRef {
 }
 
 // Conversion functions
-export function toWorldCoord(position: Position): WorldCoord {
-	if (isWorldCoord(position)) return position
-	if (typeof position === 'number') return cartesian(position, tileSize)
-	if (isAxialRef(position)) {
-		Object.assign(position, cartesian(position, tileSize))
-		return position as unknown as WorldCoord
+export function toWorldCoord(positioned: Positioned): WorldCoord {
+	if (isWorldCoord(positioned)) return positioned
+	if (typeof positioned === 'number') return cartesian(positioned, tileSize)
+	if (isAxialRef(positioned)) {
+		Object.assign(positioned, cartesian(positioned, tileSize))
+		return positioned as unknown as WorldCoord
 	}
-	if ('position' in position) {
-		return toWorldCoord(position.position)
+	if ('position' in positioned) {
+		return toWorldCoord(positioned.position)
 	}
 	throw new Error('Invalid position type')
 }
 
-export function toAxialCoord(position: Position): { q: number; r: number } {
-	if (isAxialRef(position)) {
-		return axial.access(position)
+export function toAxialCoord(positioned: Positioned): { q: number; r: number } {
+	if (isAxialRef(positioned)) {
+		return axial.access(positioned)
 	}
-	if (isWorldCoord(position)) {
-		Object.assign(position, fromCartesian(position, tileSize))
-		return position as unknown as AxialCoord
+	if (isWorldCoord(positioned)) {
+		Object.assign(positioned, fromCartesian(positioned, tileSize))
+		return positioned as unknown as AxialCoord
 	}
-	if ('position' in position) {
-		return toAxialCoord(position.position)
+	if ('position' in positioned) {
+		return toAxialCoord(positioned.position)
 	}
 	throw new Error('Invalid position type')
 }
 
 // Position operations
-export function positionToString(position: Position): string {
-	const axial = toAxialCoord(position)
+export function positionToString(positioned: Positioned): string {
+	const axial = toAxialCoord(positioned)
 	return `<${axial.q}, ${axial.r}, ${-axial.q - axial.r}>`
 }
 
-export function positionDistance(a: Position, b: Position): number {
+export function positionDistance(a: Positioned, b: Positioned): number {
 	return axial.distance(toAxialCoord(a), toAxialCoord(b))
 }
 
-export function positionRoughly(position: Position): Position {
-	if (isWorldCoord(position)) {
-		return { x: roughly(position.x), y: roughly(position.y) }
+export function positionRoughly(positioned: Positioned): Positioned {
+	if (isWorldCoord(positioned)) {
+		return { x: roughly(positioned.x), y: roughly(positioned.y) }
 	}
-	if (isAxialRef(position)) {
-		const { q, r } = toAxialCoord(position)
+	if (isAxialRef(positioned)) {
+		const { q, r } = toAxialCoord(positioned)
 		return { q: roughly(q), r: roughly(r) }
 	}
-	if ('position' in position) {
-		return positionRoughly(position.position)
+	if ('position' in positioned) {
+		return positionRoughly(positioned.position)
 	}
 	throw new Error('Invalid position type')
 }
 
-export function positionRoughlyEquals(a: Position, b: Position): boolean {
+export function positionRoughlyEquals(a: Positioned, b: Positioned): boolean {
 	if (isWorldCoord(a) && isWorldCoord(b)) {
 		return Math.abs(a.x - b.x) + Math.abs(a.y - b.y) < epsilon
 	}
@@ -98,7 +106,7 @@ export function positionRoughlyEquals(a: Position, b: Position): boolean {
 	return aAxial.q === bAxial.q && aAxial.r === bAxial.r
 }
 
-export function positionEquals(a: Position, b: Position): boolean {
+export function positionEquals(a: Positioned, b: Positioned): boolean {
 	if (isWorldCoord(a) && isWorldCoord(b)) {
 		return a.x === b.x && a.y === b.y
 	}
@@ -107,7 +115,7 @@ export function positionEquals(a: Position, b: Position): boolean {
 	return aAxial.q === bAxial.q && aAxial.r === bAxial.r
 }
 
-export function positionLerp(a: Position, b: Position, t: number): Position {
+export function positionLerp(a: Positioned, b: Positioned, t: number): Positioned {
 	if (isWorldCoord(a) && isWorldCoord(b)) {
 		return {
 			x: a.x + (b.x - a.x) * t,
@@ -122,7 +130,7 @@ export function positionLerp(a: Position, b: Position, t: number): Position {
 	}
 }
 
-export function xyDistance(a: Position, b: Position): number {
+export function xyDistance(a: Positioned, b: Positioned): number {
 	const { x: ax, y: ay } = toWorldCoord(a)
 	const { x: bx, y: by } = toWorldCoord(b)
 	return Math.sqrt((ax - bx) ** 2 + (ay - by) ** 2)

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Readable, Writable } from 'svelte/store'
 	import { onMount, onDestroy } from 'svelte'
-	import { debugInfo, games, interactionMode } from '$lib/globals.svelte'
+	import { games, interactionMode } from '$lib/globals.svelte'
 	import { type InteractiveGameObject, GameView } from '$lib/game'
 	import { getDockviewContext } from 'dockview-svelte/src'
 	import { HexTile } from '$lib/game/hexboard'
