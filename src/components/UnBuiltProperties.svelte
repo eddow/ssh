@@ -1,5 +1,6 @@
 <script lang="ts">
-	import type { GoodType, UnBuiltLand } from '$lib/game/tile'
+	import type { UnBuiltLand } from '$lib/game/hex/tile'
+	import type { GoodType } from '$lib/arktype'
 	import { goods } from '$assets/game-content'
 	import { Badge } from 'flowbite-svelte'
 	import { T } from '$lib/i18n'
@@ -24,7 +25,7 @@
 					{#each Object.entries(content.goods) as [good, count]}
 						{@const goodDef = goods[good as GoodType]}
 						<Badge color="yellow">
-							{goodDef.name} × {count}
+							{$T.goods[good as GoodType]} × {count}
 						</Badge>
 					{/each}
 				</div>

@@ -2,14 +2,15 @@ import { maxWalkTime } from '$assets/constants'
 import * as gameContent from '$assets/game-content'
 import { goods as goodsCatalog } from '$assets/game-content'
 import type { CharacterContract } from '$assets/scripts/contracts'
-import { contract, GoodType, HexTileType } from '$lib/arktype'
+import { contract, GoodType } from '$lib/arktype'
 import { type AxialCoord, type AxialRef, axial } from '$lib/hex'
 import { objectMap } from '$lib/utils'
 import type { Character } from '../character'
-import type { HexTile } from '../hexboard'
+import { type Tile, TileType } from '../hex'
 import { Positioned, positionRoughlyEquals, toAxialCoord } from '../position'
 import { InteractiveContext, loadNpcScripts, protoCtx, subject } from './scripts'
 import { DropStep, EatStep, GrabStep, MoveToStep, PonderingStep } from './steps'
+
 class FindFunctions {
 	declare [subject]: Character
 	@contract(Positioned, 'boolean')
@@ -27,7 +28,7 @@ class FindFunctions {
 		function bestFoodOnTile(coord: AxialRef): GoodType | null {
 			const tile = hex.getTile(coord)
 			if (!tile) return null
-			const goodsMap = tile.content.goods
+			const goodsMap = tile.content!.goods
 			let best: { type: GoodType; fv: number } | null = null
 			for (const [good, count] of Object.entries(goodsMap) as [GoodType, number][]) {
 				if (!count) continue
@@ -60,7 +61,7 @@ class FindFunctions {
 			(coord) => {
 				const tile = hex.getTile(coord)
 				if (!tile) return false
-				return tile.content.canStoreGood(goodType) > 0
+				return tile.content!.canStoreGood(goodType) > 0
 			},
 			maxWalkTime,
 			true,
@@ -77,7 +78,7 @@ class FindFunctions {
 		const distance = 2 + Math.random() * 3 // 2-5 tiles away
 
 		// Find all walkable tiles within the distance range
-		const walkableTiles: { coord: AxialCoord; tile: HexTile }[] = []
+		const walkableTiles: { coord: AxialCoord; tile: Tile }[] = []
 
 		for (let q = -Math.ceil(distance); q <= Math.ceil(distance); q++) {
 			for (let r = -Math.ceil(distance); r <= Math.ceil(distance); r++) {
@@ -85,7 +86,7 @@ class FindFunctions {
 				const actualDistance = axial.distance(start, coord)
 				if (actualDistance >= 2) {
 					const tile = hex.getTile(coord)
-					if (tile && Number.isFinite(tile.content.walkTime)) {
+					if (tile && Number.isFinite(tile.content!.walkTime)) {
 						walkableTiles.push({ coord, tile })
 					}
 				}
@@ -123,14 +124,14 @@ class WalkFunctions {
 		// ArkType validation now handles argument validation
 		if (!positionRoughlyEquals(fromAxial, toAxial))
 			return new MoveToStep(
-				this[subject].tile.content.walkTime * axial.distance(fromAxial, toAxial),
+				this[subject].tile.content!.walkTime * axial.distance(fromAxial, toAxial),
 				this[subject],
 				to,
 			)
 	}
-	@contract(HexTileType)
-	can(tile: HexTile) {
-		return Number.isFinite(this[subject].tile.content.walkTime)
+	@contract(TileType)
+	can(tile: Tile) {
+		return Number.isFinite(this[subject].tile.content!.walkTime)
 	}
 }
 
@@ -150,7 +151,7 @@ class CharacterContext extends InteractiveContext<Character> {
 	get tile() {
 		return this[subject].tile
 	}
-	set tile(value: HexTile) {
+	set tile(value: Tile) {
 		// ArkType validation can be added here if needed for setter validation
 		this[subject].tile = value
 	}

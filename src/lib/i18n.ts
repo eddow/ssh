@@ -31,16 +31,20 @@ locale.subscribe(async (locale) => {
 	await i18nClient.setLocales([locale])
 	await initTranslator()
 })
-const zonePaths = {
-	'': '..',
-	gameX: '../../assets',
+const imports = {
+	'': {
+		en: () => import('../locales/en.json'),
+		fr: () => import('../locales/fr.json'),
+	},
+	gameX: {
+		en: () => import('$assets/locales/en.json'),
+		fr: () => import('$assets/locales/fr.json'),
+	},
 }
 async function condense(lng: string[], zones: string[]) {
 	// Return the translations for the requested locale
 	return Promise.all(
-		zones.map(
-			(zone) => import(`${zonePaths[zone as keyof typeof zonePaths]}/locales/${queryLocale}.json`),
-		),
+		zones.map((zone) => imports[zone as keyof typeof imports][queryLocale as 'en' | 'fr']()),
 	).then((cds) => cds.map((cd) => cd.default) as CondensedDictionary[])
 }
 

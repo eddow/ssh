@@ -16,7 +16,6 @@ import { CharacterContract } from '$assets/scripts/contracts'
 import type { Contract } from '$lib/arktype'
 import { contract, overloadContract } from '$lib/arktype'
 import { epsilon, objectMap } from '$lib/utils'
-import { HexTile } from '../hexboard'
 import type { GameObject, InteractiveGameObject } from '../object'
 import {
 	isPosition,
@@ -66,7 +65,6 @@ export const gameOperators: Operators = Object.setPrototypeOf(
 export const gameIsaTypes: IsaTypes = Object.setPrototypeOf(
 	{
 		position: (value: any) => Position.infer,
-		tile: (value: any) => value instanceof HexTile,
 	},
 	jsIsaTypes,
 )
@@ -91,8 +89,10 @@ export class GlobalContext {
 		console.dir(value, { depth: null })
 		debugger
 	}
-	@contract('string')
-	error(message: string) {
+	@contract('string', '...', 'any[]')
+	error(message: string, ...args: any[]) {
+		if(args.length > 0)
+			console.error(...args)
 		throw new Error(message)
 	}
 	// Basic math functions
@@ -221,8 +221,10 @@ export class ScriptExecution extends Eventful<AsyncActionEvents> {
 			if (result.type === 'return') this.emit('finish')
 			return result
 		} catch (error) {
-			if (error instanceof ExecutionError)
+			if (error instanceof ExecutionError) {
 				console.error(this.script.sourceLocation(error.statement))
+				console.error(error.error?.stack)
+			}
 			throw error
 		}
 	}

@@ -6,7 +6,7 @@ walkTo = function(target, punctual)
 		targetTile = tileAt(target)
 		targetPosition = target
 	else
-		error "Expected: tile or position, got " + target
+		error "Expected: tile or position, got " + target, target
 	end if
 	while tile != targetTile
 		if punctual and not walk.can(targetTile) then return false

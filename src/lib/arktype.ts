@@ -2,10 +2,6 @@ import { type Type, type } from 'arktype'
 import { deposits, type goods, goods as goodsCatalog, modules, terrain } from '$assets/game-content'
 import type { ScriptExecution } from './game/npcs/scripts'
 
-export { CharacterType } from './game/character'
-// Re-export types from their respective files
-export { HexTileType } from './game/hexboard'
-
 export type TerrainType = keyof typeof terrain
 export type GoodType = keyof typeof goods
 export type DepositType = keyof typeof deposits

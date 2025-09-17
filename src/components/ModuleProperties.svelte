@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Module } from '$lib/game/tile'
+	import type { Module } from '$lib/game/hex/tile'
 	import { Badge } from 'flowbite-svelte'
 	import ModuleFlag from './ModuleFlag.svelte'
 	import { ms } from '$lib/mutts.svelte'

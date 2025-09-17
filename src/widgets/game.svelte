@@ -4,8 +4,10 @@
 	import { games, interactionMode } from '$lib/globals.svelte'
 	import { type InteractiveGameObject, GameView } from '$lib/game'
 	import { getDockviewContext } from 'dockview-svelte/src'
-	import { HexTile } from '$lib/game/hexboard'
+	import { Tile } from '$lib/game/hex'
 	import { T } from '$lib/i18n'
+	import type { ModuleType } from '$lib/arktype'
+
 	const dvContext = getDockviewContext()
 	let {
 		size,
@@ -76,13 +78,13 @@
 
 	function handleBuildingAction(object: InteractiveGameObject) {
 		// Only allow building on hex tiles
-		if (!(object instanceof HexTile)) return
+		if (!(object instanceof Tile)) return
 
-		const tile = object as HexTile
+		const tile = object as Tile
 		const action = interactionMode.selectedAction
 
 		// Extract module type from action (e.g., "build:sawmill" -> "sawmill")
-		const moduleType = action.replace('build:', '')
+		const moduleType = action.replace('build:', '') as ModuleType
 
 		// Use the tile's build method
 		const success = tile.build(moduleType)

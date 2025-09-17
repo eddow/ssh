@@ -29,3 +29,7 @@ export function zip<T extends (readonly unknown[])[]>(...args: T): ElementTypes<
 
 	return result
 }
+
+export function isInteger(value: number): boolean {
+	return value - Math.floor(value) < epsilon
+}

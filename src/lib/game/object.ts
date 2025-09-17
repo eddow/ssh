@@ -4,7 +4,7 @@ import { computed, effect, ReactiveBase, type ScopedCallback, unreactive } from 
 import type { ExecutionContext } from 'npc-script/src'
 import { Ticker } from 'pixi.js'
 import type { Game } from './game'
-import type { HexTile } from './hexboard'
+import type { Tile } from './hex/tile'
 import { ScriptExecution } from './npcs/scripts'
 import { ASingleStep } from './npcs/steps'
 import type { Position } from './position'
@@ -84,7 +84,7 @@ export function withInteractive<T extends new (...args: any[]) => GameObject>(Ba
 		abstract readonly title: string
 		abstract readonly debugInfo?: Record<string, any>
 		abstract readonly position: Position
-		abstract readonly tile: HexTile
+		abstract readonly tile: Tile
 
 		destroy(): void {
 			this.game.unregister(this as any)

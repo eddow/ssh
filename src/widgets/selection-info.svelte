@@ -2,7 +2,7 @@
 	import { games, interactionMode } from '$lib/globals.svelte'
 	import { Button } from 'flowbite-svelte'
 	import Icon from '@iconify/svelte'
-	import { HexTile, type InteractiveGameObject, Character } from '$lib/game'
+	import { Tile, type InteractiveGameObject, Character } from '$lib/game'
 	import { mrg } from '$lib/globals.svelte'
 	import { m2s, mns } from '$lib/mutts.svelte'
 	import { watch } from 'mutts'
@@ -90,7 +90,7 @@
 	<div class="content">
 		{#if object instanceof Character}
 			<CharacterProperties character={object} />
-		{:else if object instanceof HexTile}
+		{:else if object instanceof Tile}
 			<TileProperties tile={object} />
 		{:else}
 			<div class="error">

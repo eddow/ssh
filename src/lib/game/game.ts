@@ -6,7 +6,7 @@ import { interactionMode, mrg } from '$lib/globals.svelte'
 import { registerPixiApp, unregisterPixiApp } from '$lib/hmr-pixi'
 import { LCG } from '$lib/numbers'
 import { Population } from './character'
-import { HexBoard } from './hexboard'
+import { HexBoard } from './hex'
 import type { HittableGameObject, InteractiveGameObject } from './object'
 
 unreactive(gameContent)
@@ -150,7 +150,7 @@ export class GameView {
 		// Create PixiJS application
 		this.pixi = new Application()
 		this.stage = this.pixi.stage
-		
+
 		await this.pixi.init({
 			backgroundColor: 0x1099bb,
 			resolution: window.devicePixelRatio || 1,
@@ -185,12 +185,10 @@ export class GameView {
 
 		// Destroy PixiJS application
 		if (this.pixi) {
-			this.pixi.destroy(
-				{
-					removeView: false,
-					releaseGlobalResources: true,
-				}
-			)
+			this.pixi.destroy({
+				removeView: false,
+				releaseGlobalResources: true,
+			})
 		}
 
 		// Clear global reference
@@ -280,13 +278,13 @@ export class GameView {
 				const zoomDelta = zoomSpeed ** (e.deltaY / 120)
 				const newZoom = Math.max(0.1, Math.min(3, this.stage.scale.x * zoomDelta))
 				if (newZoom === this.stage.scale.x) return
-				let s = this.stage.scale.x;
-				let tx = (e.offsetX - this.stage.x) / s;
-				let ty = (e.offsetY - this.stage.y) / s;
+				const s = this.stage.scale.x
+				const tx = (e.offsetX - this.stage.x) / s
+				const ty = (e.offsetY - this.stage.y) / s
 				// Apply new scale and adjust position so the mouse point stays fixed
-				this.stage.scale.set(newZoom);
-				this.stage.x = e.offsetX - tx * newZoom;
-				this.stage.y = e.offsetY - ty * newZoom;
+				this.stage.scale.set(newZoom)
+				this.stage.x = e.offsetX - tx * newZoom
+				this.stage.y = e.offsetY - ty * newZoom
 			},
 			{ passive: false },
 		)

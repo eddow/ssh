@@ -82,7 +82,7 @@ export class GrabStep extends AEvolutionStep {
 			character.carriedAmount > 0
 		) {
 			// Drop all current goods
-			const dropped = tile.content.addGood(character.carriedType, character.carriedAmount)
+			const dropped = tile.content!.addGood(character.carriedType, character.carriedAmount)
 			character.carriedAmount -= dropped
 			if (character.carriedAmount <= 0) character.carriedType = undefined
 		}
@@ -90,7 +90,7 @@ export class GrabStep extends AEvolutionStep {
 		const canGrab = character.carryingCapacity - (character.carriedAmount || 0)
 		const amount = Math.min(canGrab, maxAmount)
 
-		const taken = amount <= 0 ? 0 : tile.content.removeGood(goodType, amount)
+		const taken = amount <= 0 ? 0 : tile.content!.removeGood(goodType, amount)
 		if (taken > 0) {
 			character.carriedType = goodType
 			character.carriedAmount = (character.carriedAmount || 0) + taken
@@ -107,7 +107,7 @@ export class DropStep extends AEvolutionStep {
 		const tile = character.tile
 
 		const amount = Math.min(character.carriedAmount, maxAmount)
-		const dropped = tile.content.addGood(goodType, amount)
+		const dropped = tile.content!.addGood(goodType, amount)
 		character.carriedAmount -= dropped
 		if (character.carriedAmount <= 0) character.carriedType = undefined
 		super(amount * activityDurations.transfer)

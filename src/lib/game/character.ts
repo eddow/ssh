@@ -11,7 +11,7 @@ import { type AxialCoord, axial } from '$lib/hex'
 import { AxialSet } from '$lib/mem'
 import { type RandGenerator, uuid } from '$lib/numbers'
 import type { Game } from './game'
-import type { HexTile } from './hexboard'
+import { type Module, type Tile, UnBuiltLand } from './hex/tile'
 import aCharacterContext from './npcs/character'
 // biome-ignore lint/correctness/noUnusedImports: We need it for mixins tranquility: all propertyKeys are known
 import { subject } from './npcs/scripts'
@@ -26,7 +26,6 @@ import {
 	withTicked,
 } from './object'
 import { type Position, toAxialCoord, toWorldCoord } from './position'
-import { type Module, UnBuiltLand } from './tile'
 
 //import * as allScripts from "./npcs/scripts"
 //console.log(allScripts)
@@ -66,7 +65,7 @@ export class Character extends withInteractive(
 	public carriedAmount: number = 0
 	public carryingCapacity: number = characterCapacity.carryingCapacity
 	public scriptsContext = aCharacterContext(this)
-	public tile: HexTile
+	public tile: Tile
 	constructor(
 		game: Game,
 		uid: string,

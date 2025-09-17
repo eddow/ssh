@@ -24,6 +24,7 @@ export const { Positioned } = type.define({
 export type Positioned = typeof Positioned.infer
 
 // Type guards
+// TODO: use ark
 export function isPosition(value: any): value is Positioned {
 	if (typeof value === 'number') return true // AxialKey
 	if (typeof value === 'object' && value !== null) {
