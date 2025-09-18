@@ -28,9 +28,17 @@
 		"tiredness": "Épuisement",
 		"fatigue": "Fatigue",
 		"currentActivity": "Activité actuelle",
-		"idle": "Inactif",
 		"activityDescriptions": "Descriptions d'activité",
 		"noActivity": "Aucune activité"
+	},
+	"step": {
+		"idle": "Inactif",
+		"move-to": "Se déplace",
+		"grab": "Ramasse",
+		"drop": "Dépose",
+		"eat": "Mange",
+		"pondering": "Pense à la vie",
+		"prepare": "Se prépare à travailler"
 	},
 	"module": {
 		"module": "Module",

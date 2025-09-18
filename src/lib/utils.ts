@@ -33,3 +33,47 @@ export function zip<T extends (readonly unknown[])[]>(...args: T): ElementTypes<
 export function isInteger(value: number): boolean {
 	return value - Math.floor(value) < epsilon
 }
+
+export function lowerFirst(str: string): string {
+	if (!str) return str
+	return str.charAt(0).toLowerCase() + str.slice(1)
+}
+
+export function upperFirst(str: string): string {
+	if (!str) return str
+	return str.charAt(0).toUpperCase() + str.slice(1)
+}
+
+class CaseFormatter {
+	private terms: string[]
+	constructor(name: string) {
+		const spaced = name
+			.replace(/[_-]+/g, ' ')
+			.replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+			.replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+			.trim()
+		this.terms = spaced ? spaced.split(/\s+/) : []
+	}
+	// biome-ignore lint/suspicious/noConfusingVoidType: We love `void`
+	transform(fn: (terms: string[]) => string[] | void): this {
+		this.terms = fn(this.terms) ?? this.terms
+		return this
+	}
+	get camel() {
+		return this.terms
+			.map((term, index) => (index === 0 ? lowerFirst(term) : upperFirst(term)))
+			.join('')
+	}
+	get snake() {
+		return lowerFirst(this.terms.join('_'))
+	}
+	get kebab() {
+		return lowerFirst(this.terms.map(lowerFirst).join('-'))
+	}
+	get pascal() {
+		return this.terms.map((term) => upperFirst(term)).join('')
+	}
+}
+export function casing(name: string) {
+	return new CaseFormatter(name)
+}

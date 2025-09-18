@@ -1,84 +1,19 @@
 import { type } from 'arktype'
 import { Eventful, unreactive } from 'mutts'
-import type { ExecutionContext, ExecutionState } from 'npc-script/src'
 import {
+	type ExecutionContext,
 	ExecutionError,
+	type ExecutionState,
 	FunctionDefinition,
-	type IsaTypes,
-	jsIsaTypes,
-	jsOperators,
-	MiniScriptExecutor,
 	NpcScript,
-	type Operators,
 } from 'npc-script/src'
 import { deposits, goods, modules, terrain } from '$assets/game-content'
 import { CharacterContract } from '$assets/scripts/contracts'
-import type { Contract } from '$lib/arktype'
-import { contract, overloadContract } from '$lib/arktype'
+import { type Contract, contract, overloadContract } from '$lib/arktype'
 import { epsilon, objectMap } from '$lib/utils'
 import type { GameObject, InteractiveGameObject } from '../object'
-import {
-	axialDistance,
-	isPosition,
-	Position,
-	Positioned,
-	positionLerp,
-	positionRoughly,
-	positionRoughlyEquals,
-	toAxialCoord,
-} from '../position'
-
-unreactive(MiniScriptExecutor)
-unreactive(NpcScript)
-/**
- * Custom operators that extend JavaScript operators with position support
- */
-export const gameOperators: Operators = Object.setPrototypeOf(
-	{
-		'=='(left: any, right: any) {
-			return isPosition(left) && isPosition(right)
-				? positionRoughlyEquals(left, right)
-				: typeof left === 'number' && typeof right === 'number'
-					? Math.abs(left - right) < epsilon
-					: left === right
-		},
-		'!='(left: any, right: any) {
-			return isPosition(left) && isPosition(right)
-				? !positionRoughlyEquals(left, right)
-				: typeof left === 'number' && typeof right === 'number'
-					? Math.abs(left - right) >= epsilon
-					: left !== right
-		},
-		'-'(left: any, right: any) {
-			if (isPosition(left) && isPosition(right)) {
-				return axialDistance(left, right)
-			}
-			return jsOperators['-'](left, right)
-		},
-	},
-	jsOperators,
-)
-
-/**
- * Custom isa types that extend JavaScript isa types with position support
- */
-export const gameIsaTypes: IsaTypes = Object.setPrototypeOf(
-	{
-		position: (value: any) => Position.infer,
-	},
-	jsIsaTypes,
-)
-// Math utilities
-
-export function lerp<T extends number | Positioned>(a: T, b: T, t: number): T {
-	if (typeof a === 'number' && typeof b === 'number') {
-		return (a + (b - a) * t) as T
-	}
-	if (isPosition(a) && isPosition(b)) {
-		return positionLerp(a, b, t) as T
-	}
-	throw new Error(`Invalid lerp types: ${typeof a} and ${typeof b}`)
-}
+import { isPosition, Positioned, positionRoughly, toAxialCoord } from '../position'
+import { gameIsaTypes, gameOperators, lerp } from './utils'
 
 type XOrDictX<X> = X | { [k: string]: XOrDictX<X> }
 
@@ -194,30 +129,50 @@ function isXOrDictX<X>(x: XOrDictX<X>, Class: new (...args: any[]) => X): x is X
 	)
 }
 
-export type AsyncActionEvents = {
-	cancel: () => void
-	finish: () => void
+@unreactive
+export class Finalized {
+	#finished?: () => void
+	#canceled?: () => void
+	#final?: () => void
+	final(final: () => void) {
+		this.#final = final
+		return this
+	}
+	canceled(canceled: () => void) {
+		this.#canceled = canceled
+		return this
+	}
+	finished(finished: () => void) {
+		this.#finished = finished
+		return this
+	}
+	cancel() {
+		this.#canceled?.()
+		this.#final?.()
+	}
+	finish() {
+		this.#finished?.()
+		this.#final?.()
+	}
 }
 
 @unreactive
-export class ScriptExecution extends Eventful<AsyncActionEvents> {
+export class ScriptExecution extends Finalized {
 	constructor(
 		public readonly script: GameScript,
 		public readonly name: string,
 		public state?: ExecutionState,
 	) {
 		super()
-	}
-	cancel() {
-		this.emit('cancel')
-	}
-	run(context: ExecutionContext) {
+	}	run(context: ExecutionContext) {
 		if (!this.state) throw new Error('ScriptExecution was finished')
 		const executor = this.script.executor(context, this.state)
 		try {
 			const result = executor.execute()
 			this.state = result.type === 'yield' ? executor.state : undefined
-			if (result.type === 'return') this.emit('finish')
+			if (result.type === 'return') {
+				this.finish()
+			}
 			return result
 		} catch (error) {
 			if (error instanceof ExecutionError) {

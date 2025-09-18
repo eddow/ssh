@@ -26,8 +26,9 @@ function reconstructPath(
 	goal: AxialCoord,
 	start: AxialCoord,
 	parentMap: AxialKeyMap<AxialCoord>,
+	goalPoint?: AxialCoord,
 ): AxialCoord[] {
-	const path: AxialCoord[] = []
+	const path: AxialCoord[] = goalPoint ? [goalPoint] : []
 	let current: AxialCoord = goal
 
 	// Build path from goal to start
@@ -97,7 +98,7 @@ export function findPath(
 
 		// Check if we reached the goal
 		if (axial.distance(currentCoord, goalCoord) <= goalDistance) {
-			return reconstructPath(goalCoord, startCoord, parentMap)
+			return reconstructPath(currentCoord, startCoord, parentMap, punctual ? undefined : goalCoord)
 		}
 
 		// Explore neighbors
@@ -222,7 +223,7 @@ export function findNearest<_T>(
 			// Skip if already in closed set
 			if (closedSet.has(neighborCoord)) continue
 			if (!punctual && isGoal(neighborCoord)) {
-				return reconstructPath(currentCoord, startCoord, parentMap)
+				return reconstructPath(currentCoord, startCoord, parentMap, neighborCoord)
 			}
 
 			// Calculate tentative gCost

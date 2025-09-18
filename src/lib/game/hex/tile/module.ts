@@ -1,19 +1,17 @@
 import { Container, type ContainerChild, Sprite } from 'pixi.js'
 import { goods, modules } from '$assets/game-content'
 import type { GoodType } from '$lib/arktype'
+import type { Character } from '$lib/game/character'
+import type { Game } from '$lib/game/game'
+import type { Job } from '$lib/game/job'
+import { gameIsaTypes } from '$lib/game/npcs/utils'
 import { tileSize } from '$lib/utils'
-import type { Character } from '../../character'
-import type { Game } from '../../game'
-import type { Job, JobProvider } from '../../job'
 import type { Tile, TileContent } from './index'
-import { GcClasses, NoConstructor } from './utils'
+import { GcClasses, GcClassed } from './utils'
 
 //#region  Content
 
-export class Module
-	extends NoConstructor<Ssh.ModuleDefinition>()
-	implements TileContent, JobProvider
-{
+export class Module extends GcClassed<Ssh.ModuleDefinition>() implements TileContent {
 	static class = GcClasses(Module, modules)
 	public assignedWorker: Character | undefined
 	public goods: { [k in GoodType]?: number } = {}
@@ -191,7 +189,7 @@ export class Module
 		}
 	}
 
-	canInteract(action: string): boolean {
+	canInteract(_action: string): boolean {
 		// Modules can't be built on (they already exist)
 		return false
 	}
@@ -232,12 +230,14 @@ export class Module
 	}
 
 	private getFatigueCost(): number {
-		// TODO: use this.time
 		// Base fatigue based on action type
-		const baseFatigue = this.action.type === 'harvest' ? 2 : 3
+		const baseFatigue = this.action.type === 'harvest' ? this.time + 2 : this.time
 
 		// Add time-based fatigue (if module has time configuration)
 		// For now, just return base fatigue
 		return baseFatigue
 	}
+}
+gameIsaTypes.module = (value: any) => {
+	return value instanceof Module
 }

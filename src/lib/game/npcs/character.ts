@@ -1,15 +1,16 @@
-import { maxWalkTime } from '$assets/constants'
+import { activityDurations, maxWalkTime } from '$assets/constants'
 import * as gameContent from '$assets/game-content'
 import { goods as goodsCatalog } from '$assets/game-content'
 import type { CharacterContract } from '$assets/scripts/contracts'
-import { contract, GoodType } from '$lib/arktype'
+import { contract, DepositType, GoodType } from '$lib/arktype'
+import { assert } from '$lib/debug'
 import { type AxialCoord, type AxialRef, axial } from '$lib/hex'
 import { objectMap } from '$lib/utils'
 import type { Character } from '../character'
-import { type Tile, TileType } from '../hex'
+import { type Tile, TileType, UnBuiltLand } from '../hex'
 import { Positioned, positionRoughlyEquals, toAxialCoord } from '../position'
 import { InteractiveContext, loadNpcScripts, protoCtx, subject } from './scripts'
-import { DropStep, EatStep, GrabStep, MoveToStep, PonderingStep } from './steps'
+import { EatStep, MoveToStep, PonderingStep, WaitStep } from './steps'
 
 class FindFunctions {
 	declare [subject]: Character
@@ -51,6 +52,24 @@ class FindFunctions {
 		const targetTile = hex.getTile(targetCoord)!
 		const good = bestFoodOnTile(targetCoord)!
 		return { tile: targetTile, good, path }
+	}
+	@contract(DepositType)
+	deposit(deposit: DepositType) {
+		const { hex } = this[subject].game
+		const start = toAxialCoord(this[subject].tile.position)
+		const path = hex.findNearest(
+			start,
+			(coord) => {
+				const tile = hex.getTile(coord)
+				return tile?.content instanceof UnBuiltLand &&
+					tile.content.deposit?.name === `deposit.${deposit}`
+				
+			},
+			maxWalkTime,
+			false,
+		)
+		if (!path || path.length === 0) return false as const
+		return path
 	}
 	@contract(GoodType)
 	freeSpot(goodType: GoodType) {
@@ -115,11 +134,29 @@ class InventoryFunctions {
 	declare [subject]: Character
 	@contract(GoodType, 'number?')
 	grab(goodType: GoodType, maxAmount: number = 1) {
-		return new GrabStep(this[subject], goodType, maxAmount)
+		const character = this[subject]
+		const tile = character.tile
+		
+		const canGrab = character.carryingCapacity - (character.carriedAmount || 0)
+		const amount = Math.min(canGrab, maxAmount)
+
+		const taken = amount <= 0 ? 0 : tile.content!.removeGood(goodType, amount)
+		if (taken > 0) {
+			character.carriedType = goodType
+			character.carriedAmount = (character.carriedAmount || 0) + taken
+		}
+		return new WaitStep(taken * activityDurations.transfer, 'grab', `grab.${goodType}`)
 	}
 	@contract(GoodType, 'number?')
 	drop(goodType: GoodType, maxAmount: number = 1) {
-		return new DropStep(this[subject], goodType, maxAmount)
+		const character = this[subject]
+		const tile = character.tile
+
+		const amount = Math.min(character.carriedAmount, maxAmount)
+		const dropped = tile.content!.addGood(goodType, amount)
+		character.carriedAmount -= dropped
+		if (character.carriedAmount <= 0) character.carriedType = undefined
+		return new WaitStep(amount * activityDurations.transfer, 'drop', `drop.${goodType}`)
 	}
 }
 
@@ -136,6 +173,16 @@ class WalkFunctions {
 				this[subject],
 				to,
 			)
+	}
+	/**
+	 * Enters in the tile even if it's not walkable
+	 */
+	@contract()
+	enter() {
+		const toAxial = toAxialCoord(this[subject].tile)
+		const fromAxial = toAxialCoord(this[subject])
+		if (!positionRoughlyEquals(fromAxial, toAxial))
+			return new MoveToStep(axial.distance(fromAxial, toAxial), this[subject], toAxial)
 	}
 	@contract(TileType)
 	stepOn(tile: Tile) {
@@ -159,6 +206,40 @@ class SelfCareFunctions {
 	}
 }
 
+class WorkFunctions {
+	declare [subject]: Character
+	@contract()
+	prepare() {
+		return new WaitStep(
+			this[subject].assignedModule!.preparationTime,
+			'work',
+			`prepare.${this[subject].assignedModule!.name}`,
+		)
+	}
+	@contract()
+	harvestStep() {
+		const unbuiltLand = this[subject].tile.content as UnBuiltLand
+		assert(unbuiltLand instanceof UnBuiltLand, 'tile.content must be an UnBuiltLand')
+		const module = this[subject].assignedModule
+		assert(module, 'assignedModule must be set')
+		assert(module.action.type === 'harvest', 'assignedModule.action must be a harvest')
+		const action = module.action as Ssh.HarvestingAction
+		assert(`deposit.${action.deposit}` === unbuiltLand.deposit?.name, 'assignedModule.action.deposit must be the same as tile.content.deposit.name')
+		const deposit = unbuiltLand.deposit!
+		deposit.amount -= 1
+		if(deposit.amount <= 0) {
+			unbuiltLand.deposit = undefined
+		}
+		return new WaitStep(
+			this[subject].assignedModule!.time,
+			'work',
+			`harvest.${this[subject].assignedModule!.name}`,
+		).finished(() => {
+			this[subject].addGood(module.output as GoodType, deposit.amount)
+		})
+	}
+}
+
 class CharacterContext extends InteractiveContext<Character> {
 	get carriedType() {
 		return this[subject].carriedType
@@ -179,7 +260,7 @@ const characterContext = protoCtx(CharacterContext, {
 	inventory: protoCtx(InventoryFunctions),
 	walk: protoCtx(WalkFunctions),
 	selfCare: protoCtx(SelfCareFunctions),
-	//work: protoCtx(WorkFunctions),
+	work: protoCtx(WorkFunctions),
 	...gameContent,
 })
 

@@ -1,4 +1,5 @@
 declare namespace Ssh {
+	// TODO: kill all the `name`
 	type SpriteDefinition = string
 	type Sprite = string
 	interface DepositDefinition {
@@ -32,7 +33,6 @@ declare namespace Ssh {
 		sprites: Sprite[]
 	}
 	interface GoodsDefinition {
-		name?: string
 		feedingValue: number
 		icon: Sprite
 		sprites: Sprite[]

@@ -15,9 +15,9 @@ export const ModuleType = type.enumerated(...Object.keys(modules))
 export type ArkDef = Parameters<typeof type>[0]
 
 function decorator(validate: (args: any[]) => any) {
-	return (target: any, propertyKey: string, descriptor: PropertyDescriptor) => {
+	return (_target: any, propertyKey: string, descriptor: PropertyDescriptor) => {
 		const originalMethod = descriptor.value
-		descriptor.value = function (...args: any[]) {
+		descriptor.value = function contractValidator(...args: any[]) {
 			const validationResult = validate(args)
 			if (validationResult instanceof type.errors) {
 				throw new Error(`Validation failed for ${propertyKey}: ${validationResult.summary}`)

@@ -224,11 +224,17 @@ export function withScripted<T extends new (...args: any[]) => TickedGameObject>
 
 		update(dt: number) {
 			let remaining: number | undefined = dt
+			let uselessStepExecutor: string | false = false
 			while (remaining !== undefined && this.stepExecutor) {
-				remaining = this.stepExecutor.tick(dt)
+				const newRemaining = this.stepExecutor.tick(remaining)
+				if (newRemaining === remaining && this.stepExecutor) uselessStepExecutor = this.stepExecutor.type
+				remaining = newRemaining
 				if (remaining !== undefined) {
 					this.stepExecutor = undefined
 					this.nextStep()
+					const newType = this.stepExecutor!?.type
+					if(uselessStepExecutor === newType)
+						throw new Error(`Useless step executor: ${newType}`)
 				}
 			}
 		}

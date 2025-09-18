@@ -2,20 +2,22 @@ import { Eventful } from 'mutts'
 import { activityDurations, ponderingFatigueRecovery } from '$assets/constants'
 import { goods as goodsCatalog } from '$assets/game-content'
 import type { GoodType } from '$lib/arktype'
+import { casing } from '$lib/utils'
 import type { Character } from '../character'
 import type { Position, Positioned } from '../position'
-import { type AsyncActionEvents, lerp } from './scripts'
+import { Finalized } from './scripts'
+import { lerp } from './utils'
 
 //#region Abstracts
 
-export abstract class ASingleStep extends Eventful<AsyncActionEvents> {
+export abstract class ASingleStep extends Finalized {
+	get description(): string | false {
+		return casing(this.constructor.name).transform((terms) => {
+			console.assert(terms.pop() === 'Step')
+		}).kebab
+	}
+
 	abstract tick(dt: number): number | undefined
-	cancel() {
-		this.emit('cancel')
-	}
-	finish(): void {
-		this.emit('finish')
-	}
 	abstract readonly type: Ssh.ActivityType
 }
 
@@ -51,7 +53,6 @@ export abstract class ALerpStep<T extends number | Positioned> extends AEvolutio
 
 //#endregion
 //#region Commons
-// TODO: Some steps should appear in the action descriptions[]
 export class MoveToStep extends ALerpStep<Positioned> {
 	get type() {
 		return 'walk' as const
@@ -68,53 +69,21 @@ export class MoveToStep extends ALerpStep<Positioned> {
 	}
 }
 
-export class GrabStep extends AEvolutionStep {
-	get type() {
-		return 'grab' as const
+export class WaitStep extends AEvolutionStep {
+	get description(): string | false {
+		return this.givenDescription
 	}
-	constructor(character: Character, goodType: GoodType, maxAmount: number) {
-		const tile = character.tile
-
-		// Check if we need to drop current goods first
-		if (
-			character.carriedType &&
-			character.carriedType !== goodType &&
-			character.carriedAmount > 0
-		) {
-			// Drop all current goods
-			const dropped = tile.content!.addGood(character.carriedType, character.carriedAmount)
-			character.carriedAmount -= dropped
-			if (character.carriedAmount <= 0) character.carriedType = undefined
-		}
-
-		const canGrab = character.carryingCapacity - (character.carriedAmount || 0)
-		const amount = Math.min(canGrab, maxAmount)
-
-		const taken = amount <= 0 ? 0 : tile.content!.removeGood(goodType, amount)
-		if (taken > 0) {
-			character.carriedType = goodType
-			character.carriedAmount = (character.carriedAmount || 0) + taken
-		}
-		super(taken * activityDurations.transfer)
+	constructor(
+		duration: number,
+		readonly type: Ssh.ActivityType,
+		readonly givenDescription: string,
+	) {
+		super(duration)
 	}
 }
 
-export class DropStep extends AEvolutionStep {
-	get type() {
-		return 'drop' as const
-	}
-	constructor(character: Character, goodType: GoodType, maxAmount: number) {
-		const tile = character.tile
-
-		const amount = Math.min(character.carriedAmount, maxAmount)
-		const dropped = tile.content!.addGood(goodType, amount)
-		character.carriedAmount -= dropped
-		if (character.carriedAmount <= 0) character.carriedType = undefined
-		super(amount * activityDurations.transfer)
-	}
-
-	finish(): void {}
-}
+//#endregion
+//#region self-care
 export class EatStep extends AEvolutionStep {
 	get type() {
 		return 'eat' as const
@@ -134,9 +103,6 @@ export class EatStep extends AEvolutionStep {
 	}
 }
 
-//#endregion
-
-//#region PonderingStep
 export class PonderingStep extends AEvolutionStep {
 	get type() {
 		return 'rest' as const
@@ -151,4 +117,5 @@ export class PonderingStep extends AEvolutionStep {
 		super(duration)
 	}
 }
+
 //#endregion

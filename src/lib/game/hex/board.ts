@@ -1,12 +1,13 @@
 import type { Sprite } from 'pixi.js'
 import { deposits, terrain as terrainDetails } from '$assets/game-content'
-import type { TerrainType } from '$lib/arktype'
+import type { DepositType, TerrainType } from '$lib/arktype'
 import { GameObject, withContainer, withHittable } from '$lib/game/object'
 import {
 	type AxialCoord,
 	type AxialRef,
 	axial,
 	cartesian,
+	findBest,
 	findNearest,
 	findPath,
 	fromCartesian,
@@ -20,7 +21,8 @@ import { isInteger, tileSize } from '$lib/utils'
 import type { Character } from '../character'
 import type { Game } from '../game'
 import { TileBorder, type TileBorderContent } from './border'
-import { type Deposit, Tile, type TileContent, UnBuiltLand } from './tile'
+import { Deposit, Tile, type TileContent, UnBuiltLand } from './tile'
+import { type } from 'arktype'
 
 export class HexBoard extends withContainer(withHittable(GameObject)) {
 	private contents: AxialKeyMap<TileContent | TileBorderContent>
@@ -106,12 +108,9 @@ export class HexBoard extends withContainer(withHittable(GameObject)) {
 		const table = details.generation?.deposits ?? {}
 		for (const [depKey, chance] of Object.entries(table)) {
 			if (rnd() < (chance as number)) {
-				const type = (deposits as any)[depKey] as Ssh.DepositDefinition
-				return Object.setPrototypeOf(
-					{
-						amount: Math.floor(((1 + rnd() * 2) * type.maxAmount) / 3),
-					},
-					type,
+				const Kind = Deposit.class[depKey as DepositType]
+				return new Kind(
+					Math.floor(((1 + rnd() * 2) * Kind.prototype.maxAmount) / 3)
 				)
 			}
 		}
@@ -211,5 +210,15 @@ export class HexBoard extends withContainer(withHittable(GameObject)) {
 		punctual: boolean = true,
 	) {
 		return findNearest((c) => this.getNeighbors(c), start, isGoal, stop, punctual)
+	}
+
+	findBest(
+		start: AxialRef,
+		scoring: Scoring<number>,
+		stop: number | ((coord: AxialRef, walkTime: number) => boolean),
+		bestPossibleScore: number,
+		punctual: boolean = true,
+	) {
+		return findBest((c) => this.getNeighbors(c), start, scoring, stop, bestPossibleScore, punctual)
 	}
 }

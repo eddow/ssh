@@ -1,20 +1,22 @@
-import { effect, reactive, type ScopedCallback, watch } from 'mutts'
+import { effect, reactive, type ScopedCallback } from 'mutts'
 import { ColorMatrixFilter, Sprite } from 'pixi.js'
 import {
 	characterCapacity,
 	characterEvolutionRates,
 	characterTriggerLevels,
+	maxWalkTime,
 } from '$assets/constants'
 import type { GoodType } from '$lib/arktype'
 import { mrg } from '$lib/globals.svelte'
-import { type AxialCoord, axial } from '$lib/hex'
+import { type AxialCoord, type AxialRef, axial } from '$lib/hex'
 import { AxialSet } from '$lib/mem'
 import { type RandGenerator, uuid } from '$lib/numbers'
 import type { Game } from './game'
-import { type Module, type Tile, UnBuiltLand } from './hex/tile'
+import { Module, type Tile, UnBuiltLand } from './hex/tile'
+import { bestPossibleJobScore, calculateJobScore, type Job } from './job'
 import aCharacterContext from './npcs/character'
 // biome-ignore lint/correctness/noUnusedImports: We need it for mixins tranquility: all propertyKeys are known
-import { subject } from './npcs/scripts'
+import { type ScriptExecution, subject } from './npcs/scripts'
 import type { ASingleStep } from './npcs/steps'
 import {
 	GameObject,
@@ -81,16 +83,6 @@ export class Character
 		this._tile = game.hex.getTile(toAxialCoord(this.position))!
 		// Allocate initial occupancy on the board
 		this.game.hex.moveCharacter(this, toAxialCoord(this._tile.position))
-		watch(
-			() => this.assignedModule,
-			() => {
-				if (this.assignedModule !== undefined) {
-					this.fatigue = this.triggerLevels.fatigue.high
-					// TODO: remove me when urgency is working
-					//goRest(this.activityManager.plan)
-				}
-			},
-		)
 	}
 
 	/** Attempt to step onto a tile, managing board occupancy. */
@@ -134,14 +126,43 @@ export class Character
 	}
 
 	/**
-	 * Calculate job score based on distance and job properties
+	 * Find the best available job using pathfinding
+	 * @returns Object with job, tile, and path, or false if no job found
 	 */
-	calculateJobScore(job: any): number {
-		// Higher urgency and closer distance = better score
-		return job.urgency
-	}
-	get bestPossibleJobScore(): number {
-		return 3
+	findBestJob(): ScriptExecution | false {
+		const start = toAxialCoord(this.position)
+
+		// Score function: evaluates how good a job is at a given coordinate
+		const scoreJob = (coord: AxialRef): number | false => {
+			const content = this.game.hex.getTile(coord)?.content
+			if (!(content instanceof Module)) return false
+			const job = content.getJob()
+			return job ? calculateJobScore(this, job) : false
+		}
+
+		// Find the best job using the findBest pathfinding function
+		const path = this.game.hex.findBest(
+			start,
+			scoreJob,
+			maxWalkTime, // Use maxWalkTime from constants
+			bestPossibleJobScore(this),
+			true, // punctual: only consider exact coordinates
+		)
+
+		if (!path || path.length === 0) return false
+
+		const targetCoord = path[path.length - 1]
+		const targetTile = this.game.hex.getTile(targetCoord)!
+		const jobProvider = targetTile.content as Module
+		const job = jobProvider.getJob() as Job
+
+		jobProvider.assignedWorker = this
+		this.assignedModule = jobProvider
+		return this.scriptsContext.work.goWork(jobProvider, job.type, path)
+			.final(() => {
+				jobProvider.assignedWorker = undefined
+				this.assignedModule = undefined
+			})
 	}
 
 	canInteract(action: string): boolean {
@@ -188,10 +209,8 @@ export class Character
 	findAction() {
 		if (this.hunger > this.triggerLevels.hunger.high) return this.scriptsContext.selfCare.goEat()
 
-		// TODO: find a job
-
 		// Default to wandering when no specific action is needed
-		return this.scriptsContext.selfCare.wander()
+		return this.findBestJob() || this.scriptsContext.selfCare.wander()
 	}
 
 	render(): ScopedCallback | undefined {

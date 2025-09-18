@@ -16,8 +16,8 @@ into = function(path)
 	end if
 end function
 
-until = function(target)
-	walkTo(target)
+until = function(path)
+	walkTo(path)
 end function
 
 return { into, until }

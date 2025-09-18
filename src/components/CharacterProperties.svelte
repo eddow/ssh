@@ -11,8 +11,42 @@
 		Tiredness: character.tiredness,
 		fatigue: character.fatigue,
 		triggerLevels: character.triggerLevels,
-		stepDescription: character.stepExecutor?.type
+		stepType: character.stepExecutor?.type as Ssh.ActivityType | undefined,
+		stepDescription: (character.stepExecutor?.description || undefined) as string | undefined
 	}))
+
+	type FlowbiteBadgeColor =
+		| 'primary'
+		| 'secondary'
+		| 'gray'
+		| 'red'
+		| 'orange'
+		| 'amber'
+		| 'yellow'
+		| 'lime'
+		| 'green'
+		| 'emerald'
+		| 'teal'
+		| 'cyan'
+		| 'sky'
+		| 'blue'
+		| 'indigo'
+		| 'violet'
+		| 'purple'
+		| 'fuchsia'
+		| 'pink'
+		| 'rose'
+
+	const activityBadgeColors: Record<Ssh.ActivityType, FlowbiteBadgeColor> = {
+		walk: 'yellow',
+		work: 'red',
+		eat: 'green',
+		sleep: 'purple',
+		rest: 'indigo',
+		grab: 'blue',
+		drop: 'pink',
+		idle: 'gray'
+	}
 </script>
 
 <div class="character-properties">
@@ -43,7 +77,13 @@
 		<div class="space-y-2">
 			<div class="flex items-center gap-2">
 				<span class="font-medium">{$T.character.currentActivity}:</span>
-				<Badge color="blue">{$state.stepDescription ?? $T.character.idle}</Badge>
+				<Badge color={activityBadgeColors[$state.stepType ?? 'idle']}>
+					{#if $state.stepDescription}
+						{$T.step[$state.stepDescription]}
+					{:else}
+						{$T.step.idle}
+					{/if}
+				</Badge>
 			</div>
 			<div class="flex flex-col gap-1">
 				<span class="font-medium">{$T.character.activityDescriptions}:</span>

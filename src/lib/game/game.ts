@@ -124,7 +124,7 @@ export class Game extends Eventful<GameEvents> {
 	}
 	generate(state: any = {}) {
 		this.hex?.generateBoard()
-		this.population.generateCharacters()
+		this.population.generateCharacters(1)
 	}
 	clickObject(event: any, object: InteractiveGameObject) {
 		this.emit('objectClick', event, object)

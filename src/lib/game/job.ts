@@ -1,3 +1,6 @@
+import { type } from 'arktype'
+import type { Character } from './character'
+
 export interface Job {
 	/** The activity type from the module's action */
 	readonly type: Ssh.Action['type']
@@ -7,7 +10,10 @@ export interface Job {
 	readonly urgency: number
 }
 
-export interface JobProvider {
-	/** Get available job if any, undefined if no job available */
-	getJob(): Job | undefined
+export const JobType = type.enumerated('harvest', 'transform', 'transit', 'gather')
+export function calculateJobScore(_character: Character, job: Job): number {
+	return job.urgency
+}
+export function bestPossibleJobScore(_character: Character): number {
+	return 3
 }
