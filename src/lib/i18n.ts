@@ -41,7 +41,7 @@ const imports = {
 		fr: () => import('$assets/locales/fr.json'),
 	},
 }
-async function condense(lng: string[], zones: string[]) {
+async function condense(_lng: string[], zones: string[]) {
 	// Return the translations for the requested locale
 	return Promise.all(
 		zones.map((zone) => imports[zone as keyof typeof imports][queryLocale as 'en' | 'fr']()),

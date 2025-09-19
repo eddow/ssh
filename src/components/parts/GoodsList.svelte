@@ -3,7 +3,7 @@
 	import { type Game } from '$lib/game'
 	import { goods as goodsCatalog } from '$assets/game-content'
 	import { T } from '$lib/i18n'
-	import EntityBadge from './EntityBadge.svelte'
+	import EntityBadge from '$components/parts/EntityBadge.svelte'
 
 	let {
 		goods,

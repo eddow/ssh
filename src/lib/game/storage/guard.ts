@@ -17,6 +17,9 @@ const registry: FinalizationRegistry<Held> | null =
 // Track unregister tokens per allocation object
 const tokens = new WeakMap<object, object>()
 
+// Track invalidated allocations (fulfilled or cancelled)
+const invalidatedAllocations = new WeakSet<object>()
+
 export function guardAllocation<Allocation extends object>(allocation: Allocation, reason: any) {
 	if (!registry) return
 	const token = {}
@@ -32,8 +35,19 @@ export function allocationEnded<Allocation extends object>(allocation: Allocatio
 	tokens.delete(allocation)
 }
 
+export function invalidateAllocation<Allocation extends object>(allocation: Allocation) {
+	invalidatedAllocations.add(allocation)
+}
+
+export function isAllocationValid<Allocation extends object>(allocation: Allocation): boolean {
+	return !invalidatedAllocations.has(allocation)
+}
+
 export class AllocationError extends Error {
-	constructor(message: string, public readonly reason: any) {
+	constructor(
+		message: string,
+		public readonly reason: any,
+	) {
 		super(message)
 		this.name = 'AllocationError'
 	}

@@ -29,7 +29,7 @@ export class Population extends withContainer(withHittable(GameObject)) {
 		}
 		return false
 	}
-	generateCharacters(n: number = 3, radius = 200): void {
+	generateCharacters(n: number = 3, _radius = 200): void {
 		const used = new AxialSet()
 		for (let i = 0; i < n; i++) {
 			const characterPath = this.game.hex.findNearest(

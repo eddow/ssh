@@ -3,7 +3,7 @@
 	//https://boxy-svg.com/
 
 	import { Alert } from 'flowbite-svelte'
-	import DarkMode from '$components/dark-mode.svelte'
+	import DarkMode from '$components/parts/system/dark-mode.svelte'
 	import { configuration } from '$lib/globals.svelte'
 	import { T } from '$lib/i18n'
 	import type { Writable } from 'svelte/store'

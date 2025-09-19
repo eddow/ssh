@@ -1,10 +1,11 @@
-import { computed, ReactiveBase } from 'mutts'
+import { computed, ReactiveBase, reactive } from 'mutts'
 import { Container } from 'pixi.js'
 import type { GoodType } from '$lib/arktype'
-import { allocationEnded, AllocationError, guardAllocation } from './guard'
-import type { Storage } from './index'
 import { assert } from '$lib/debug'
+import { AllocationError, allocationEnded, guardAllocation, invalidateAllocation, isAllocationValid } from './guard'
+import type { Storage } from './index'
 
+@reactive
 export class SpecificStorage
 	extends ReactiveBase
 	implements Storage<{ goodType: GoodType; qty: number }>
@@ -63,30 +64,24 @@ export class SpecificStorage
 		return new Container()
 	}
 
-	allocate(
-		goodType: GoodType,
-		qty: number,
-		reason: any,
-	): { goodType: GoodType; qty: number } {
+	allocate(goodType: GoodType, qty: number, reason: any): { goodType: GoodType; qty: number } {
 		assert(qty > 0, 'Cannot allocate non-positive quantity')
 		const room = this.hasRoom(goodType)
 		const take = Math.min(qty, room)
-		if (take <= 0) throw new AllocationError(`Insufficient room to allocate ${qty} of ${goodType}`, reason)
+		if (take <= 0)
+			throw new AllocationError(`Insufficient room to allocate ${qty} of ${goodType}`, reason)
 		this._allocated[goodType] = (this._allocated[goodType] || 0) + take
 		const token = { goodType, qty: take }
 		guardAllocation(token, reason)
 		return token
 	}
 
-	reserve(
-		goodType: GoodType,
-		qty: number,
-		reason: any,
-	): { goodType: GoodType; qty: number } {
+	reserve(goodType: GoodType, qty: number, reason: any): { goodType: GoodType; qty: number } {
 		assert(qty > 0, 'Cannot reserve non-positive quantity')
 		const available = Math.max(0, (this._goods[goodType] || 0) - (this._reserved[goodType] || 0))
 		const take = Math.min(qty, available)
-		if (take <= 0) throw new AllocationError(`Insufficient goods to reserve ${qty} of ${goodType}`, reason)
+		if (take <= 0)
+			throw new AllocationError(`Insufficient goods to reserve ${qty} of ${goodType}`, reason)
 		this._reserved[goodType] = (this._reserved[goodType] || 0) + take
 		const token = { goodType, qty: -take }
 		guardAllocation(token, reason)
@@ -94,7 +89,9 @@ export class SpecificStorage
 	}
 
 	fulfill(allocation: { goodType: GoodType; qty: number }): void {
+		if (!isAllocationValid(allocation)) return
 		allocationEnded(allocation)
+		invalidateAllocation(allocation)
 		const { goodType, qty } = allocation
 		if (qty > 0) {
 			const curAlloc = this._allocated[goodType] || 0
@@ -113,7 +110,9 @@ export class SpecificStorage
 	}
 
 	cancel(allocation: { goodType: GoodType; qty: number }): void {
+		if (!isAllocationValid(allocation)) return
 		allocationEnded(allocation)
+		invalidateAllocation(allocation)
 		const { goodType, qty } = allocation
 		if (qty > 0) {
 			const curAlloc = this._allocated[goodType] || 0

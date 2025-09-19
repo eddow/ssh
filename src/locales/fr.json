@@ -23,7 +23,6 @@
 		"unwalkable": "Impraticable"
 	},
 	"character": {
-		"characterStats": "Statistiques du personnage",
 		"hunger": "Faim",
 		"tiredness": "Épuisement",
 		"fatigue": "Fatigue",

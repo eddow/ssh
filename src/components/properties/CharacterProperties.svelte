@@ -1,10 +1,10 @@
 <script lang="ts">
 	import type { Character } from '$lib/game'
 	import { Badge } from 'flowbite-svelte'
-	import StatProgressBar from './StatProgressBar.svelte'
+	import StatProgressBar from '$components/parts/StatProgressBar.svelte'
 	import { ms, m2s } from '$lib/mutts.svelte'
 	import { T } from '$lib/i18n'
-	import GoodsList from './GoodsList.svelte'
+	import GoodsList from '$components/parts/GoodsList.svelte'
 	import { AEvolutionStep, ALerpStep } from '$lib/game/npcs/steps'
 	let { character }: { character: Character } = $props()
 	const actions = ms(() => character.actionDescription, true)
@@ -61,7 +61,6 @@
 <div class="character-properties">
 	{#if $state.triggerLevels}
 		<div class="mt-4">
-			<h3 class="font-medium mb-3">{$T.character.characterStats}</h3>
 			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
 				<StatProgressBar
 					value={$state.hunger}

@@ -7,11 +7,11 @@
 	import { configuration, games, interactionMode } from '$lib/globals.svelte'
 	import * as gameContent from '$assets/game-content'
 	import widgets from './widgets'
-	import ResourceImage from '$components/resourceImage.svelte'
+	import ResourceImage from '$components/parts/resourceImage.svelte'
 	import Icon from '@iconify/svelte'
 	import { T } from '$lib/i18n'
-	import FlagLanguageSelector from '$components/FlagLanguageSelector.svelte'
-	import DarkMode from '$components/dark-mode.svelte'
+	import FlagLanguageSelector from '$components/parts/system/FlagLanguageSelector.svelte'
+	import DarkMode from '$components/parts/system/dark-mode.svelte'
 
 	$effect(() => {
 		if (configuration.darkMode) document.documentElement.classList.add('dark')

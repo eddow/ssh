@@ -2,11 +2,11 @@
 	import type { Tile } from '$lib/game'
 	import { UnBuiltLand, Module } from '$lib/game/board/content'
 	import { Badge } from 'flowbite-svelte'
-	import UnBuiltProperties from './UnBuiltProperties.svelte'
-	import ModuleProperties from './ModuleProperties.svelte'
+	import UnBuiltProperties from '$components/properties/UnBuiltProperties.svelte'
+	import ModuleProperties from '$components/properties/ModuleProperties.svelte'
 	import { ms } from '$lib/mutts.svelte'
 	import { T } from '$lib/i18n'
-	import GoodsList from './GoodsList.svelte'
+	import GoodsList from '$components/parts/GoodsList.svelte'
 
 	let { tile }: { tile: Tile } = $props()
 	let tileContent = $derived(ms(() => tile.content))

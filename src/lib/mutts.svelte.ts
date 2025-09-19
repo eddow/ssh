@@ -52,10 +52,10 @@ export function ms<T>(muttsValue: (() => T) | T, deep: boolean = false): Writabl
 		}
 	}
 	// writing is done on property set - though replacing the value won't od the job here
-	function set(value: T) {
+	function set(_value: T) {
 		//debugger
 	}
-	function update(updater: (value: T) => T) {
+	function update(_updater: (value: T) => T) {
 		//set(updater(typeof muttsValue === 'function' ? muttsValue() : muttsValue))
 	}
 	return { subscribe, set, update }

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import ResourceImage from './resourceImage.svelte'
+	import ResourceImage from '$components/parts/resourceImage.svelte'
 	import { type Game } from '$lib/game'
 
 	let {

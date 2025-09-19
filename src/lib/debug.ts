@@ -16,5 +16,5 @@ export function complete<T>(value: Partial<T>): asserts value is T {}
 
 export const debugInformation = {
 	// Hook here
-	set(key: string, value: any) {},
+	set(_key: string, _value: any) {},
 }

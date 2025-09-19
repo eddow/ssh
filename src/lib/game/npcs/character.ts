@@ -205,7 +205,7 @@ class WalkFunctions {
 		return this[subject].stepOn(tile)
 	}
 	@contract(TileType)
-	can(tile: Tile) {
+	can(_tile: Tile) {
 		return Number.isFinite(this[subject].tile.content!.walkTime)
 	}
 }

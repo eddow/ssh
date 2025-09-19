@@ -53,7 +53,7 @@ export const gameOperators: Operators = Object.setPrototypeOf(
  */
 export const gameIsaTypes: IsaTypes = Object.setPrototypeOf(
 	{
-		position: (value: any) => Position.infer,
+		position: (_value: any) => Position.infer,
 	},
 	jsIsaTypes,
 )

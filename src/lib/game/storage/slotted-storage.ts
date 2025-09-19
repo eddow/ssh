@@ -1,10 +1,10 @@
-import { computed, effect, ReactiveBase } from 'mutts'
+import { computed, effect, ReactiveBase, reactive } from 'mutts'
 import { Container, Sprite } from 'pixi.js'
 import { goods as goodsCatalog } from '$assets/game-content'
 import type { GoodType } from '$lib/arktype'
-import { allocationEnded, AllocationError, guardAllocation } from './guard'
-import type { Storage } from './index'
 import { assert } from '$lib/debug'
+import { AllocationError, allocationEnded, guardAllocation, invalidateAllocation, isAllocationValid } from './guard'
+import type { Storage } from './index'
 
 export interface Slot {
 	goodType: GoodType
@@ -13,6 +13,7 @@ export interface Slot {
 	reserved: number
 }
 
+@reactive
 export class SlottedStorage extends ReactiveBase implements Storage<number[]> {
 	public slots: (Slot | undefined)[]
 
@@ -104,7 +105,8 @@ export class SlottedStorage extends ReactiveBase implements Storage<number[]> {
 		assert(qty > 0, 'Cannot allocate non-positive quantity')
 		const alloc: number[] = Array(this.slots.length).fill(0)
 		let remaining = Math.min(qty, this.hasRoom(goodType))
-		if (remaining <= 0) throw new AllocationError(`Insufficient room to allocate ${qty} of ${goodType}`, reason)
+		if (remaining <= 0)
+			throw new AllocationError(`Insufficient room to allocate ${qty} of ${goodType}`, reason)
 
 		// Allocate in existing slots first
 		for (let i = 0; i < this.slots.length && remaining > 0; i++) {
@@ -136,7 +138,8 @@ export class SlottedStorage extends ReactiveBase implements Storage<number[]> {
 		assert(qty > 0, 'Cannot reserve non-positive quantity')
 		const alloc: number[] = Array(this.slots.length).fill(0)
 		let remaining = Math.min(qty, this.presentAmount(goodType))
-		if (remaining <= 0) throw new AllocationError(`Insufficient goods to reserve ${qty} of ${goodType}`, reason)
+		if (remaining <= 0)
+			throw new AllocationError(`Insufficient goods to reserve ${qty} of ${goodType}`, reason)
 
 		// Reserve removal from present goods
 		for (let i = 0; i < this.slots.length && remaining > 0; i++) {
@@ -156,7 +159,9 @@ export class SlottedStorage extends ReactiveBase implements Storage<number[]> {
 	}
 
 	fulfill(allocation: number[]): void {
+		if (!isAllocationValid(allocation)) return
 		allocationEnded(allocation)
+		invalidateAllocation(allocation)
 		for (let i = 0; i < allocation.length; i++) {
 			const amount = allocation[i]
 			if (amount === 0) continue
@@ -180,7 +185,9 @@ export class SlottedStorage extends ReactiveBase implements Storage<number[]> {
 	}
 
 	cancel(allocation: number[]): void {
+		if (!isAllocationValid(allocation)) return
 		allocationEnded(allocation)
+		invalidateAllocation(allocation)
 		for (let i = 0; i < allocation.length; i++) {
 			const amount = allocation[i]
 			if (amount === 0) continue

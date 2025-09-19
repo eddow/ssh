@@ -1,8 +1,8 @@
 import { computed } from 'mutts'
 import { Container } from 'pixi.js'
 import type { GoodType } from '$lib/arktype'
-import type { Storage } from './index'
 import { AllocationError } from './guard'
+import type { Storage } from './index'
 
 export class NoStorage implements Storage<never> {
 	hasRoom(_goodType?: GoodType): number {
@@ -23,17 +23,23 @@ export class NoStorage implements Storage<never> {
 	}
 
 	allocate(_goodType: GoodType, qty: number, reason: any): never {
-		throw new AllocationError(`Cannot allocate ${qty} of ${_goodType} - no storage available`, reason)
+		throw new AllocationError(
+			`Cannot allocate ${qty} of ${_goodType} - no storage available`,
+			reason,
+		)
 	}
 
 	reserve(_goodType: GoodType, qty: number, reason: any): never {
-		throw new AllocationError(`Cannot reserve ${qty} of ${_goodType} - no storage available`, reason)
+		throw new AllocationError(
+			`Cannot reserve ${qty} of ${_goodType} - no storage available`,
+			reason,
+		)
 	}
 	fulfill(_allocation: never): void {
-		/* noop */
+		/* noop - allocations are never created for NoStorage */
 	}
 	cancel(_allocation: never): void {
-		/* noop */
+		/* noop - allocations are never created for NoStorage */
 	}
 
 	renderGoods(_game: any, _size: number) {

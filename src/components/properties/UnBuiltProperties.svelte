@@ -4,7 +4,7 @@
 	import { goods } from '$assets/game-content'
 	import { Badge } from 'flowbite-svelte'
 	import { T } from '$lib/i18n'
-	import EntityBadge from './EntityBadge.svelte'
+	import EntityBadge from '$components/parts/EntityBadge.svelte'
 
 	let { content }: { content: UnBuiltLand } = $props()
 	const game = content.tile.hex.game

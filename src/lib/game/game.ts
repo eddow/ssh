@@ -123,7 +123,7 @@ export class Game extends Eventful<GameEvents> {
 	public simulateObjectClick(object: InteractiveGameObject) {
 		this.emit('objectClick', {} as any, object)
 	}
-	generate(state: any = {}) {
+	generate(_state: any = {}) {
 		this.hex?.generateBoard()
 		this.population.generateCharacters(1)
 	}
@@ -235,7 +235,7 @@ export class GameView {
 			return undefined
 		}
 
-		const emitOverOutIfNeeded = (nextHover: InteractiveGameObject | undefined, ev: MouseEvent) => {
+		const emitOverOutIfNeeded = (nextHover: InteractiveGameObject | undefined, _ev: MouseEvent) => {
 			if (mrg.hoveredObject !== nextHover) {
 				/*
 				if (mrg.hoveredObject) {
@@ -297,7 +297,7 @@ export class GameView {
 			emitOverOutIfNeeded(hit, e)
 		})
 
-		const clearHover = (e: Event) => {
+		const clearHover = (_e: Event) => {
 			if (mrg.hoveredObject) {
 				//game.emit("objectOut", e as any, mrg.hoveredObject)
 				mrg.hoveredObject = undefined
