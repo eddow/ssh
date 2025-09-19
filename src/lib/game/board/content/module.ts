@@ -1,47 +1,48 @@
 import { Container, type ContainerChild, Sprite } from 'pixi.js'
-import { goods, modules } from '$assets/game-content'
 import { transformModuleStorageMultiplier } from '$assets/constants'
+import { modules } from '$assets/game-content'
 import type { GoodType } from '$lib/arktype'
-import type { Character } from '$lib/game/population'
 import type { Game } from '$lib/game/game'
 import type { Job } from '$lib/game/job'
 import { gameIsaTypes } from '$lib/game/npcs/utils'
+import type { Character } from '$lib/game/population'
 import { tileSize } from '$lib/utils'
-import type { TileContent } from './index'
-import type { Tile } from '../tile'
-import { GcClassed, GcClasses } from './utils'
-import { SpecificStorage } from '../../storage/specific-storage'
+import { type Storage, withStorageForwarder } from '../../storage'
 import { NoStorage } from '../../storage/no-storage'
+import { SpecificStorage } from '../../storage/specific-storage'
+import type { Tile } from '../tile'
+import type { TileContent } from './index'
+import { GcClassed, GcClasses } from './utils'
 
-export class Module extends GcClassed<Ssh.ModuleDefinition>() implements TileContent {
+export class Module
+	extends withStorageForwarder(GcClassed<Ssh.ModuleDefinition>())
+	implements TileContent
+{
 	static class = GcClasses(Module, modules)
 	public assignedWorker: Character | undefined
-	private storage: SpecificStorage | NoStorage
 
 	// Configurable properties
 	public walkway: boolean = true
 	public conveyor: boolean = true
 
 	constructor(public tile: Tile) {
-		super()
-		
-		// Initialize storage based on action type
-		if (this.action.type === 'transform') {
-			// Transform modules can store input goods * multiplier
+		let storage: Storage<any>
+		if (new.target.prototype.action.type === 'transform') {
 			const maxAmounts: { [k in GoodType]?: number } = {}
-			for (const [goodType, inputAmount] of Object.entries(this.action.inputs)) {
-				maxAmounts[goodType as GoodType] = (inputAmount as number) * transformModuleStorageMultiplier
+			for (const [goodType, inputAmount] of Object.entries(new.target.prototype.action.inputs)) {
+				maxAmounts[goodType as GoodType] =
+					(inputAmount as number) * transformModuleStorageMultiplier
 			}
-			this.storage = new SpecificStorage(maxAmounts)
+			storage = new SpecificStorage(maxAmounts)
 		} else {
-			// Harvest modules have no storage
-			this.storage = new NoStorage()
+			storage = new NoStorage()
 		}
+		super(storage)
 	}
 
 	// Delegate storage methods to the appropriate storage type
-	canStoreGood(goodType: GoodType): number {
-		return this.storage.canStoreGood(goodType)
+	hasRoom(goodType: GoodType): number {
+		return this.storage.hasRoom(goodType)
 	}
 
 	addGood(goodType: GoodType, qty: number): number {
@@ -52,6 +53,19 @@ export class Module extends GcClassed<Ssh.ModuleDefinition>() implements TileCon
 		return this.storage.removeGood(goodType, qty)
 	}
 
+	allocate(goodType: GoodType, qty: number, reason: any) {
+		return this.storage.allocate(goodType, qty, reason)
+	}
+	reserve(goodType: GoodType, qty: number, reason: any) {
+		return this.storage.reserve(goodType, qty, reason)
+	}
+	fulfill(allocation: any) {
+		this.storage.fulfill(allocation)
+	}
+	cancel(allocation: any) {
+		this.storage.cancel(allocation)
+	}
+
 	get goods(): { [k in GoodType]?: number } {
 		return this.storage.goods
 	}
@@ -59,8 +73,12 @@ export class Module extends GcClassed<Ssh.ModuleDefinition>() implements TileCon
 	get debugInfo() {
 		return {
 			outputs: this.output,
-			storage: this.storage.debugInfo,
+			storage: (this.storage as any).debugInfo,
 		}
+	}
+
+	renderGoods(game: any, size: number) {
+		return this.storage.renderGoods(game, size)
 	}
 	get walkTime() {
 		return this.walkway ? 1 : Number.POSITIVE_INFINITY
@@ -70,7 +88,7 @@ export class Module extends GcClassed<Ssh.ModuleDefinition>() implements TileCon
 	}
 
 	// Render module sprite + a vertical goods bar on the right side of the tile
-	render({ game }: Tile): ContainerChild {
+	render(game: Game): ContainerChild {
 		const root = new Container()
 		const size = tileSize
 		// Module sprite (centered)

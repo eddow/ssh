@@ -54,8 +54,7 @@
 		"walkway": "Walkway",
 		"conveyor": "Conveyor",
 		"walkwayTooltip": "Allow characters to walk through this module",
-		"conveyorTooltip": "Allow unrelated goods to pass through this module",
-		"typesStored": "{count} types stored"
+		"conveyorTooltip": "Allow unrelated goods to pass through this module"
 	},
 	"deposit": "Deposit",
 	"goods": "Goods"

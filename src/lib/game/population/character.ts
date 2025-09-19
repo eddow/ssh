@@ -1,38 +1,32 @@
 import { effect, reactive, type ScopedCallback } from 'mutts'
 import { ColorMatrixFilter, Sprite } from 'pixi.js'
 import { characterEvolutionRates, characterTriggerLevels, maxWalkTime } from '$assets/constants'
+import { goods as goodsCatalog } from '$assets/game-content'
 import type { GoodType } from '$lib/arktype'
 import { mrg } from '$lib/globals.svelte'
 import { type AxialCoord, type AxialRef, axial } from '$lib/hex'
-import type { Game } from '../game'
 import { Module } from '../board/content'
-import { Tile } from '../board/tile'
+import type { Tile } from '../board/tile'
+import type { Game } from '../game'
 import { bestPossibleJobScore, calculateJobScore, type Job } from '../job'
 import aCharacterContext from '../npcs/character'
-import { goods as goodsCatalog } from '$assets/game-content'
 // biome-ignore lint/correctness/noUnusedImports: We need it for mixins tranquility: all propertyKeys are known
 import { type ScriptExecution, subject } from '../npcs/scripts'
-import {
-	GameObject,
-	withGenerator,
-	withInteractive,
-	withScripted,
-	withTicked,
-} from '../object'
+import { GameObject, withGenerator, withInteractive, withScripted, withTicked } from '../object'
 import { axialDistance, type Position, toAxialCoord, toWorldCoord } from '../position'
-import { type Vehicle } from './vehicle'
+import type { Vehicle } from './vehicle'
 import { ByHands } from './vehicle/by-hands'
 
 @reactive
-export class Character
-	extends withInteractive(withScripted(withTicked(withGenerator(GameObject))))
-{
+export class Character extends withInteractive(
+	withScripted(withTicked(withGenerator(GameObject))),
+) {
 	readonly triggerLevels = characterTriggerLevels
 
 	public assignedModule: Module | undefined = undefined
 
 	// Character needs levels (starting at 0, incrementing 1 per second)
-	public hunger: number = 1000
+	public hunger: number = 0
 	public tiredness: number = 0
 	public fatigue: number = 0
 
@@ -55,7 +49,7 @@ export class Character
 		this._tile = game.hex.getTile(toAxialCoord(this.position))!
 		// Allocate initial occupancy on the board
 		this.game.hex.moveCharacter(this, toAxialCoord(this._tile.position))
-		
+
 		// Create vehicle (by hands for now) - direct instantiation like Tile->TileContent
 		this.vehicle = new ByHands(this)
 	}
@@ -73,8 +67,6 @@ export class Character
 	get title(): string {
 		return this.name
 	}
-
-
 
 	/**
 	 * Find the best available job using pathfinding
@@ -119,7 +111,7 @@ export class Character
 	get carriedFood(): GoodType | undefined {
 		return maxBy(
 			Object.entries(this.vehicle.goods) as [GoodType, number][],
-			([goodType, qty]) => qty > 0 && goodsCatalog[goodType].feedingValue || undefined
+			([goodType, qty]) => (qty > 0 && goodsCatalog[goodType].feedingValue) || undefined,
 		)?.[0]
 	}
 
@@ -172,7 +164,8 @@ export class Character
 	findAction() {
 		if (this.hunger > this.triggerLevels.hunger.high) return this.scriptsContext.selfCare.goEat()
 
-		if (Object.values(this.vehicle.goods).some(qty => qty > 0)) return this.scriptsContext.inventory.dropAll()
+		if (Object.values(this.vehicle.goods).some((qty) => qty > 0))
+			return this.scriptsContext.inventory.dropAll()
 		const tryAnActivity =
 			this.fatigue < this.triggerLevels.fatigue.high ? this.findBestJob() : undefined // goRest
 		// Default to wandering when no specific action is needed
@@ -215,7 +208,6 @@ export class Character
 		}
 	}
 }
-
 
 // ArkType validation for Character
 import { type } from 'arktype'

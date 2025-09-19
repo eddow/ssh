@@ -1,4 +1,4 @@
-goEat = function()
+function goEat()
 	while hunger > triggerLevels.hunger.satisfied
 		food = carriedFood
 		if food then
@@ -13,7 +13,7 @@ goEat = function()
 	end while
 end function
 
-wander = function()
+function wander()
 	destination = find.wanderingTile()
 	if not destination.path then return false
 	walk.into destination.path

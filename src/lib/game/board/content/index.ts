@@ -1,8 +1,10 @@
+import type { ContainerChild } from 'pixi.js'
 import type { GoodType } from '$lib/arktype'
+import type { Game } from '$lib/game'
 import type { Storage } from '../../storage'
 import type { Tile } from '../tile'
 
-export interface TileContent extends Storage {
+export interface TileContent extends Storage<any> {
 	readonly tile: Tile
 	// TODO: translate-> name = translation set on load
 	readonly name?: string
@@ -20,7 +22,7 @@ export interface TileContent extends Storage {
 	 * @param tile - The tile to render
 	 * @returns The container child to render
 	 */
-	render(tile: Tile): any
+	render(game: Game): ContainerChild
 	/**
 	 * Check if this tile content can perform the given action
 	 * @param action - The action to check

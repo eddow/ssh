@@ -3,8 +3,8 @@ import EventEmitter from 'eventemitter3'
 import { computed, effect, ReactiveBase, type ScopedCallback, unreactive } from 'mutts'
 import type { ExecutionContext } from 'npc-script/src'
 import { Ticker } from 'pixi.js'
-import type { Game } from './game'
 import type { Tile } from './board/tile'
+import type { Game } from './game'
 import { ScriptExecution } from './npcs/scripts'
 import { ASingleStep } from './npcs/steps'
 import type { Position } from './position'
@@ -233,7 +233,7 @@ export function withScripted<T extends new (...args: any[]) => TickedGameObject>
 				if (remaining !== undefined) {
 					this.stepExecutor = undefined
 					this.nextStep()
-					const newType = this.stepExecutor!?.type
+					const newType = this.stepExecutor?.type
 					if (uselessStepExecutor === newType) throw new Error(`Useless step executor: ${newType}`)
 				}
 			}

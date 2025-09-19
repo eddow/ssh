@@ -6,8 +6,8 @@ import { contract, DepositType, GoodType } from '$lib/arktype'
 import { assert } from '$lib/debug'
 import { type AxialCoord, type AxialRef, axial } from '$lib/hex'
 import { objectMap } from '$lib/utils'
-import type { Character } from '../population'
 import { type Tile, TileType, UnBuiltLand } from '../board'
+import type { Character } from '../population'
 import { Positioned, positionRoughlyEquals, toAxialCoord } from '../position'
 import { InteractiveContext, loadNpcScripts, protoCtx, subject } from './scripts'
 import { EatStep, MoveToStep, PonderingStep, WaitStep } from './steps'
@@ -78,7 +78,7 @@ class FindFunctions {
 			(coord) => {
 				const tile = hex.getTile(coord)
 				if (!tile) return false
-				return tile.content!.canStoreGood(goodType) > 0
+				return tile.content!.hasRoom(goodType) > 0
 			},
 			maxWalkTime,
 			true,
@@ -133,26 +133,46 @@ class InventoryFunctions {
 	@contract(GoodType, 'number?')
 	grab(goodType: GoodType, maxAmount: number = 1) {
 		const character = this[subject]
-		const tile = character.tile
+		const { content } = character.tile
+		assert(content, 'tile.content must be set')
 
-		const canGrab = character.vehicle.canStoreGood(goodType)
+		const canGrab = character.vehicle.hasRoom(goodType)
 		const amount = Math.min(canGrab, maxAmount)
 
-		const taken = amount <= 0 ? 0 : tile.content!.removeGood(goodType, amount)
-		if (taken > 0) {
-			character.vehicle.addGood(goodType, taken)
-		}
-		return new WaitStep(taken * activityDurations.transfer, 'convey', `grab.${goodType}`)
+		if (amount <= 0) throw new Error('No goods to grab')
+		const vehicleTransfer = character.vehicle.allocate(goodType, amount, `grab.${goodType}`)
+		const tileTransfer = content.reserve(goodType, amount, `grab.${goodType}`)
+		return new WaitStep(amount * activityDurations.transfer, 'convey', `grab.${goodType}`)
+			.finished(() => {
+				character.vehicle.fulfill(vehicleTransfer)
+				content.fulfill(tileTransfer)
+			})
+			.canceled(() => {
+				character.vehicle.cancel(vehicleTransfer)
+				content.cancel(tileTransfer)
+			})
 	}
 	@contract(GoodType, 'number?')
 	drop(goodType: GoodType, maxAmount: number = 1) {
 		const character = this[subject]
-		const tile = character.tile
+		const { content } = character.tile
+		assert(content, 'tile.content must be set')
 
-		const amount = Math.min(character.vehicle.goods[goodType] ?? 0, maxAmount)
-		const dropped = tile.content!.addGood(goodType, amount)
-		character.vehicle.removeGood(goodType, dropped)
+		const available = character.vehicle.goods[goodType] ?? 0
+		const canStore = content.hasRoom(goodType)
+		const amount = Math.min(available, canStore, maxAmount)
+		if (amount <= 0) throw new Error('No goods to drop')
+		const tileTransfer = content.allocate(goodType, amount, `drop.${goodType}`)
+		const vehicleTransfer = character.vehicle.reserve(goodType, amount, `drop.${goodType}`)
 		return new WaitStep(amount * activityDurations.transfer, 'convey', `drop.${goodType}`)
+			.finished(() => {
+				content.fulfill(tileTransfer)
+				character.vehicle.fulfill(vehicleTransfer)
+			})
+			.canceled(() => {
+				content.cancel(tileTransfer)
+				character.vehicle.cancel(vehicleTransfer)
+			})
 	}
 }
 
@@ -228,7 +248,7 @@ class WorkFunctions {
 		// Check if character can store any of the output goods
 		const outputGoods = module.output
 		const canStoreAny = Object.keys(outputGoods).some(
-			(goodType) => this[subject].vehicle.canStoreGood(goodType as GoodType) > 0,
+			(goodType) => this[subject].vehicle.hasRoom(goodType as GoodType) > 0,
 		)
 		if (!canStoreAny) return
 		deposit.amount -= 1

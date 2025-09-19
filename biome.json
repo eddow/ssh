@@ -46,7 +46,10 @@
 			},
 			"security": {},
 			"correctness": {
-				"noUnusedImports": { "level": "info" },
+				"noUnusedImports": {
+					"level": "info",
+					"fix": "safe"
+				},
 				"noUnusedFunctionParameters": "off"
 			},
 			"nursery": {}

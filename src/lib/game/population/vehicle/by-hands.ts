@@ -1,6 +1,6 @@
 import { reactive } from 'mutts'
-import type { Vehicle } from './index'
 import { SlottedStorage } from '../../storage/slotted-storage'
+import type { Vehicle } from './index'
 
 @reactive
 export class ByHands extends SlottedStorage implements Vehicle {
@@ -12,7 +12,6 @@ export class ByHands extends SlottedStorage implements Vehicle {
 		super(1, 1) // 1 slot, max 1 quantity per slot
 		this.character = character
 	}
-
 
 	canInteract(action: string): boolean {
 		// By hands vehicle can't be built on
@@ -28,9 +27,5 @@ export class ByHands extends SlottedStorage implements Vehicle {
 		return {
 			name: this.name,
 		}
-	}
-
-	destroy?(): void {
-		// Cleanup if needed
 	}
 }

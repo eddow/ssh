@@ -1,14 +1,7 @@
 import { type } from 'arktype'
 import { effect, reactive, watch } from 'mutts'
-import {
-	ColorMatrixFilter,
-	Container,
-	type ContainerChild,
-	Graphics,
-	Point,
-	TilingSprite,
-} from 'pixi.js'
-import type { GoodType, ModuleType } from '$lib/arktype'
+import { ColorMatrixFilter, Container, Graphics, Point, TilingSprite } from 'pixi.js'
+import type { ModuleType } from '$lib/arktype'
 import { mrg } from '$lib/globals.svelte'
 import type { AxialCoord } from '$lib/hex'
 import { tileSize } from '$lib/utils'
@@ -17,15 +10,15 @@ import { GameObject, withGenerator, withInteractive } from '../object'
 import { type Position, toAxialCoord, toWorldCoord } from '../position'
 import type { HexBoard } from '.'
 import type { TileBorder } from './border'
-import { Module } from './content/module'
 import type { TileContent } from './content'
+import { Module } from './content/module'
 
 @reactive
 export class Tile extends withInteractive(withGenerator(GameObject)) {
 	get content(): TileContent | undefined {
 		return this.hex.getTileContent(toAxialCoord(this.position))
 	}
-	set content(content: TileContent | undefined) {
+	set content(content: TileContent) {
 		this.content?.destroy?.()
 		this.hex.setTileContent(toAxialCoord(this.position), content)
 	}
@@ -113,17 +106,15 @@ export class Tile extends withInteractive(withGenerator(GameObject)) {
 
 		tileContainer.addChild(tileSprite, mask)
 		game.backgroundLayer.addChild(tileContainer)
-		watch(
+		const cleanup = watch(
 			() => this.content,
 			(content) => {
 				if (!content) return
-				const fg = content.render(this)
+				const fg = new Container()
 				const { x, y } = toWorldCoord(position)
 				fg.position.set(x, y)
-				game.objectLayer.addChild(fg as any)
-				return () => {
-					fg.destroy()
-				}
+				game.objectLayer.addChild(fg)
+				fg.addChild(content.render(game))
 			},
 			{ immediate: true },
 		)
@@ -138,6 +129,7 @@ export class Tile extends withInteractive(withGenerator(GameObject)) {
 		})
 		this.game.backgroundLayer.addChild(tileContainer)
 		return () => {
+			cleanup()
 			mouseoverEffect()
 			tileContainer.destroy({ children: false })
 			this.game.backgroundLayer.removeChild(tileContainer)

@@ -32,5 +32,7 @@ export function GcClassed<T extends object>() {
 			// @ts-expect-error
 			return this.constructor.resourceName
 		}
-	} as new () => T
+	} as new (
+		...args: any[]
+	) => T
 }

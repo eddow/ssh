@@ -54,8 +54,7 @@
 		"walkway": "Passage",
 		"conveyor": "Convoyeur",
 		"walkwayTooltip": "Permettre aux personnages de marcher à travers ce module",
-		"conveyorTooltip": "Permettre aux marchandises non liées de passer à travers ce module",
-		"typesStored": "{count} types stockés"
+		"conveyorTooltip": "Permettre aux marchandises non liées de passer à travers ce module"
 	},
 	"deposit": "Dépôt",
 	"goods": "Marchandises"

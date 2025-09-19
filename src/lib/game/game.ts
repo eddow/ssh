@@ -5,9 +5,9 @@ import { prefix, resources } from '$assets/resources'
 import { interactionMode, mrg } from '$lib/globals.svelte'
 import { registerPixiApp, unregisterPixiApp } from '$lib/hmr-pixi'
 import { LCG } from '$lib/numbers'
-import { Population } from './population'
 import { HexBoard } from './board'
 import type { HittableGameObject, InteractiveGameObject } from './object'
+import { Population } from './population'
 
 unreactive(gameContent)
 

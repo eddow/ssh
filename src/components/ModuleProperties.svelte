@@ -24,16 +24,6 @@
 		</div>
 
 		<div class="flex items-center gap-2">
-			<span class="font-medium">{$T.goods}:</span>
-			<Badge color="yellow">
-				{$T.module.typesStored.replace(
-					'{count}',
-					Object.keys($module.goods).length.toString()
-				)}</Badge
-			>
-		</div>
-
-		<div class="flex items-center gap-2">
 			<span class="font-medium">{$T.module.action}:</span>
 			<Badge color="indigo">{$module.action.type}</Badge>
 		</div>

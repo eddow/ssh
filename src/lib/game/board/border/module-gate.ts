@@ -1,10 +1,9 @@
-import type { GoodType } from '$lib/arktype'
-import type { Storage } from '$lib/game/storage'
+import { SlottedStorage } from '$lib/game/storage/slotted-storage'
 import { Module } from '../content'
 import type { TileBorder, TileBorderContent } from './index'
 
 /** A storage gate placed on a border between two tiles/modules. */
-export class ModuleGate implements TileBorderContent, Storage {
+export class ModuleGate extends SlottedStorage implements TileBorderContent {
 	readonly border: TileBorder
 
 	/** Connected modules on each side of the border (optional). */
@@ -17,12 +16,8 @@ export class ModuleGate implements TileBorderContent, Storage {
 		return content instanceof Module ? content : undefined
 	}
 
-	/** Simple per-gate storage (single-type buffer). */
-	private storedType?: GoodType
-	private storedAmount: number = 0
-	private readonly capacity: number = 1
-
 	constructor(border: TileBorder) {
+		super(2, 3) // 2 slots, max quantity 3 per slot
 		this.border = border
 	}
 
@@ -37,30 +32,5 @@ export class ModuleGate implements TileBorderContent, Storage {
 		}
 	}
 
-	canStoreGood(goodType: GoodType): number {
-		if (this.storedType && this.storedType !== goodType) return 0
-		return this.capacity - this.storedAmount
-	}
-
-	addGood(goodType: GoodType, qty: number): number {
-		const can = this.canStoreGood(goodType)
-		const stored = Math.min(qty, can)
-		if (stored <= 0) return 0
-		this.storedType = goodType
-		this.storedAmount += stored
-		return stored
-	}
-
-	removeGood(goodType: GoodType, qty: number): number {
-		if (this.storedType !== goodType) return 0
-		const taken = Math.min(qty, this.storedAmount)
-		if (taken <= 0) return 0
-		this.storedAmount -= taken
-		if (this.storedAmount === 0) this.storedType = undefined
-		return taken
-	}
-
-	get goods(): { [k in GoodType]?: number } {
-		return this.storedType ? { [this.storedType]: this.storedAmount } : {}
-	}
+	// Storage methods are inherited from SlottedStorage
 }

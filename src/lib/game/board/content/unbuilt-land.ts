@@ -1,12 +1,13 @@
-import { computed, effect } from 'mutts'
+import { effect } from 'mutts'
 import { Container, type ContainerChild, Sprite } from 'pixi.js'
-import { deposits, goods } from '$assets/game-content'
-import type { GoodType, TerrainType } from '$lib/arktype'
+import { deposits } from '$assets/game-content'
+import type { TerrainType } from '$lib/arktype'
+import type { Game } from '$lib/game/game'
 import { tileSize } from '$lib/utils'
-import type { TileContent } from './index'
-import type { Tile } from '../tile'
-import { GcClassed, GcClasses } from './utils'
 import { SlottedStorage } from '../../storage/slotted-storage'
+import type { Tile } from '../tile'
+import type { TileContent } from './index'
+import { GcClassed, GcClasses } from './utils'
 
 export class Deposit extends GcClassed<Ssh.DepositDefinition>() {
 	static class = GcClasses(Deposit, deposits)
@@ -40,8 +41,8 @@ export class UnBuiltLand extends SlottedStorage implements TileContent {
 	get background() {
 		return `terrain-${this.terrain}`
 	}
-
-	render({ game }: Tile): ContainerChild {
+	// TODO: effects should have a deallocation moment - manage the `destroy` chain
+	render(game: Game): ContainerChild {
 		const size = tileSize
 		const root = new Container()
 
@@ -58,30 +59,7 @@ export class UnBuiltLand extends SlottedStorage implements TileContent {
 			}
 		})
 
-		effect(() => {
-			// Goods rendering in triangular pattern
-			const goodsSprites: Sprite[] = []
-			for (let i = 0; i < this.slots.length; i++) {
-				const slot = this.slots[i]
-				if (!slot || slot.quantity === 0) continue
-				const goodsSprite = new Sprite(game.getTexture(goods[slot.goodType].sprites[0]))
-				// scale small
-				const scale = Math.max(goodsSprite.width, goodsSprite.height) / (size * 0.5)
-				goodsSprite.scale.set(1 / scale)
-				goodsSprite.anchor.set(0.5)
-				// Position in triangular pattern (de-centered)
-				const angle = (i * 2 * Math.PI) / 3
-				const radius = size * 0.4
-				const offsetX = Math.cos(angle) * radius
-				const offsetY = Math.sin(angle) * radius
-				goodsSprite.position.set(offsetX, offsetY)
-				root.addChild(goodsSprite)
-				goodsSprites.push(goodsSprite)
-			}
-			return () => {
-				for (const sprite of goodsSprites) sprite.destroy()
-			}
-		})
+		root.addChild(this.renderGoods(game, size))
 
 		return root
 	}

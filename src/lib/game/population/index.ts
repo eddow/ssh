@@ -1,12 +1,13 @@
 export * from './character'
 export * from './vehicle'
 export * from './vehicle/by-hands'
+
+import type { AxialCoord } from '$lib/hex'
 import { AxialSet } from '$lib/mem'
 import { type RandGenerator, uuid } from '$lib/numbers'
-import type { AxialCoord } from '$lib/hex'
-import { GameObject, withContainer, withHittable } from '../object'
-import type { Game } from '../game'
 import { UnBuiltLand } from '../board/content'
+import type { Game } from '../game'
+import { GameObject, withContainer, withHittable } from '../object'
 import { Character } from './character'
 
 export class Population extends withContainer(withHittable(GameObject)) {
