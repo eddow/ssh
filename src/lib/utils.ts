@@ -77,3 +77,16 @@ class CaseFormatter {
 export function casing(name: string) {
 	return new CaseFormatter(name)
 }
+
+export function maxBy<T>(array: T[], fn: (item: T) => number | undefined): T | undefined {
+	let maxVal = Number.NEGATIVE_INFINITY
+	let maxItem: T | undefined
+	for (const item of array) {
+		const val = fn(item)
+		if (val !== undefined && val > maxVal) {
+			maxVal = val
+			maxItem = item
+		}
+	}
+	return maxItem
+}

@@ -1,3 +1,7 @@
+export * from './border'
+export * from './content'
+export * from './tile'
+
 import type { Sprite } from 'pixi.js'
 import { terrain as terrainDetails } from '$assets/game-content'
 import type { DepositType, TerrainType } from '$lib/arktype'
@@ -18,10 +22,11 @@ import {
 } from '$lib/hex'
 import { AxialKeyMap } from '$lib/mem'
 import { isInteger, tileSize } from '$lib/utils'
-import type { Character } from '../character'
+import type { Character } from '../population'
 import type { Game } from '../game'
 import { TileBorder, type TileBorderContent } from './border'
-import { Deposit, Tile, type TileContent, UnBuiltLand } from './tile'
+import { Deposit, type TileContent, UnBuiltLand } from './content'
+import { Tile } from './tile'
 
 export class HexBoard extends withContainer(withHittable(GameObject)) {
 	private contents: AxialKeyMap<TileContent | TileBorderContent>

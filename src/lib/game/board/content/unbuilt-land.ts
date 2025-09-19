@@ -3,8 +3,10 @@ import { Container, type ContainerChild, Sprite } from 'pixi.js'
 import { deposits, goods } from '$assets/game-content'
 import type { GoodType, TerrainType } from '$lib/arktype'
 import { tileSize } from '$lib/utils'
-import type { Tile, TileContent } from './index'
+import type { TileContent } from './index'
+import type { Tile } from '../tile'
 import { GcClassed, GcClasses } from './utils'
+import { SlottedStorage } from '../../storage/slotted-storage'
 
 export class Deposit extends GcClassed<Ssh.DepositDefinition>() {
 	static class = GcClasses(Deposit, deposits)
@@ -13,8 +15,7 @@ export class Deposit extends GcClassed<Ssh.DepositDefinition>() {
 	}
 }
 
-export class UnBuiltLand implements TileContent {
-	public goodSlots: (GoodType | undefined)[]
+export class UnBuiltLand extends SlottedStorage implements TileContent {
 	get name() {
 		return this.terrain
 	}
@@ -24,45 +25,13 @@ export class UnBuiltLand implements TileContent {
 		public terrain: TerrainType,
 		public deposit?: Deposit,
 	) {
-		this.goodSlots = new Array(goodsSlots).fill(undefined)
-	}
-	@computed
-	get goods() {
-		return this.goodSlots.reduce(
-			(acc, good) => {
-				if (good) acc[good] = (acc[good] || 0) + 1
-				return acc
-			},
-			{} as { [k in GoodType]?: number },
-		)
-	}
-	canStoreGood(goodType: GoodType): number {
-		return this.goodSlots.filter((good) => good === undefined).length
-	}
-	addGood(goodType: GoodType, qty: number) {
-		let toAdd = qty
-		for (let i = 0; i < this.goodSlots.length; i++) {
-			if (this.goodSlots[i] === undefined) {
-				this.goodSlots[i] = goodType
-				if (!--toAdd) return qty
-			}
-		}
-		return qty - toAdd
-	}
-	removeGood(goodType: GoodType, qty: number) {
-		let toRemove = qty
-		for (let i = 0; i < this.goodSlots.length; i++) {
-			if (this.goodSlots[i] === goodType) {
-				this.goodSlots[i] = undefined
-				if (!--toRemove) return qty
-			}
-		}
-		return qty - toRemove
+		super(goodsSlots, 1) // goodsSlots slots, 1 good per slot
 	}
 	get debugInfo() {
 		return {
-			goods: this.goodSlots.filter((good) => good !== undefined),
+			...super.debugInfo,
 			terrain: this.terrain,
+			deposit: this.deposit?.amount,
 		}
 	}
 	get walkTime() {
@@ -92,10 +61,10 @@ export class UnBuiltLand implements TileContent {
 		effect(() => {
 			// Goods rendering in triangular pattern
 			const goodsSprites: Sprite[] = []
-			for (let i = 0; i < this.goodSlots.length; i++) {
-				const good = this.goodSlots[i]
-				if (!good) continue
-				const goodsSprite = new Sprite(game.getTexture(goods[good].sprites[0]))
+			for (let i = 0; i < this.slots.length; i++) {
+				const slot = this.slots[i]
+				if (!slot || slot.quantity === 0) continue
+				const goodsSprite = new Sprite(game.getTexture(goods[slot.goodType].sprites[0]))
 				// scale small
 				const scale = Math.max(goodsSprite.width, goodsSprite.height) / (size * 0.5)
 				goodsSprite.scale.set(1 / scale)

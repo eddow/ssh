@@ -1,10 +1,11 @@
 goEat = function()
-	if carriedAmount > 0 and goods[carriedType].feedingValue == 0 then inventory.dropAll
 	while hunger > triggerLevels.hunger.satisfied
-		if carriedAmount > 0 and carriedType and goods[carriedType].feedingValue > 0 then
-			selfCare.eat
+		food = carriedFood
+		if food then
+			selfCare.eat food
 			continue
 		end if
+		inventory.makeRoom
 		found = find.food()
 		if not found then return false
 		walk.into found.path

@@ -1,10 +1,12 @@
 import { activityDurations, ponderingFatigueRecovery } from '$assets/constants'
 import { goods as goodsCatalog } from '$assets/game-content'
 import { casing } from '$lib/utils'
-import type { Character } from '../character'
+import type { GoodType } from '$lib/arktype'
+import type { Character } from '../population'
 import type { Position, Positioned } from '../position'
 import { Finalized } from './scripts'
 import { lerp } from './utils'
+import { assert } from '$lib/debug'
 
 //#region Abstracts
 
@@ -87,14 +89,10 @@ export class EatStep extends AEvolutionStep {
 		return 'eat' as const
 	}
 	private readonly feedingValue: number
-	constructor(readonly character: Character) {
+	constructor(readonly character: Character, readonly food: GoodType) {
 		super(activityDurations.eating)
-		this.feedingValue = goodsCatalog[character.carriedType!]?.feedingValue ?? 0
-		if (this.feedingValue) {
-			--this.character.carriedAmount
-
-			if (this.character.carriedAmount <= 0) this.character.carriedType = undefined
-		}
+		this.feedingValue = goodsCatalog[food].feedingValue
+		assert(this.character.vehicle.removeGood(food, 1) === 1, "Didn't have food he is trying to eat")
 	}
 	evolve(_: number, dt: number): void {
 		this.character.hunger = Math.max(0, this.character.hunger - this.feedingValue * dt)

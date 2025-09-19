@@ -1,6 +1,6 @@
 import type { GoodType } from '$lib/arktype'
 import type { Storage } from '$lib/game/storage'
-import { Module } from '../tile'
+import { Module } from '../content'
 import type { TileBorder, TileBorderContent } from './index'
 
 /** A storage gate placed on a border between two tiles/modules. */

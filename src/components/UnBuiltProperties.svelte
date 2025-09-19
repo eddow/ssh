@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { UnBuiltLand } from '$lib/game/hex/tile'
+	import type { UnBuiltLand } from '$lib/game/board/content'
 	import type { GoodType } from '$lib/arktype'
 	import { goods } from '$assets/game-content'
 	import { Badge } from 'flowbite-svelte'

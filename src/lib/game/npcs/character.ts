@@ -6,8 +6,8 @@ import { contract, DepositType, GoodType } from '$lib/arktype'
 import { assert } from '$lib/debug'
 import { type AxialCoord, type AxialRef, axial } from '$lib/hex'
 import { objectMap } from '$lib/utils'
-import type { Character } from '../character'
-import { type Tile, TileType, UnBuiltLand } from '../hex'
+import type { Character } from '../population'
+import { type Tile, TileType, UnBuiltLand } from '../board'
 import { Positioned, positionRoughlyEquals, toAxialCoord } from '../position'
 import { InteractiveContext, loadNpcScripts, protoCtx, subject } from './scripts'
 import { EatStep, MoveToStep, PonderingStep, WaitStep } from './steps'
@@ -135,13 +135,12 @@ class InventoryFunctions {
 		const character = this[subject]
 		const tile = character.tile
 
-		const canGrab = character.carryingCapacity - (character.carriedAmount || 0)
+		const canGrab = character.vehicle.canStoreGood(goodType)
 		const amount = Math.min(canGrab, maxAmount)
 
 		const taken = amount <= 0 ? 0 : tile.content!.removeGood(goodType, amount)
 		if (taken > 0) {
-			character.carriedType = goodType
-			character.carriedAmount = (character.carriedAmount || 0) + taken
+			character.vehicle.addGood(goodType, taken)
 		}
 		return new WaitStep(taken * activityDurations.transfer, 'convey', `grab.${goodType}`)
 	}
@@ -150,10 +149,9 @@ class InventoryFunctions {
 		const character = this[subject]
 		const tile = character.tile
 
-		const amount = Math.min(character.carriedAmount, maxAmount)
+		const amount = Math.min(character.vehicle.goods[goodType] ?? 0, maxAmount)
 		const dropped = tile.content!.addGood(goodType, amount)
-		character.carriedAmount -= dropped
-		if (character.carriedAmount <= 0) character.carriedType = undefined
+		character.vehicle.removeGood(goodType, dropped)
 		return new WaitStep(amount * activityDurations.transfer, 'convey', `drop.${goodType}`)
 	}
 }
@@ -194,9 +192,9 @@ class WalkFunctions {
 
 class SelfCareFunctions {
 	declare [subject]: Character
-	@contract()
-	eat() {
-		return new EatStep(this[subject])
+	@contract(GoodType)
+	eat(food: GoodType) {
+		return new EatStep(this[subject], food)
 	}
 	@contract()
 	pondering() {
@@ -229,8 +227,8 @@ class WorkFunctions {
 		const deposit = unbuiltLand.deposit!
 		// Check if character can store any of the output goods
 		const outputGoods = module.output
-		const canStoreAny = Object.keys(outputGoods).some(goodType => 
-			this[subject].canStoreGood(goodType as GoodType) > 0
+		const canStoreAny = Object.keys(outputGoods).some(
+			(goodType) => this[subject].vehicle.canStoreGood(goodType as GoodType) > 0,
 		)
 		if (!canStoreAny) return
 		deposit.amount -= 1
@@ -244,25 +242,28 @@ class WorkFunctions {
 		).finished(() => {
 			// Add all output goods to character inventory
 			Object.entries(module.output).forEach(([goodType, qty]) => {
-				this[subject].addGood(goodType as GoodType, qty)
+				this[subject].vehicle.addGood(goodType as GoodType, qty)
 			})
 		})
 	}
 }
 
 class CharacterContext extends InteractiveContext<Character> {
-	// TODO: use the `Storage` interface
-	get carriedType() {
-		return this[subject].carriedType
-	}
-	get carriedAmount() {
-		return this[subject].carriedAmount
-	}
 	get hunger() {
 		return this[subject].hunger
 	}
 	get triggerLevels() {
 		return this[subject].triggerLevels
+	}
+
+	get carriedFood() {
+		return this[subject].carriedFood
+	}
+	get aCarriedGood() {
+		return this[subject].aCarriedGood
+	}
+	get vehicle() {
+		return this[subject].vehicle
 	}
 }
 

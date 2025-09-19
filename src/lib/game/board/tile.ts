@@ -12,40 +12,13 @@ import type { GoodType, ModuleType } from '$lib/arktype'
 import { mrg } from '$lib/globals.svelte'
 import type { AxialCoord } from '$lib/hex'
 import { tileSize } from '$lib/utils'
-import { gameIsaTypes } from '../../npcs/utils'
-import { GameObject, withGenerator, withInteractive } from '../../object'
-import { type Position, toAxialCoord, toWorldCoord } from '../../position'
-import type { Storage } from '../../storage'
-import type { HexBoard } from '../board'
-import type { TileBorder } from '../border'
-import { Module } from './module'
-
-export interface TileContent extends Storage {
-	readonly tile: Tile
-	// TODO: translate-> name = translation set on load
-	readonly name?: string
-	destroy?(): void
-	readonly debugInfo: Record<string, any>
-	readonly walkTime: number
-	readonly background: string
-	/**
-	 * List the goods on the tile
-	 * @returns A record of goods and their quantities
-	 */
-	get goods(): { [k in GoodType]?: number }
-	/**
-	 * Render the tile
-	 * @param tile - The tile to render
-	 * @returns The container child to render
-	 */
-	render(tile: Tile): ContainerChild
-	/**
-	 * Check if this tile content can perform the given action
-	 * @param action - The action to check
-	 * @returns true if the action can be performed
-	 */
-	canInteract?(action: string): boolean
-}
+import { gameIsaTypes } from '../npcs/utils'
+import { GameObject, withGenerator, withInteractive } from '../object'
+import { type Position, toAxialCoord, toWorldCoord } from '../position'
+import type { HexBoard } from '.'
+import type { TileBorder } from './border'
+import { Module } from './content/module'
+import type { TileContent } from './content'
 
 @reactive
 export class Tile extends withInteractive(withGenerator(GameObject)) {
@@ -171,11 +144,8 @@ export class Tile extends withInteractive(withGenerator(GameObject)) {
 		}
 	}
 }
+
 export const TileType = type.instanceOf(Tile)
 gameIsaTypes.tile = (value: any) => {
 	return value instanceof Tile
 }
-
-// Re-export content classes
-export * from './module'
-export * from './unbuilt-land'

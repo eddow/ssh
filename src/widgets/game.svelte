@@ -4,7 +4,7 @@
 	import { games, interactionMode } from '$lib/globals.svelte'
 	import { type InteractiveGameObject, GameView } from '$lib/game'
 	import { getDockviewContext } from 'dockview-svelte/src'
-	import { Tile } from '$lib/game/hex'
+	import { Tile } from '$lib/game/board'
 	import { T } from '$lib/i18n'
 	import type { ModuleType } from '$lib/arktype'
 

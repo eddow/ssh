@@ -1,11 +1,20 @@
 dropAll = function()
-	while carriedAmount > 0
-		good = carriedType
-		if not good then break
+	while aCarriedGood
+		good = aCarriedGood
 		spot = find.freeSpot(good)
 		if not spot then return false
 		walk.into spot.path
-		inventory.drop good, carriedAmount
+		inventory.drop good, vehicle.goods[good]
+	end while
+end function
+
+makeRoom = function()
+	while not vehicle.canStoreGood()
+		good = aCarriedGood
+		if not good then error "Try to make room but has no good to drop"
+		spot = find.freeSpot(good)
+		walk.into spot.path
+		inventory.drop good, vehicle.goods[good]
 	end while
 end function
 

@@ -1,5 +1,5 @@
 import type { ContractType } from '$lib/arktype'
-import { Module } from '$lib/game/hex/tile/module'
+import { Module } from '$lib/game/board/content/module'
 import '$lib/game/position'
 import { Position } from '$lib/game/position'
 import { type } from 'arktype'
@@ -10,6 +10,7 @@ export const CharacterContract = {
 	},
 	inventory: {
 		dropAll: [],
+		makeRoom: [],
 	},
 	selfCare: {
 		goEat: [],

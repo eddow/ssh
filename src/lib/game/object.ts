@@ -4,7 +4,7 @@ import { computed, effect, ReactiveBase, type ScopedCallback, unreactive } from 
 import type { ExecutionContext } from 'npc-script/src'
 import { Ticker } from 'pixi.js'
 import type { Game } from './game'
-import type { Tile } from './hex/tile'
+import type { Tile } from './board/tile'
 import { ScriptExecution } from './npcs/scripts'
 import { ASingleStep } from './npcs/steps'
 import type { Position } from './position'
@@ -223,7 +223,7 @@ export function withScripted<T extends new (...args: any[]) => TickedGameObject>
 		}
 
 		update(dt: number) {
-			let remaining: number | undefined = dt*5
+			let remaining: number | undefined = dt * 5
 			let uselessStepExecutor: string | false = false
 			while (remaining !== undefined && this.stepExecutor) {
 				const newRemaining = this.stepExecutor.tick(remaining)

@@ -49,3 +49,6 @@ export const activityDurations = {
 
 export const ponderingFatigueRecovery = 60  // Fatigue recovery rate while resting
 export const maxWalkTime = 24	// Maximum walking time accepted to choose a tile for an action
+
+// Storage and building constants
+export const transformModuleStorageMultiplier = 3  // Transform modules can store input goods * this multiplier
