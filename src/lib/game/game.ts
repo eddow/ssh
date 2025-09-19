@@ -38,6 +38,7 @@ export type GameEvents = {
 	objectClick(pointer: any, object: InteractiveGameObject): void
 }
 unreactive(Eventful)
+@unreactive
 export class Game extends Eventful<GameEvents> {
 	public get name() {
 		return 'GameX'

@@ -1,5 +1,5 @@
 import type { Sprite } from 'pixi.js'
-import { deposits, terrain as terrainDetails } from '$assets/game-content'
+import { terrain as terrainDetails } from '$assets/game-content'
 import type { DepositType, TerrainType } from '$lib/arktype'
 import { GameObject, withContainer, withHittable } from '$lib/game/object'
 import {
@@ -22,7 +22,6 @@ import type { Character } from '../character'
 import type { Game } from '../game'
 import { TileBorder, type TileBorderContent } from './border'
 import { Deposit, Tile, type TileContent, UnBuiltLand } from './tile'
-import { type } from 'arktype'
 
 export class HexBoard extends withContainer(withHittable(GameObject)) {
 	private contents: AxialKeyMap<TileContent | TileBorderContent>
@@ -109,9 +108,7 @@ export class HexBoard extends withContainer(withHittable(GameObject)) {
 		for (const [depKey, chance] of Object.entries(table)) {
 			if (rnd() < (chance as number)) {
 				const Kind = Deposit.class[depKey as DepositType]
-				return new Kind(
-					Math.floor(((1 + rnd() * 2) * Kind.prototype.maxAmount) / 3)
-				)
+				return new Kind(Math.floor(((1 + rnd() * 2) * Kind.prototype.maxAmount) / 3))
 			}
 		}
 		return undefined

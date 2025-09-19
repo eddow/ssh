@@ -27,8 +27,8 @@ declare namespace Ssh {
 		name?: string
 		preparationTime: number
 		action: Action
-		output: string
-		time: number
+		output: Record<string, number>
+		workTime: number
 		icon: Sprite
 		sprites: Sprite[]
 	}
@@ -44,7 +44,7 @@ declare namespace Ssh {
 		}
 	}
 
-	type ActivityType = 'idle' | 'walk' | 'work' | 'eat' | 'sleep' | 'rest' | 'grab' | 'drop'
+	type ActivityType = 'idle' | 'walk' | 'work' | 'eat' | 'sleep' | 'rest' | 'convey'
 
 	type NeedType = 'hunger' | 'tiredness' | 'fatigue'
 }

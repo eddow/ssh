@@ -40,10 +40,6 @@ export const characterTriggerLevels = {
 	},
 } as const
 
-export const characterCapacity = {
-	carryingCapacity: 10,
-} as const
-
 export const activityDurations = {
 	transfer: 0.5,        // Time to grab/drop items
 	eating: 2,            // Time to eat food
@@ -51,5 +47,5 @@ export const activityDurations = {
 	restMax: 6,
 } as const
 
-export const ponderingFatigueRecovery = 10  // Fatigue recovery rate while resting
+export const ponderingFatigueRecovery = 60  // Fatigue recovery rate while resting
 export const maxWalkTime = 24	// Maximum walking time accepted to choose a tile for an action

@@ -36,16 +36,20 @@
 		"move-to": "Se déplace",
 		"grab": "Ramasse",
 		"drop": "Dépose",
-		"eat": "Mange",
+		"eat": "Mâche",
 		"pondering": "Pense à la vie",
-		"prepare": "Se prépare à travailler"
+		"prepare": "Se prépare à travailler",
+		"harvest": {
+			"tree_chopper": "Coupe un arbre",
+			"stonecutter": "Taille une pierre"
+		}
 	},
 	"module": {
 		"module": "Module",
 		"output": "Sortie",
-		"workers": "Ouvriers",
 		"action": "Action",
 		"time": "Temps",
+		"workTime": "Temps de Travail",
 		"moduleConfiguration": "Configuration du Module",
 		"walkway": "Passage",
 		"conveyor": "Convoyeur",

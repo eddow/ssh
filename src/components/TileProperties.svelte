@@ -6,9 +6,11 @@
 	import ModuleProperties from './ModuleProperties.svelte'
 	import { ms } from '$lib/mutts.svelte'
 	import { T } from '$lib/i18n'
+	import GoodsList from './GoodsList.svelte'
 
 	let { tile }: { tile: Tile } = $props()
-	let tileContent = ms(() => tile.content)
+	let tileContent = $derived(ms(() => tile.content))
+	let goods = $derived(ms(() => tile.content!.goods))
 </script>
 
 {#if $tileContent}
@@ -28,10 +30,12 @@
 				</Badge>
 			</div>
 
+			<GoodsList goods={$goods} game={tile.hex.game} />
+
 			{#if $tileContent instanceof UnBuiltLand}
 				<UnBuiltProperties content={$tileContent} />
 			{:else if $tileContent instanceof Module}
-				<ModuleProperties content={$tileContent} />
+				<ModuleProperties content={$tileContent} game={tile.hex.game} />
 			{/if}
 		</div>
 	</div>

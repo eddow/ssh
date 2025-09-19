@@ -7,7 +7,7 @@ import type { Job } from '$lib/game/job'
 import { gameIsaTypes } from '$lib/game/npcs/utils'
 import { tileSize } from '$lib/utils'
 import type { Tile, TileContent } from './index'
-import { GcClasses, GcClassed } from './utils'
+import { GcClassed, GcClasses } from './utils'
 
 //#region  Content
 
@@ -73,7 +73,7 @@ export class Module extends GcClassed<Ssh.ModuleDefinition>() implements TileCon
 		this.renderGoodSprites(root, game, size)
 		return root
 	}
-
+	// TODO: render side goods
 	private renderGoodSprites(root: Container, game: Game, size: number) {
 		// Use the imported goods definitions
 
@@ -131,15 +131,19 @@ export class Module extends GcClassed<Ssh.ModuleDefinition>() implements TileCon
 	}
 
 	private renderOutputGoods(root: Container, game: Game, size: number, goods: any) {
-		const outputQty = this.goods[this.output as GoodType] || 0
-		if (outputQty <= 0) return
+		// Get the first output good type and its quantity
+		const outputEntries = Object.entries(this.output) as [string, number][]
+		if (outputEntries.length === 0) return
+		const [outputGoodType, outputQty] = outputEntries[0]
+		const storedQty = this.goods[outputGoodType as GoodType] || 0
+		if (storedQty <= 0) return
 
 		// Render output goods on the right side
 		const maxDisplay = 6 // Maximum number of sprites to show
 		const spritesToShow = Math.min(outputQty, maxDisplay)
 
 		for (let i = 0; i < spritesToShow; i++) {
-			const sprite = new Sprite(game.getTexture(goods[this.output].sprites[0]))
+			const sprite = new Sprite(game.getTexture(goods[outputGoodType].sprites[0]))
 
 			// Scale sprite to fit nicely
 			const spriteSize = size * 0.15
@@ -164,8 +168,8 @@ export class Module extends GcClassed<Ssh.ModuleDefinition>() implements TileCon
 		}
 
 		// If there are more goods than we can display, show a "+" indicator
-		if (outputQty > maxDisplay) {
-			const plusSprite = new Sprite(game.getTexture(goods[this.output].sprites[0]))
+		if (storedQty > maxDisplay) {
+			const plusSprite = new Sprite(game.getTexture(goods[outputGoodType].sprites[0]))
 			const spriteSize = size * 0.15
 			const scale = Math.max(plusSprite.width, plusSprite.height) / spriteSize
 			plusSprite.scale.set(1 / scale)
@@ -231,7 +235,7 @@ export class Module extends GcClassed<Ssh.ModuleDefinition>() implements TileCon
 
 	private getFatigueCost(): number {
 		// Base fatigue based on action type
-		const baseFatigue = this.action.type === 'harvest' ? this.time + 2 : this.time
+		const baseFatigue = this.action.type === 'harvest' ? this.workTime + 2 : this.workTime
 
 		// Add time-based fatigue (if module has time configuration)
 		// For now, just return base fatigue

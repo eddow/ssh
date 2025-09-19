@@ -13,10 +13,9 @@ goWork = function(module, job, path)
 end function
 
 harvest = function(module)
-	while not tile.content.deposit or tile.content.deposit.name != "deposit." + module.action.deposit
+	while not tile.content.deposit or tile.content.deposit.name != module.action.deposit
 		where = find.deposit(module.action.deposit)
 		if not where then return false
-		log "deposit at ", where.length
 		walk.until where
 	end while
 	walk.enter

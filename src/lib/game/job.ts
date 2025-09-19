@@ -10,7 +10,7 @@ export interface Job {
 	readonly urgency: number
 }
 
-export const JobType = type.enumerated('harvest', 'transform', 'transit', 'gather')
+export const JobType = type.enumerated('harvest', 'transform', 'convey', 'gather')
 export function calculateJobScore(_character: Character, job: Job): number {
 	return job.urgency
 }

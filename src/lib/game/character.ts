@@ -1,11 +1,6 @@
-import { effect, reactive, type ScopedCallback } from 'mutts'
+import { computed, effect, reactive, type ScopedCallback } from 'mutts'
 import { ColorMatrixFilter, Sprite } from 'pixi.js'
-import {
-	characterCapacity,
-	characterEvolutionRates,
-	characterTriggerLevels,
-	maxWalkTime,
-} from '$assets/constants'
+import { characterEvolutionRates, characterTriggerLevels, maxWalkTime } from '$assets/constants'
 import type { GoodType } from '$lib/arktype'
 import { mrg } from '$lib/globals.svelte'
 import { type AxialCoord, type AxialRef, axial } from '$lib/hex'
@@ -17,7 +12,6 @@ import { bestPossibleJobScore, calculateJobScore, type Job } from './job'
 import aCharacterContext from './npcs/character'
 // biome-ignore lint/correctness/noUnusedImports: We need it for mixins tranquility: all propertyKeys are known
 import { type ScriptExecution, subject } from './npcs/scripts'
-import type { ASingleStep } from './npcs/steps'
 import {
 	GameObject,
 	withContainer,
@@ -29,26 +23,6 @@ import {
 } from './object'
 import { axialDistance, type Position, toAxialCoord, toWorldCoord } from './position'
 import type { Storage } from './storage'
-
-//import * as allScripts from "./npcs/scripts"
-//console.log(allScripts)
-
-type ActionType = 'idle' | 'walk' | 'work'
-
-export function withCharacterStep<
-	Args extends any[],
-	T extends new (
-		...args: any[]
-	) => ASingleStep,
->(Base: T, actionType: ActionType) {
-	abstract class CharacterStepMixin extends Base {
-		constructor(...args: any[]) {
-			super(...(args as Args))
-		}
-		readonly actionType: ActionType = actionType
-	}
-	return CharacterStepMixin
-}
 
 @reactive
 export class Character
@@ -67,7 +41,7 @@ export class Character
 	// Character inventory
 	public carriedType?: GoodType
 	public carriedAmount: number = 0
-	public carryingCapacity: number = characterCapacity.carryingCapacity
+	public carryingCapacity: number = 1
 	public readonly scriptsContext = aCharacterContext(this)
 	private _tile!: Tile
 	get tile(): Tile {
@@ -121,6 +95,7 @@ export class Character
 		return taken
 	}
 
+	@computed
 	get goods(): { [k in GoodType]?: number } {
 		return this.carriedType ? { [this.carriedType]: this.carriedAmount } : {}
 	}
@@ -155,14 +130,14 @@ export class Character
 		const targetTile = this.game.hex.getTile(targetCoord)!
 		const jobProvider = targetTile.content as Module
 		const job = jobProvider.getJob() as Job
-
+		this.log('character.beginJob', job.type)
 		jobProvider.assignedWorker = this
 		this.assignedModule = jobProvider
-		return this.scriptsContext.work.goWork(jobProvider, job.type, path)
-			.final(() => {
-				jobProvider.assignedWorker = undefined
-				this.assignedModule = undefined
-			})
+		return this.scriptsContext.work.goWork(jobProvider, job.type, path).final(() => {
+			this.log('character.finishedJob', job.type)
+			jobProvider.assignedWorker = undefined
+			this.assignedModule = undefined
+		})
 	}
 
 	canInteract(action: string): boolean {
@@ -209,8 +184,11 @@ export class Character
 	findAction() {
 		if (this.hunger > this.triggerLevels.hunger.high) return this.scriptsContext.selfCare.goEat()
 
+		if (this.carriedAmount > 0) return this.scriptsContext.inventory.dropAll()
+		const tryAnActivity =
+			this.fatigue < this.triggerLevels.fatigue.high ? this.findBestJob() : undefined // goRest
 		// Default to wandering when no specific action is needed
-		return this.findBestJob() || this.scriptsContext.selfCare.wander()
+		return tryAnActivity || this.scriptsContext.selfCare.wander()
 	}
 
 	render(): ScopedCallback | undefined {
@@ -303,16 +281,6 @@ export class Population extends withContainer(withHittable(GameObject)) {
 		return character
 	}
 
-	// Get a character by name
-	getCharacter(name: string): Character | undefined {
-		return this.characters.get(name)
-	}
-
-	// Get a character by UID
-	getCharacterByUid(uid: string): Character | undefined {
-		return this.characters.get(uid)
-	}
-
 	// Remove a character
 	removeCharacter(name: string): boolean {
 		const character = this.characters.get(name)
@@ -322,32 +290,6 @@ export class Population extends withContainer(withHittable(GameObject)) {
 			return true
 		}
 		return false
-	}
-
-	// Get all characters
-	getAllCharacters(): Character[] {
-		return Array.from(this.characters.values())
-	}
-
-	// Find the nearest unemployed character to a given coordinate
-	findNearestUnemployed(coord: AxialCoord): Character | undefined {
-		let nearestCharacter: Character | undefined
-		let nearestDistance = Number.POSITIVE_INFINITY
-
-		for (const character of this.characters.values()) {
-			// Skip if character is already assigned to a building
-			if (character.assignedModule !== undefined) continue
-
-			// Calculate distance using axial distance
-			const distance = axial.distance(coord, toAxialCoord(character.position))
-
-			if (distance < nearestDistance) {
-				nearestDistance = distance
-				nearestCharacter = character
-			}
-		}
-
-		return nearestCharacter
 	}
 	get nbrFree(): number {
 		return Array.from(this.characters.values()).reduce(

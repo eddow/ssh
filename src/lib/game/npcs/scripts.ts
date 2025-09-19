@@ -1,5 +1,5 @@
 import { type } from 'arktype'
-import { Eventful, unreactive } from 'mutts'
+import { unreactive } from 'mutts'
 import {
 	type ExecutionContext,
 	ExecutionError,
@@ -156,7 +156,6 @@ export class Finalized {
 	}
 }
 
-@unreactive
 export class ScriptExecution extends Finalized {
 	constructor(
 		public readonly script: GameScript,
@@ -164,7 +163,8 @@ export class ScriptExecution extends Finalized {
 		public state?: ExecutionState,
 	) {
 		super()
-	}	run(context: ExecutionContext) {
+	}
+	run(context: ExecutionContext) {
 		if (!this.state) throw new Error('ScriptExecution was finished')
 		const executor = this.script.executor(context, this.state)
 		try {

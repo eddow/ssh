@@ -7,4 +7,5 @@ export interface Storage {
 	addGood(goodType: GoodType, qty: number): number
 	/** Attempt to remove qty, returns actually removed quantity. */
 	removeGood(goodType: GoodType, qty: number): number
+	get goods(): { [k in GoodType]?: number }
 }

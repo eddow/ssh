@@ -6,8 +6,9 @@ export function GcClass<BaseCtor extends Ctor<any>, TDef extends object>(
 	def: TDef,
 ): BaseCtor {
 	class Sub extends (Base as Ctor) {
+		static resourceName = name
 	}
-	Object.defineProperties(Sub, { name: { value: `${Base.name.toLowerCase()}.${name}` } })
+	Object.defineProperties(Sub, { name: { value: `${Base.name}<${name}>` } })
 	Object.assign((Sub as any).prototype, def)
 	return Sub as unknown as BaseCtor
 }
@@ -23,12 +24,13 @@ export function GcClasses<
 
 /**
  * Only used for typing purposes, not for instantiation
- * @returns 
+ * @returns
  */
 export function GcClassed<T extends object>() {
 	return class {
 		get name() {
-			return this.constructor.name
+			// @ts-expect-error
+			return this.constructor.resourceName
 		}
 	} as new () => T
 }

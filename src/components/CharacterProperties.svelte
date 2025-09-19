@@ -4,6 +4,8 @@
 	import StatProgressBar from './StatProgressBar.svelte'
 	import { ms, m2s } from '$lib/mutts.svelte'
 	import { T } from '$lib/i18n'
+	import GoodsList from './GoodsList.svelte'
+	import { AEvolutionStep, ALerpStep } from '$lib/game/npcs/steps'
 	let { character }: { character: Character } = $props()
 	const actions = ms(() => character.actionDescription, true)
 	const state = ms(() => ({
@@ -12,8 +14,16 @@
 		fatigue: character.fatigue,
 		triggerLevels: character.triggerLevels,
 		stepType: character.stepExecutor?.type as Ssh.ActivityType | undefined,
-		stepDescription: (character.stepExecutor?.description || undefined) as string | undefined
+		stepDescription: (character.stepExecutor?.description || undefined) as string | undefined,
+		step: character.stepExecutor instanceof AEvolutionStep ? character.stepExecutor : undefined,
+		goods: character.goods
 	}))
+
+	const stepEvolution = $derived(
+		$state.step && !($state.step instanceof ALerpStep)
+			? Math.max(0, Math.min(1, $state.step.evolution))
+			: 0
+	)
 
 	type FlowbiteBadgeColor =
 		| 'primary'
@@ -43,8 +53,7 @@
 		eat: 'green',
 		sleep: 'purple',
 		rest: 'indigo',
-		grab: 'blue',
-		drop: 'pink',
+		convey: 'blue',
 		idle: 'gray'
 	}
 </script>
@@ -72,6 +81,9 @@
 			</div>
 		</div>
 	{/if}
+	<div class="mt-2">
+		<GoodsList goods={$state.goods} game={character.game} />
+	</div>
 
 	<div class="mt-4">
 		<div class="space-y-2">
@@ -84,7 +96,16 @@
 						{$T.step.idle}
 					{/if}
 				</Badge>
+				{#if stepEvolution > 0}
+					<div class="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+						<div
+							class="h-2 bg-gray-400 dark:bg-gray-500"
+							style={`width: ${Math.floor(stepEvolution * 100)}%`}
+						></div>
+					</div>
+				{/if}
 			</div>
+
 			<div class="flex flex-col gap-1">
 				<span class="font-medium">{$T.character.activityDescriptions}:</span>
 				{#if $actions.length > 0}

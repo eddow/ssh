@@ -1,7 +1,5 @@
-import { Eventful } from 'mutts'
 import { activityDurations, ponderingFatigueRecovery } from '$assets/constants'
 import { goods as goodsCatalog } from '$assets/game-content'
-import type { GoodType } from '$lib/arktype'
 import { casing } from '$lib/utils'
 import type { Character } from '../character'
 import type { Position, Positioned } from '../position'

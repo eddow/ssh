@@ -61,9 +61,7 @@ class FindFunctions {
 			start,
 			(coord) => {
 				const tile = hex.getTile(coord)
-				return tile?.content instanceof UnBuiltLand &&
-					tile.content.deposit?.name === `deposit.${deposit}`
-				
+				return tile?.content instanceof UnBuiltLand && tile.content.deposit?.name === deposit
 			},
 			maxWalkTime,
 			false,
@@ -136,7 +134,7 @@ class InventoryFunctions {
 	grab(goodType: GoodType, maxAmount: number = 1) {
 		const character = this[subject]
 		const tile = character.tile
-		
+
 		const canGrab = character.carryingCapacity - (character.carriedAmount || 0)
 		const amount = Math.min(canGrab, maxAmount)
 
@@ -145,7 +143,7 @@ class InventoryFunctions {
 			character.carriedType = goodType
 			character.carriedAmount = (character.carriedAmount || 0) + taken
 		}
-		return new WaitStep(taken * activityDurations.transfer, 'grab', `grab.${goodType}`)
+		return new WaitStep(taken * activityDurations.transfer, 'convey', `grab.${goodType}`)
 	}
 	@contract(GoodType, 'number?')
 	drop(goodType: GoodType, maxAmount: number = 1) {
@@ -156,7 +154,7 @@ class InventoryFunctions {
 		const dropped = tile.content!.addGood(goodType, amount)
 		character.carriedAmount -= dropped
 		if (character.carriedAmount <= 0) character.carriedType = undefined
-		return new WaitStep(amount * activityDurations.transfer, 'drop', `drop.${goodType}`)
+		return new WaitStep(amount * activityDurations.transfer, 'convey', `drop.${goodType}`)
 	}
 }
 
@@ -224,23 +222,36 @@ class WorkFunctions {
 		assert(module, 'assignedModule must be set')
 		assert(module.action.type === 'harvest', 'assignedModule.action must be a harvest')
 		const action = module.action as Ssh.HarvestingAction
-		assert(`deposit.${action.deposit}` === unbuiltLand.deposit?.name, 'assignedModule.action.deposit must be the same as tile.content.deposit.name')
+		assert(
+			action.deposit === unbuiltLand.deposit?.name,
+			'assignedModule.action.deposit must be the same as tile.content.deposit.name',
+		)
 		const deposit = unbuiltLand.deposit!
+		// Check if character can store any of the output goods
+		const outputGoods = module.output
+		const canStoreAny = Object.keys(outputGoods).some(goodType => 
+			this[subject].canStoreGood(goodType as GoodType) > 0
+		)
+		if (!canStoreAny) return
 		deposit.amount -= 1
-		if(deposit.amount <= 0) {
+		if (deposit.amount <= 0) {
 			unbuiltLand.deposit = undefined
 		}
 		return new WaitStep(
-			this[subject].assignedModule!.time,
+			this[subject].assignedModule!.workTime,
 			'work',
 			`harvest.${this[subject].assignedModule!.name}`,
 		).finished(() => {
-			this[subject].addGood(module.output as GoodType, deposit.amount)
+			// Add all output goods to character inventory
+			Object.entries(module.output).forEach(([goodType, qty]) => {
+				this[subject].addGood(goodType as GoodType, qty)
+			})
 		})
 	}
 }
 
 class CharacterContext extends InteractiveContext<Character> {
+	// TODO: use the `Storage` interface
 	get carriedType() {
 		return this[subject].carriedType
 	}

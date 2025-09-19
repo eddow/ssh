@@ -24,6 +24,17 @@
 			width: texture?.width ?? 0,
 			height: texture?.height ?? 0
 		}
+		const realWidth = frame?.width ?? texture?.width ?? 0
+		const realHeight = frame?.height ?? texture?.height ?? 0
+		const givenHeight = height !== undefined
+		const givenWidth = width !== undefined
+		if (givenHeight !== givenWidth) {
+			if (givenHeight) {
+				width = (height * realWidth) / realHeight
+			} else {
+				height = (width * realHeight) / realWidth
+			}
+		}
 		// Target box (div size)
 		const targetW = width ?? frame?.width ?? texture?.width ?? 0
 		const targetH = height ?? frame?.height ?? texture?.height ?? 0

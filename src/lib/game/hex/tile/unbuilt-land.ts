@@ -1,10 +1,10 @@
-import { effect } from 'mutts'
+import { computed, effect } from 'mutts'
 import { Container, type ContainerChild, Sprite } from 'pixi.js'
 import { deposits, goods } from '$assets/game-content'
 import type { GoodType, TerrainType } from '$lib/arktype'
 import { tileSize } from '$lib/utils'
 import type { Tile, TileContent } from './index'
-import { GcClasses, GcClassed } from './utils'
+import { GcClassed, GcClasses } from './utils'
 
 export class Deposit extends GcClassed<Ssh.DepositDefinition>() {
 	static class = GcClasses(Deposit, deposits)
@@ -26,6 +26,7 @@ export class UnBuiltLand implements TileContent {
 	) {
 		this.goodSlots = new Array(goodsSlots).fill(undefined)
 	}
+	@computed
 	get goods() {
 		return this.goodSlots.reduce(
 			(acc, good) => {

@@ -1,5 +1,18 @@
-import { effect as mEffect, watch } from 'mutts'
+import { effect as mEffect, unwrap, watch } from 'mutts'
 import type { Subscriber, Unsubscriber, Writable } from 'svelte/store'
+
+function deepClone<T>(value: T): T {
+	if(typeof value !== 'object' || value === null)
+		return value
+	const uo = unwrap(value)
+	const uop = Object.getPrototypeOf(uo)
+	if(uop === Object.prototype)
+		return Object.fromEntries(Object.entries(uo).map(([key, value]) => [key, deepClone(value)])) as T
+	if(uop === Array.prototype)
+		// @ts-expect-error
+		return uo.map(deepClone)
+	return uo
+}
 
 /**
  * Mutts to Svelte store
@@ -10,7 +23,7 @@ type NonFunction<T> = T extends AnyFn ? never : T
 export function ms<T>(factory: () => T, deep?: false): Writable<T>
 
 // 2) Factory returning object: deep optional (true|undefined)
-export function ms<T extends object>(factory: () => T, deep: true): Writable<T>
+export function ms<T extends object|undefined>(factory: () => T, deep: true): Writable<T>
 
 // 1) Plain value that is NOT a function
 export function ms<T extends object | any[]>(value: NonFunction<T>): Writable<T>
@@ -23,7 +36,8 @@ export function ms<T>(muttsValue: (() => T) | T, deep: boolean = false): Writabl
 			cleanup = watch(
 				muttsValue as any,
 				(value: T) => {
-					for (const run of subscribers) run(value)
+					const clonedValue = deep ? deepClone(value) : value
+					for (const run of subscribers) run(clonedValue)
 				},
 				{ immediate: true, deep },
 			)

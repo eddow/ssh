@@ -1,11 +1,13 @@
 <script lang="ts">
 	import type { Module } from '$lib/game/hex/tile'
+	import type { Game } from '$lib/game'
 	import { Badge } from 'flowbite-svelte'
 	import ModuleFlag from './ModuleFlag.svelte'
+	import GoodsList from './GoodsList.svelte'
 	import { ms } from '$lib/mutts.svelte'
 	import { T } from '$lib/i18n'
 
-	let { content }: { content: Module } = $props()
+	let { content, game }: { content: Module; game: Game } = $props()
 	let module = ms(content)
 </script>
 
@@ -18,7 +20,7 @@
 
 		<div class="flex items-center gap-2">
 			<span class="font-medium">{$T.module.output}:</span>
-			<Badge color="blue">{$module.output}</Badge>
+			<GoodsList goods={$module.output} {game} itemSize={16} />
 		</div>
 
 		<div class="flex items-center gap-2">
@@ -37,8 +39,8 @@
 		</div>
 
 		<div class="flex items-center gap-2">
-			<span class="font-medium">{$T.module.time}:</span>
-			<Badge color="indigo">{$module.time}s</Badge>
+			<span class="font-medium">{$T.module.workTime}:</span>
+			<Badge color="indigo">{$module.workTime}s</Badge>
 		</div>
 
 		<!-- Configurable Properties -->
