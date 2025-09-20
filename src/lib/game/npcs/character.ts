@@ -3,10 +3,12 @@ import * as gameContent from '$assets/game-content'
 import { goods as goodsCatalog } from '$assets/game-content'
 import type { CharacterContract } from '$assets/scripts/contracts'
 import { contract, DepositType, GoodType } from '$lib/arktype'
+import { type } from 'arktype'
 import { assert } from '$lib/debug'
 import { type AxialCoord, type AxialRef, axial } from '$lib/hex'
 import { objectMap } from '$lib/utils'
 import { type Tile, TileType, UnBuiltLand } from '../board'
+import { TileBorderType, type TileBorder } from '../board/border'
 import type { Character } from '../population'
 import { Positioned, positionRoughlyEquals, toAxialCoord } from '../position'
 import { InteractiveContext, loadNpcScripts, protoCtx, subject } from './scripts'
@@ -73,12 +75,14 @@ class FindFunctions {
 	freeSpot(goodType: GoodType) {
 		const { hex } = this[subject].game
 		const start = toAxialCoord(this[subject].tile.position)
+		let qty = 0
 		const path = hex.findNearest(
 			start,
 			(coord) => {
 				const tile = hex.getTile(coord)
 				if (!tile) return false
-				return tile.content!.hasRoom(goodType) > 0
+				qty = tile.content!.hasRoom(goodType)
+				return qty > 0
 			},
 			maxWalkTime,
 			true,
@@ -86,7 +90,7 @@ class FindFunctions {
 		if (!path || path.length === 0) return false as const
 		const targetCoord = path[path.length - 1]
 		const targetTile = hex.getTile(targetCoord)!
-		return { tile: targetTile, path }
+		return { tile: targetTile, path, qty }
 	}
 	@contract()
 	wanderingTile() {
@@ -173,6 +177,63 @@ class InventoryFunctions {
 				content.cancel(tileTransfer)
 				character.vehicle.cancel(vehicleTransfer)
 			})
+	}
+	@contract(GoodType, 'number', type.or(TileType, TileBorderType))
+	planDrop(goodType: GoodType, quantity: number, destination: Tile | TileBorder) {
+		const character = this[subject]
+		const content = destination.content
+		assert(content, 'destination.content must be set')
+
+		const available = character.vehicle.goods[goodType] ?? 0
+		const canStore = content.hasRoom(goodType)
+		const amount = Math.min(available, canStore, quantity)
+		if (amount <= 0) throw new Error('No goods to drop')
+
+		const tileAllocation = content.allocate(goodType, amount, `planDrop.${goodType}`)
+		const vehicleAllocation = character.vehicle.reserve(goodType, amount, `planDrop.${goodType}`)
+
+		// Register final callback to cancel allocations when script ends
+		assert(character.runningScript, 'character.runningScript must be set')
+		character.runningScript.final(() => {
+			content.cancel(tileAllocation)
+			character.vehicle.cancel(vehicleAllocation)
+		})
+
+		return { tileAllocation, vehicleAllocation, amount }
+	}
+	@contract(GoodType, 'number', type.or(TileType, TileBorderType))
+	planGrab(goodType: GoodType, quantity: number, source: Tile | TileBorder) {
+		const character = this[subject]
+		const content = source.content
+		assert(content, 'source.content must be set')
+
+		const canGrab = character.vehicle.hasRoom(goodType)
+		const available = content.goods[goodType] ?? 0
+		const amount = Math.min(canGrab, available, quantity)
+		if (amount <= 0) throw new Error('No goods to grab')
+
+		const vehicleAllocation = character.vehicle.allocate(goodType, amount, `planGrab.${goodType}`)
+		const tileAllocation = content.reserve(goodType, amount, `planGrab.${goodType}`)
+
+		// Register final callback to cancel allocations when script ends
+		assert(character.runningScript, 'character.runningScript must be set')
+		character.runningScript.final(() => {
+			character.vehicle.cancel(vehicleAllocation)
+			content.cancel(tileAllocation)
+		})
+
+		return { vehicleAllocation, tileAllocation, amount }
+	}
+	@contract('object')
+	effectuate(allocation: { tileAllocation: any; vehicleAllocation: any; amount: number }) {
+		const character = this[subject]
+		const { tileAllocation, vehicleAllocation, amount } = allocation
+		
+		// Fulfill both allocations
+		character.tile.content!.fulfill(tileAllocation)
+		character.vehicle.fulfill(vehicleAllocation)
+		
+		return new WaitStep(amount * activityDurations.transfer, 'convey', 'effectuate')
 	}
 }
 
@@ -284,6 +345,10 @@ class CharacterContext extends InteractiveContext<Character> {
 	}
 	get vehicle() {
 		return this[subject].vehicle
+	}
+	@contract(GoodType.optional())
+	haveRoom(goodType?: GoodType): number {
+		return this[subject].vehicle.hasRoom(goodType)
 	}
 }
 

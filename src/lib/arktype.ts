@@ -14,28 +14,37 @@ export const ModuleType = type.enumerated(...Object.keys(modules))
 // Decorator for validating multiple arguments with individual schemas
 export type ArkDef = Parameters<typeof type>[0]
 
-function decorator(validate: (args: any[]) => any) {
+const contractRegistry = new WeakSet<(args: any[]) => any>()
+export function isContract(validate: (args: any[]) => any) {
+	return contractRegistry.has(validate)
+}
+export function registerContract(validate: (args: any[]) => any) {
+	contractRegistry.add(validate)
+	return validate
+}
+
+function contractDecorator(validate: (args: any[]) => any) {
 	return (_target: any, propertyKey: string, descriptor: PropertyDescriptor) => {
 		const originalMethod = descriptor.value
-		descriptor.value = function contractValidator(...args: any[]) {
+		descriptor.value = registerContract(function contractValidator(this: any, ...args: any[]) {
 			const validationResult = validate(args)
 			if (validationResult instanceof type.errors) {
 				throw new Error(`Validation failed for ${propertyKey}: ${validationResult.summary}`)
 			}
 			return originalMethod.apply(this, args)
-		}
+		})
 		return descriptor
 	}
 }
 
 export function contract<Args extends any[]>(...schemasInput: Args) {
 	// @ts-expect-error: no proper ArkDef
-	return decorator(type(schemasInput))
+	return contractDecorator(type(schemasInput))
 }
 
 export function overloadContract<Args extends any[][]>(...schemasInput: Args) {
 	// @ts-expect-error: no proper ArkDef
-	return decorator(type.or(...schemasInput))
+	return contractDecorator(type.or(...schemasInput))
 }
 
 // ContractType turns a declarative contract object into callable signatures

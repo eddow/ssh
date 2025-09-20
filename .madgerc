@@ -1,0 +1,11 @@
+{
+	"fileExtensions": ["js", "jsx", "ts", "tsx"],
+	"tsConfig": "./tsconfig.json",
+	"detectiveOptions": {
+		"ts": { "skipTypeImports": true },
+		"tsx": { "skipTypeImports": true },
+		"js": { "skipTypeImports": true },
+		"jsx": { "skipTypeImports": true },
+		"es6": { "skipTypeImports": true }
+	}
+}

@@ -6,11 +6,11 @@
 	}: { label: string; class?: string; children: any } = $props()
 </script>
 
-<tr class="property-grid-row {className}">
+<tr class="property-grid-row">
 	<td class="property-label">
-		<span class="font-medium text-gray-700 dark:text-gray-300">{label}:</span>
+		<span class="font-medium text-gray-700 dark:text-gray-300">{label}</span>
 	</td>
-	<td class="property-value">
+	<td class="property-value {className}">
 		{@render children()}
 	</td>
 </tr>

@@ -7,10 +7,13 @@
 	import { ms } from '$lib/mutts.svelte'
 	import { T } from '$lib/i18n'
 	import GoodsList from '$components/parts/GoodsList.svelte'
+	import PropertyGridRow from '$components/parts/PropertyGridRow.svelte'
+	import PropertyGrid from '$components/parts/PropertyGrid.svelte'
 
 	let { tile }: { tile: Tile } = $props()
 	let tileContent = $derived(ms(() => tile.content))
 	let goods = $derived(ms(() => tile.content!.goods))
+	// TODO: terrain type as background color
 </script>
 
 {#if $tileContent}
@@ -29,14 +32,17 @@
 						: $tileContent.walkTime}
 				</Badge>
 			</div>
+			<PropertyGrid>
+				<PropertyGridRow label={$T.goods}>
+					<GoodsList goods={$goods} game={tile.hex.game} />
+				</PropertyGridRow>
 
-			<GoodsList goods={$goods} game={tile.hex.game} />
-
-			{#if $tileContent instanceof UnBuiltLand}
-				<UnBuiltProperties content={$tileContent} />
-			{:else if $tileContent instanceof Module}
-				<ModuleProperties content={$tileContent} game={tile.hex.game} />
-			{/if}
+				{#if $tileContent instanceof UnBuiltLand}
+					<UnBuiltProperties content={$tileContent} />
+				{:else if $tileContent instanceof Module}
+					<ModuleProperties content={$tileContent} game={tile.hex.game} />
+				{/if}
+			</PropertyGrid>
 		</div>
 	</div>
 {/if}

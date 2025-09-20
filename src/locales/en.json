@@ -49,7 +49,7 @@
 		"action": "Action",
 		"time": "Time",
 		"workTime": "Work Time",
-		"moduleConfiguration": "Module Configuration",
+		"configuration": "Configuration",
 		"walkway": "Walkway",
 		"conveyor": "Conveyor",
 		"walkwayTooltip": "Allow characters to walk through this module",

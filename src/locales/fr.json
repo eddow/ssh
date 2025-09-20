@@ -49,7 +49,7 @@
 		"action": "Action",
 		"time": "Temps",
 		"workTime": "Temps de Travail",
-		"moduleConfiguration": "Configuration du Module",
+		"configuration": "Configuration",
 		"walkway": "Passage",
 		"conveyor": "Convoyeur",
 		"walkwayTooltip": "Permettre aux personnages de marcher à travers ce module",

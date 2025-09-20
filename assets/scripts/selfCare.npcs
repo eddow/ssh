@@ -6,10 +6,9 @@ function goEat()
 			continue
 		end if
 		inventory.makeRoom
-		found = find.food()
+		found = find.food()	// TODO: goGrab
 		if not found then return false
-		walk.into found.path
-		inventory.grab found.good, 1
+		inventory.goGrab found.good, 1, found.tile, found.path
 	end while
 end function
 

@@ -9,7 +9,7 @@ import {
 } from 'npc-script/src'
 import { deposits, goods, modules, terrain } from '$assets/game-content'
 import { CharacterContract } from '$assets/scripts/contracts'
-import { type Contract, contract, overloadContract } from '$lib/arktype'
+import { type Contract, contract, isContract, overloadContract, registerContract } from '$lib/arktype'
 import { epsilon, objectMap } from '$lib/utils'
 import type { GameObject, InteractiveGameObject } from '../object'
 import { isPosition, Positioned, positionRoughly, toAxialCoord } from '../position'
@@ -94,6 +94,7 @@ export function protoCtx<Class extends abstract new () => object, Ext extends ob
 }
 export class GameContext<Subject extends GameObject> extends GlobalContext {
 	declare [subject]: Subject
+	@contract(Positioned)
 	tileAt(positioned: Positioned) {
 		return this[subject].game.hex.getTile(toAxialCoord(positioned))
 	}
@@ -120,6 +121,11 @@ class GameScript extends NpcScript {
 	) {
 		super(source, gameOperators, gameIsaTypes)
 	}
+	callNative(func: any, args: any[], context: ExecutionContext) {
+		if (!isContract(func))
+			throw new Error(`Function ${func.name} is not a contract`)
+		return func.apply(context, args)
+	}
 }
 
 function isXOrDictX<X>(x: XOrDictX<X>, Class: new (...args: any[]) => X): x is XOrDictX<X> {
@@ -131,28 +137,26 @@ function isXOrDictX<X>(x: XOrDictX<X>, Class: new (...args: any[]) => X): x is X
 
 @unreactive
 export class Finalized {
-	#finished?: () => void
-	#canceled?: () => void
-	#final?: () => void
+	#finished: (() => void)[] = []
+	#canceled: (() => void)[] = []
+	#final: (() => void)[] = []
 	final(final: () => void) {
-		this.#final = final
+		this.#final.push(final)
 		return this
 	}
 	canceled(canceled: () => void) {
-		this.#canceled = canceled
+		this.#canceled.push(canceled)
 		return this
 	}
 	finished(finished: () => void) {
-		this.#finished = finished
+		this.#finished.push(finished)
 		return this
 	}
 	cancel() {
-		this.#canceled?.()
-		this.#final?.()
+		for(const callback of [...this.#canceled, ...this.#final]) callback()
 	}
 	finish() {
-		this.#finished?.()
-		this.#final?.()
+		for(const callback of [...this.#finished, ...this.#final]) callback()
 	}
 }
 
@@ -217,13 +221,13 @@ export function loadNpcScripts(modules: Record<string, string>, context: Executi
 	): XoDe {
 		if (entryPoint instanceof FunctionDefinition && Array.isArray(contract)) {
 			const validate = type.raw(contract)
-			return (...args: any[]) => {
+			return registerContract((...args: any[]) => {
 				const result = validate(args)
 				if (result instanceof type.errors) {
 					throw new Error(`Validation failed for ${name}: ${result.summary}`)
 				}
 				return new ScriptExecution(script, name, entryPoint.call(args))
-			}
+			})
 		}
 		if (!(entryPoint instanceof FunctionDefinition) && !Array.isArray(contract)) {
 			return objectMap(entryPoint, (value, key) => {

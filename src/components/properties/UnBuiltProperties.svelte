@@ -1,40 +1,26 @@
 <script lang="ts">
 	import type { UnBuiltLand } from '$lib/game/board/content'
-	import type { GoodType } from '$lib/arktype'
-	import { goods } from '$assets/game-content'
-	import { Badge } from 'flowbite-svelte'
 	import { T } from '$lib/i18n'
 	import EntityBadge from '$components/parts/EntityBadge.svelte'
+	import PropertyGridRow from '$components/parts/PropertyGridRow.svelte'
+	import { ms } from '$lib/mutts.svelte'
 
 	let { content }: { content: UnBuiltLand } = $props()
 	const game = content.tile.hex.game
-
+	const deposit = $derived(ms(() => content.deposit, true))
 	//TODO:
 	// - Badge does not refresh
 	// - Badge takes all line
 	// - When killing the deposit, doesn't go to drop afterward
 </script>
 
-<div class="unbuilt-properties">
-	<div class="space-y-2">
-		{#if content.deposit}
-			<EntityBadge
-				{game}
-				sprite={content.deposit.sprites[0]}
-				text={content.deposit.name || '?'}
-				qty={content.deposit.amount}
-			/>
-			<div class="flex items-center gap-2">
-				<span class="font-medium">{$T.deposit}:</span>
-				<Badge color="purple">{content.deposit.name}</Badge>
-				<Badge color="blue">{content.deposit.amount}</Badge>
-			</div>
-		{/if}
-	</div>
-</div>
-
-<style>
-	.unbuilt-properties {
-		padding: 0.5rem 0;
-	}
-</style>
+{#if $deposit}
+	<PropertyGridRow label={$T.deposit} class="flex items-center">
+		<EntityBadge
+			{game}
+			sprite={$deposit.sprites[0]}
+			text={$T.deposits[$deposit.name!]}
+			qty={$deposit.amount}
+		/>
+	</PropertyGridRow>
+{/if}

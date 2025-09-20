@@ -1,11 +1,13 @@
+import type { Storage } from '$lib/game/storage'
 import { type Axial, type AxialRef, axial } from '$lib/hex'
-import type { HexBoard } from '../board'
-import type { Tile } from '../content'
+import type { HexBoard } from '..'
+import type { Tile } from '../tile'
+import { type } from 'arktype'
 
 // Re-export content classes
 export * from './module-gate'
 
-export interface TileBorderContent {
+export interface TileBorderContent extends Storage<any> {
 	readonly border: TileBorder
 	destroy?(): void
 }
@@ -38,3 +40,5 @@ export class TileBorder {
 		this.hex.setBorderContent(this.coord, content)
 	}
 }
+
+export const TileBorderType = type.instanceOf(TileBorder)

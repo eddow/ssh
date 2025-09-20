@@ -176,84 +176,6 @@ export function withContainer<T extends new (...args: any[]) => GameObject>(Base
 	return ContainerMixin
 }
 
-export function withScripted<T extends new (...args: any[]) => TickedGameObject>(Base: T) {
-	abstract class ScriptedMixin extends Base {
-		constructor(...args: any[]) {
-			super(...args)
-			setTimeout(() => {
-				if (this.stepExecutor) return
-				const firstAction = this.findAction()
-				if (firstAction) this.begin(firstAction)
-			}, 100)
-		}
-		public stepExecutor: ASingleStep | undefined
-		public runningScripts: ScriptExecution[] = []
-		abstract scriptsContext: ExecutionContext
-		abstract findAction(): ScriptExecution | undefined
-
-		@computed
-		get actionDescription(): string[] {
-			return this.runningScripts.map((s) => s.name).reverse()
-		}
-		nextStep() {
-			if (this.stepExecutor) throw new Error('Cannot begin a new script while another is running')
-			if (!this.runningScripts.length) {
-				const nextAction = this.findAction()
-				if (nextAction) this.runningScripts.unshift(nextAction)
-			}
-			let reentered = false
-			while (this.runningScripts.length && !this.stepExecutor) {
-				const executingName = this.runningScripts[0].name
-				const { type, value } = this.runningScripts[0].run(this.scriptsContext)
-				if (type === 'return') this.runningScripts.shift()
-				if (value) {
-					reentered = false
-					if (value instanceof ScriptExecution) this.runningScripts.unshift(value)
-					else if (value instanceof ASingleStep) this.stepExecutor = value
-					else throw new Error(`Unexpected next action: ${value}`)
-				} else if (!this.runningScripts.length) {
-					const nextAction = this.findAction()
-					if (nextAction?.name === executingName) {
-						if (reentered) throw new Error(`Action infinite fail/foundAction: ${executingName}`)
-						reentered = true
-					}
-					if (nextAction) this.runningScripts.unshift(nextAction)
-				}
-			}
-		}
-
-		update(dt: number) {
-			let remaining: number | undefined = dt * 5
-			let uselessStepExecutor: string | false = false
-			while (remaining !== undefined && this.stepExecutor) {
-				const newRemaining = this.stepExecutor.tick(remaining)
-				if (newRemaining === remaining && this.stepExecutor)
-					uselessStepExecutor = this.stepExecutor.type
-				remaining = newRemaining
-				if (remaining !== undefined) {
-					this.stepExecutor = undefined
-					this.nextStep()
-					const newType = this.stepExecutor?.type
-					if (uselessStepExecutor === newType) throw new Error(`Useless step executor: ${newType}`)
-				}
-			}
-		}
-		begin(exec: ScriptExecution) {
-			if (this.stepExecutor) throw new Error('Cannot begin a new script while another is running')
-			this.runningScripts.unshift(exec)
-			this.nextStep()
-		}
-		abandonAnd(exec: ScriptExecution) {
-			if (this.stepExecutor) this.stepExecutor.cancel()
-			for (const script of this.runningScripts) script.cancel()
-			this.runningScripts.splice(0, this.runningScripts.length)
-			this.stepExecutor = undefined
-			this.begin(exec)
-		}
-	}
-	return ScriptedMixin
-}
-
 // Type aliases for backward compatibility
 export type GeneratorObject = InstanceType<ReturnType<typeof withGenerator<typeof GameObject>>>
 export type RenderableContainer = InstanceType<ReturnType<typeof withContainer<typeof GameObject>>>
@@ -262,6 +184,3 @@ export type InteractiveGameObject = InstanceType<
 	ReturnType<typeof withInteractive<typeof GameObject>>
 >
 export type TickedGameObject = InstanceType<ReturnType<typeof withTicked<typeof GameObject>>>
-export type ScriptedObject = InstanceType<
-	ReturnType<typeof withScripted<ReturnType<typeof withTicked<typeof GameObject>>>>
->

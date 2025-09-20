@@ -10,9 +10,10 @@ import type { Tile } from '../board/tile'
 import type { Game } from '../game'
 import { bestPossibleJobScore, calculateJobScore, type Job } from '../job'
 import aCharacterContext from '../npcs/character'
-// biome-ignore lint/correctness/noUnusedImports: We need it for mixins tranquility: all propertyKeys are known
+// biome-ignore lint/correctness/noUnusedImports: We need `subject` for mixins tranquility: all propertyKeys are known
 import { type ScriptExecution, subject } from '../npcs/scripts'
-import { GameObject, withGenerator, withInteractive, withScripted, withTicked } from '../object'
+import { GameObject, withGenerator, withInteractive, withTicked } from '../object'
+import { withScripted } from '../npcs/object'
 import { axialDistance, type Position, toAxialCoord, toWorldCoord } from '../position'
 import type { Vehicle } from './vehicle'
 import { ByHands } from './vehicle/by-hands'
@@ -26,7 +27,7 @@ export class Character extends withInteractive(
 	public assignedModule: Module | undefined = undefined
 
 	// Character needs levels (starting at 0, incrementing 1 per second)
-	public hunger: number = 0
+	public hunger: number = 1000
 	public tiredness: number = 0
 	public fatigue: number = 0
 

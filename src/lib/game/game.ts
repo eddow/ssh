@@ -31,6 +31,7 @@ const assetsLoading = Promise.all(
 )
 
 export type GameEvents = {
+	gameStart(): void
 	objectOver(pointer: any, object: InteractiveGameObject, stopPropagation?: () => void): void
 	objectOut(pointer: any, object: InteractiveGameObject): void
 	objectDown(pointer: any, object: InteractiveGameObject, stopPropagation?: () => void): void
@@ -118,6 +119,7 @@ export class Game extends Eventful<GameEvents> {
 		this.population = new Population(this)
 
 		this.generate()
+		this.emit('gameStart')
 	}
 
 	public simulateObjectClick(object: InteractiveGameObject) {

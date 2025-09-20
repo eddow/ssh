@@ -1,23 +1,42 @@
-dropAll = function()
+function goDrop(good, qty, place, path)
+	drop = inventory.planDrop(good, qty, place)
+	while tile != place
+		if not path then path = find.path(tile, place)
+		walk.into path
+		path = null
+	end while
+	inventory.effectuate drop
+end function
+
+function goGrab(good, qty, place, path)
+	grab = inventory.planGrab(good, qty, place)
+	while tile != place
+		if not path then path = find.path(tile, place)
+		walk.into path
+		path = null
+	end while
+	inventory.effectuate grab
+end function
+
+function dropAll()
 	while aCarriedGood
 		good = aCarriedGood
 		spot = find.freeSpot(good)
-		if not spot then return false
-		walk.into spot.path
-		inventory.drop good, vehicle.goods[good]
+		if not spot then error "Try to drop but has no free spot"
+		goDrop good, spot.qty, spot.tile, spot.path
 	end while
 end function
 
-makeRoom = function()
-	while not vehicle.hasRoom()
+function makeRoom()
+	while not haveRoom()
 		good = aCarriedGood
 		if not good then error "Try to make room but has no good to drop"
 		spot = find.freeSpot(good)
-		walk.into spot.path
-		inventory.drop good, vehicle.goods[good]
+		if not spot then error "Try to drop but has no free spot"
+		goDrop good, spot.qty, spot.tile, spot.path
 	end while
 end function
 
-return { dropAll }
+return { dropAll, makeRoom, goDrop, goGrab }
 
 
