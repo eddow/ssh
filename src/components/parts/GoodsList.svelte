@@ -27,7 +27,7 @@
 				sprite={goodsCatalog[good].sprites[0]}
 				text={$T.goods?.[good]}
 				{qty}
-				{itemSize}
+				height={itemSize}
 			/>
 		{/each}
 	</div>

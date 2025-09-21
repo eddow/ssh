@@ -7,12 +7,19 @@ import { type } from 'arktype'
 import { assert } from '$lib/debug'
 import { type AxialCoord, type AxialRef, axial } from '$lib/hex'
 import { objectMap } from '$lib/utils'
-import { type Tile, TileType, UnBuiltLand } from '../board'
+import { type Tile, type TileContent, TileType, UnBuiltLand } from '../board'
 import { TileBorderType, type TileBorder } from '../board/border'
-import type { Character } from '../population'
+import type { Character, Vehicle } from '../population'
 import { Positioned, positionRoughlyEquals, toAxialCoord } from '../position'
 import { InteractiveContext, loadNpcScripts, protoCtx, subject } from './scripts'
 import { EatStep, MoveToStep, PonderingStep, WaitStep } from './steps'
+
+export interface Action<T = any> {
+	readonly description: 'grab' | 'drop'
+	readonly tileAllocation: T
+	readonly vehicleAllocation: T
+	readonly amount: number
+}
 
 class FindFunctions {
 	declare [subject]: Character
@@ -137,103 +144,116 @@ class InventoryFunctions {
 	@contract(GoodType, 'number?')
 	grab(goodType: GoodType, maxAmount: number = 1) {
 		const character = this[subject]
-		const { content } = character.tile
+		const { vehicle, tile: { content } } = character
 		assert(content, 'tile.content must be set')
+		assert(vehicle, 'tile.vehicle must be set')
 
-		const canGrab = character.vehicle.hasRoom(goodType)
+		const canGrab = vehicle.hasRoom(goodType)
 		const amount = Math.min(canGrab, maxAmount)
 
 		if (amount <= 0) throw new Error('No goods to grab')
-		const vehicleTransfer = character.vehicle.allocate(goodType, amount, `grab.${goodType}`)
+		const vehicleTransfer = vehicle.allocate(goodType, amount, `grab.${goodType}`)
 		const tileTransfer = content.reserve(goodType, amount, `grab.${goodType}`)
-		return new WaitStep(amount * activityDurations.transfer, 'convey', `grab.${goodType}`)
+		return new WaitStep(amount * vehicle.transferTime, 'convey', `grab.${goodType}`)
 			.finished(() => {
-				character.vehicle.fulfill(vehicleTransfer)
+				vehicle.fulfill(vehicleTransfer)
 				content.fulfill(tileTransfer)
 			})
 			.canceled(() => {
-				character.vehicle.cancel(vehicleTransfer)
+				vehicle.cancel(vehicleTransfer)
 				content.cancel(tileTransfer)
 			})
 	}
 	@contract(GoodType, 'number?')
 	drop(goodType: GoodType, maxAmount: number = 1) {
 		const character = this[subject]
-		const { content } = character.tile
+		const { vehicle, tile: { content } } = character
+		assert(vehicle, 'tile.vehicle must be set')
 		assert(content, 'tile.content must be set')
 
-		const available = character.vehicle.goods[goodType] ?? 0
+		const available = vehicle.goods[goodType] ?? 0
 		const canStore = content.hasRoom(goodType)
 		const amount = Math.min(available, canStore, maxAmount)
 		if (amount <= 0) throw new Error('No goods to drop')
 		const tileTransfer = content.allocate(goodType, amount, `drop.${goodType}`)
-		const vehicleTransfer = character.vehicle.reserve(goodType, amount, `drop.${goodType}`)
-		return new WaitStep(amount * activityDurations.transfer, 'convey', `drop.${goodType}`)
+		const vehicleTransfer = vehicle.reserve(goodType, amount, `drop.${goodType}`)
+		return new WaitStep(amount * vehicle.transferTime, 'convey', `drop.${goodType}`)
 			.finished(() => {
 				content.fulfill(tileTransfer)
-				character.vehicle.fulfill(vehicleTransfer)
+				vehicle.fulfill(vehicleTransfer)
 			})
 			.canceled(() => {
 				content.cancel(tileTransfer)
-				character.vehicle.cancel(vehicleTransfer)
+				vehicle.cancel(vehicleTransfer)
 			})
 	}
 	@contract(GoodType, 'number', type.or(TileType, TileBorderType))
 	planDrop(goodType: GoodType, quantity: number, destination: Tile | TileBorder) {
 		const character = this[subject]
 		const content = destination.content
+		const vehicle = character.vehicle
+		assert(vehicle, 'tile.vehicle must be set')
 		assert(content, 'destination.content must be set')
 
-		const available = character.vehicle.goods[goodType] ?? 0
+		const available = vehicle.goods[goodType] ?? 0
 		const canStore = content.hasRoom(goodType)
 		const amount = Math.min(available, canStore, quantity)
 		if (amount <= 0) throw new Error('No goods to drop')
 
 		const tileAllocation = content.allocate(goodType, amount, `planDrop.${goodType}`)
-		const vehicleAllocation = character.vehicle.reserve(goodType, amount, `planDrop.${goodType}`)
+		const vehicleAllocation = vehicle.reserve(goodType, amount, `planDrop.${goodType}`)
 
 		// Register final callback to cancel allocations when script ends
 		assert(character.runningScript, 'character.runningScript must be set')
 		character.runningScript.final(() => {
 			content.cancel(tileAllocation)
-			character.vehicle.cancel(vehicleAllocation)
+			vehicle.cancel(vehicleAllocation)
 		})
 
-		return { tileAllocation, vehicleAllocation, amount }
+		return { description: 'drop' as const, tileAllocation, vehicleAllocation, amount }
 	}
 	@contract(GoodType, 'number', type.or(TileType, TileBorderType))
 	planGrab(goodType: GoodType, quantity: number, source: Tile | TileBorder) {
 		const character = this[subject]
+		const vehicle = character.vehicle
+		assert(vehicle, 'tile.vehicle must be set')
 		const content = source.content
 		assert(content, 'source.content must be set')
 
-		const canGrab = character.vehicle.hasRoom(goodType)
+		const canGrab = vehicle.hasRoom(goodType)
 		const available = content.goods[goodType] ?? 0
 		const amount = Math.min(canGrab, available, quantity)
 		if (amount <= 0) throw new Error('No goods to grab')
 
-		const vehicleAllocation = character.vehicle.allocate(goodType, amount, `planGrab.${goodType}`)
+		const vehicleAllocation = vehicle.allocate(goodType, amount, `planGrab.${goodType}`)
 		const tileAllocation = content.reserve(goodType, amount, `planGrab.${goodType}`)
 
 		// Register final callback to cancel allocations when script ends
 		assert(character.runningScript, 'character.runningScript must be set')
 		character.runningScript.final(() => {
-			character.vehicle.cancel(vehicleAllocation)
+			vehicle.cancel(vehicleAllocation)
 			content.cancel(tileAllocation)
 		})
 
-		return { vehicleAllocation, tileAllocation, amount }
+		return { description: 'grab' as const, tileAllocation, vehicleAllocation, amount }
 	}
 	@contract('object')
-	effectuate(allocation: { tileAllocation: any; vehicleAllocation: any; amount: number }) {
+	effectuate(action: Action) {
 		const character = this[subject]
-		const { tileAllocation, vehicleAllocation, amount } = allocation
+		const { tileAllocation, vehicleAllocation, amount, description } = action
+		const { tile: { content }, vehicle } = character
+		assert(content, 'tile.content must be set')
+		assert(vehicle, 'tile.vehicle must be set')
 		
-		// Fulfill both allocations
-		character.tile.content!.fulfill(tileAllocation)
-		character.vehicle.fulfill(vehicleAllocation)
-		
-		return new WaitStep(amount * activityDurations.transfer, 'convey', 'effectuate')
+		return new WaitStep(amount * vehicle.transferTime, 'convey', description)
+			.finished(() => {
+				content.fulfill(tileAllocation)
+				vehicle.fulfill(vehicleAllocation)
+			})
+			.canceled(() => {
+				content.cancel(tileAllocation)
+				vehicle.cancel(vehicleAllocation)
+			})
 	}
 }
 

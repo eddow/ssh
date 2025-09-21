@@ -12,6 +12,8 @@
 
 	let { tile }: { tile: Tile } = $props()
 	let tileContent = $derived(ms(() => tile.content))
+	// TODO: we still have reactivity issues: it works without $goods, but tilecontent ms has to be deep
+	// and the performances crashes
 	let goods = $derived(ms(() => tile.content!.goods))
 	// TODO: terrain type as background color
 </script>

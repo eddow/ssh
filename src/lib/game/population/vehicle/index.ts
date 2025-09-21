@@ -2,6 +2,7 @@ import type { Storage } from '../../storage'
 
 export interface Vehicle extends Storage<any> {
 	readonly character: any // Will be Character class
+	readonly transferTime: number
 	readonly name: string
 	// TODO: use it in displacement calculation. Note, it's not a multiplier as car*rough terrain = really slow
 	readonly walkTime: number

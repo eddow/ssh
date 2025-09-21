@@ -1,23 +1,23 @@
 function goWork(module, job, path)
 	inventory.dropAll
-	while tile != module.tile
+	do while tile != module.tile
 		walk.until path
 		if tile != module.tile then
 			path = find.path(module.tile, false)
 			if not path then return false
 		end if
-	end while
+	loop
 	walk.enter
 	work.prepare
 	jobType[job] module
 end function
 
 function harvest(module)
-	while not tile.content.deposit or tile.content.deposit.name != module.action.deposit
+	do while not tile.content.deposit or tile.content.deposit.name != module.action.deposit
 		where = find.deposit(module.action.deposit)
 		if not where then return false
 		walk.until where
-	end while
+	loop
 	walk.enter
 	work.harvestStep
 	inventory.dropAll

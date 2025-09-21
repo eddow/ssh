@@ -7,20 +7,20 @@
 		sprite,
 		text,
 		qty,
-		itemSize = 20
+		height = 20
 	} = $props<{
 		game: Game
 		sprite: string
 		text: string
 		qty?: number
-		itemSize?: number
+		height?: number
 	}>()
 </script>
 
 <div
 	class="flex items-center gap-1 px-2 py-1 rounded border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800"
 >
-	<ResourceImage {game} {sprite} width={itemSize} alt={text} />
+	<ResourceImage {game} {sprite} {height} alt={text} />
 	{#if qty}
 		<span class="text-sm font-semibold text-gray-900 dark:text-white">×{qty}</span>
 	{/if}

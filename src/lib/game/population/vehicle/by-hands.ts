@@ -1,4 +1,5 @@
 import { reactive } from 'mutts'
+import { activityDurations } from '$assets/constants'
 import { SlottedStorage } from '../../storage/slotted-storage'
 import type { Vehicle } from './index'
 
@@ -6,7 +7,8 @@ import type { Vehicle } from './index'
 export class ByHands extends SlottedStorage implements Vehicle {
 	readonly character: any // Will be Character class
 	readonly name = 'By Hands'
-	readonly walkTime = 1.0
+	readonly walkTime = activityDurations.footWalkTime
+	readonly transferTime = activityDurations.handTransfer
 
 	constructor(character: any) {
 		super(1, 1) // 1 slot, max 1 quantity per slot

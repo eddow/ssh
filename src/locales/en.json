@@ -55,6 +55,6 @@
 		"walkwayTooltip": "Allow characters to walk through this module",
 		"conveyorTooltip": "Allow unrelated goods to pass through this module"
 	},
-	"deposit": "Deposit",
+	"deposit": "Resources",
 	"goods": "Goods"
 }

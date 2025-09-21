@@ -1,5 +1,5 @@
 function goEat()
-	while hunger > triggerLevels.hunger.satisfied
+	do while hunger > triggerLevels.hunger.satisfied
 		food = carriedFood
 		if food then
 			selfCare.eat food
@@ -9,7 +9,7 @@ function goEat()
 		found = find.food()	// TODO: goGrab
 		if not found then return false
 		inventory.goGrab found.good, 1, found.tile, found.path
-	end while
+	loop
 end function
 
 function wander()
@@ -20,5 +20,4 @@ function wander()
 end function
 
 return { goEat, wander }
-
 
