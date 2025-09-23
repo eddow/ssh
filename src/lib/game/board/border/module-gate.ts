@@ -4,8 +4,6 @@ import type { TileBorder, TileBorderContent } from './index'
 
 /** A storage gate placed on a border between two tiles/modules. */
 export class ModuleGate extends SlottedStorage implements TileBorderContent {
-	readonly border: TileBorder
-
 	/** Connected modules on each side of the border (optional). */
 	get moduleA() {
 		const content = this.border.tile.a.content
@@ -16,9 +14,12 @@ export class ModuleGate extends SlottedStorage implements TileBorderContent {
 		return content instanceof Module ? content : undefined
 	}
 
-	constructor(border: TileBorder) {
+	get complex() {
+		return this.moduleA?.complex ?? this.moduleB!.complex!
+	}
+
+	constructor(readonly border: TileBorder) {
 		super(2, 3) // 2 slots, max quantity 3 per slot
-		this.border = border
 	}
 
 	attach(): void {

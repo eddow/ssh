@@ -6,7 +6,7 @@
 	import { ms } from '$lib/mutts.svelte'
 
 	let { content }: { content: UnBuiltLand } = $props()
-	const game = content.tile.hex.game
+	const game = content.tile.board.game
 	const deposit = $derived(ms(() => content.deposit, true))
 	//TODO:
 	// - Badge does not refresh

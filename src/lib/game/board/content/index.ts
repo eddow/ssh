@@ -1,5 +1,4 @@
 import type { ContainerChild } from 'pixi.js'
-import type { GoodType } from '$lib/arktype'
 import type { Game } from '$lib/game'
 import type { Storage } from '../../storage'
 import type { Tile } from '../tile'
@@ -12,11 +11,6 @@ export interface TileContent extends Storage<any> {
 	readonly debugInfo: Record<string, any>
 	readonly walkTime: number
 	readonly background: string
-	/**
-	 * List the goods on the tile
-	 * @returns A record of goods and their quantities
-	 */
-	get goods(): { [k in GoodType]?: number }
 	/**
 	 * Render the tile
 	 * @param tile - The tile to render
@@ -32,5 +26,5 @@ export interface TileContent extends Storage<any> {
 }
 
 // Re-export content classes
-export * from './module'
+export * from './module/module'
 export * from './unbuilt-land'

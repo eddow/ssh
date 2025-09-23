@@ -10,10 +10,10 @@ import type { Tile } from '../board/tile'
 import type { Game } from '../game'
 import { bestPossibleJobScore, calculateJobScore, type Job } from '../job'
 import aCharacterContext from '../npcs/character'
+import { withScripted } from '../npcs/object'
 // biome-ignore lint/correctness/noUnusedImports: We need `subject` for mixins tranquility: all propertyKeys are known
 import { type ScriptExecution, subject } from '../npcs/scripts'
 import { GameObject, withGenerator, withInteractive, withTicked } from '../object'
-import { withScripted } from '../npcs/object'
 import { axialDistance, type Position, toAxialCoord, toWorldCoord } from '../position'
 import type { Vehicle } from './vehicle'
 import { ByHands } from './vehicle/by-hands'
@@ -85,8 +85,9 @@ export class Character extends withInteractive(
 		}
 
 		// Find the best job using the findBest pathfinding function
-		const path = this.game.hex.findBest(
+		const path = this.game.hex.findBestForCharacter(
 			start,
+			this,
 			scoreJob,
 			maxWalkTime, // Use maxWalkTime from constants
 			bestPossibleJobScore(this),
@@ -111,13 +112,16 @@ export class Character extends withInteractive(
 
 	get carriedFood(): GoodType | undefined {
 		return maxBy(
-			Object.entries(this.vehicle.goods) as [GoodType, number][],
-			([goodType, qty]) => (qty > 0 && goodsCatalog[goodType].feedingValue) || undefined,
+			Object.entries(this.vehicle.stock) as [GoodType, number][],
+			([goodType]) =>
+				(this.vehicle.available(goodType) > 0 && goodsCatalog[goodType].feedingValue) || undefined,
 		)?.[0]
 	}
 
 	get aCarriedGood(): GoodType | undefined {
-		return Object.keys(this.vehicle.goods)[0] as GoodType | undefined
+		return Object.entries(this.vehicle.stock).find(
+			([goodType]) => this.vehicle.available(goodType as GoodType) > 0,
+		)?.[0] as GoodType | undefined
 	}
 
 	canInteract(action: string): boolean {
@@ -165,9 +169,10 @@ export class Character extends withInteractive(
 	findAction() {
 		if (this.hunger > this.triggerLevels.hunger.high) return this.scriptsContext.selfCare.goEat()
 
-		if (Object.values(this.vehicle.goods).some((qty) => qty > 0))
+		if (Object.values(this.vehicle.stock).some((qty) => qty > 0))
 			return this.scriptsContext.inventory.dropAll()
 		const tryAnActivity =
+			// TODO: make sure to dropAll before findBestJob - or indeed to find where to drop
 			this.fatigue < this.triggerLevels.fatigue.high ? this.findBestJob() : undefined // goRest
 		// Default to wandering when no specific action is needed
 		return tryAnActivity || this.scriptsContext.selfCare.wander()

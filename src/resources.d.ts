@@ -15,19 +15,25 @@ declare namespace Ssh {
 	interface HarvestingAction {
 		type: 'harvest'
 		deposit: string
+		output: Record<string, number>
 	}
 
 	interface TransformationAction {
 		type: 'transform'
 		inputs: Record<string, number>
+		output: Record<string, number>
 	}
-	type Action = HarvestingAction | TransformationAction
+	interface TransitAction {
+		type: 'transit'
+		buffer: number
+		byFoot: boolean
+	}
+	type Action = HarvestingAction | TransformationAction | TransitAction
 
-	interface ModuleDefinition {
+	interface ModuleDefinition<ActionType extends Action = Action> {
 		name?: string
 		preparationTime: number
-		action: Action
-		output: Record<string, number>
+		action: ActionType
 		workTime: number
 		icon: Sprite
 		sprites: Sprite[]

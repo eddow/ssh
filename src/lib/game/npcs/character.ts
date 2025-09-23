@@ -1,15 +1,15 @@
-import { activityDurations, maxWalkTime } from '$assets/constants'
+import { type } from 'arktype'
+import { maxWalkTime } from '$assets/constants'
 import * as gameContent from '$assets/game-content'
 import { goods as goodsCatalog } from '$assets/game-content'
 import type { CharacterContract } from '$assets/scripts/contracts'
 import { contract, DepositType, GoodType } from '$lib/arktype'
-import { type } from 'arktype'
 import { assert } from '$lib/debug'
 import { type AxialCoord, type AxialRef, axial } from '$lib/hex'
 import { objectMap } from '$lib/utils'
-import { type Tile, type TileContent, TileType, UnBuiltLand } from '../board'
-import { TileBorderType, type TileBorder } from '../board/border'
-import type { Character, Vehicle } from '../population'
+import { type Tile, TileType, UnBuiltLand } from '../board'
+import { type TileBorder, TileBorderType } from '../board/border'
+import type { Character } from '../population'
 import { Positioned, positionRoughlyEquals, toAxialCoord } from '../position'
 import { InteractiveContext, loadNpcScripts, protoCtx, subject } from './scripts'
 import { EatStep, MoveToStep, PonderingStep, WaitStep } from './steps'
@@ -25,9 +25,10 @@ class FindFunctions {
 	declare [subject]: Character
 	@contract(Positioned, 'boolean')
 	path(to: Positioned, punctual: boolean = true) {
-		return this[subject].game.hex.findPath(
+		return this[subject].game.hex.findPathForCharacter(
 			toAxialCoord(this[subject].tile.position),
 			axial.round(toAxialCoord(to)),
+			this[subject],
 			maxWalkTime,
 			punctual,
 		)
@@ -38,7 +39,7 @@ class FindFunctions {
 		function bestFoodOnTile(coord: AxialRef): GoodType | null {
 			const tile = hex.getTile(coord)
 			if (!tile) return null
-			const goodsMap = tile.content!.goods
+			const goodsMap = tile.content!.stock
 			let best: { type: GoodType; fv: number } | null = null
 			for (const [good, count] of Object.entries(goodsMap) as [GoodType, number][]) {
 				if (!count) continue
@@ -50,8 +51,9 @@ class FindFunctions {
 			return best?.type ?? null
 		}
 		const start = toAxialCoord(this[subject].tile.position)
-		const path = hex.findNearest(
+		const path = hex.findNearestForCharacter(
 			start,
+			this[subject],
 			(coord) => bestFoodOnTile(coord) !== null,
 			maxWalkTime,
 			true,
@@ -66,8 +68,9 @@ class FindFunctions {
 	deposit(deposit: DepositType) {
 		const { hex } = this[subject].game
 		const start = toAxialCoord(this[subject].tile.position)
-		const path = hex.findNearest(
+		const path = hex.findNearestForCharacter(
 			start,
+			this[subject],
 			(coord) => {
 				const tile = hex.getTile(coord)
 				return tile?.content instanceof UnBuiltLand && tile.content.deposit?.name === deposit
@@ -83,8 +86,9 @@ class FindFunctions {
 		const { hex } = this[subject].game
 		const start = toAxialCoord(this[subject].tile.position)
 		let qty = 0
-		const path = hex.findNearest(
+		const path = hex.findNearestForCharacter(
 			start,
+			this[subject],
 			(coord) => {
 				const tile = hex.getTile(coord)
 				if (!tile) return false
@@ -129,9 +133,10 @@ class FindFunctions {
 
 		return {
 			tile: targetTile,
-			path: this[subject].game.hex.findPath(
+			path: this[subject].game.hex.findPathForCharacter(
 				toAxialCoord(this[subject].tile.position),
 				targetCoord,
+				this[subject],
 				maxWalkTime,
 				true,
 			),
@@ -144,7 +149,10 @@ class InventoryFunctions {
 	@contract(GoodType, 'number?')
 	grab(goodType: GoodType, maxAmount: number = 1) {
 		const character = this[subject]
-		const { vehicle, tile: { content } } = character
+		const {
+			vehicle,
+			tile: { content },
+		} = character
 		assert(content, 'tile.content must be set')
 		assert(vehicle, 'tile.vehicle must be set')
 
@@ -167,11 +175,14 @@ class InventoryFunctions {
 	@contract(GoodType, 'number?')
 	drop(goodType: GoodType, maxAmount: number = 1) {
 		const character = this[subject]
-		const { vehicle, tile: { content } } = character
+		const {
+			vehicle,
+			tile: { content },
+		} = character
 		assert(vehicle, 'tile.vehicle must be set')
 		assert(content, 'tile.content must be set')
 
-		const available = vehicle.goods[goodType] ?? 0
+		const available = vehicle.available(goodType) ?? 0
 		const canStore = content.hasRoom(goodType)
 		const amount = Math.min(available, canStore, maxAmount)
 		if (amount <= 0) throw new Error('No goods to drop')
@@ -195,7 +206,7 @@ class InventoryFunctions {
 		assert(vehicle, 'tile.vehicle must be set')
 		assert(content, 'destination.content must be set')
 
-		const available = vehicle.goods[goodType] ?? 0
+		const available = vehicle.available(goodType) ?? 0
 		const canStore = content.hasRoom(goodType)
 		const amount = Math.min(available, canStore, quantity)
 		if (amount <= 0) throw new Error('No goods to drop')
@@ -221,7 +232,7 @@ class InventoryFunctions {
 		assert(content, 'source.content must be set')
 
 		const canGrab = vehicle.hasRoom(goodType)
-		const available = content.goods[goodType] ?? 0
+		const available = content.available(goodType) ?? 0
 		const amount = Math.min(canGrab, available, quantity)
 		if (amount <= 0) throw new Error('No goods to grab')
 
@@ -241,10 +252,13 @@ class InventoryFunctions {
 	effectuate(action: Action) {
 		const character = this[subject]
 		const { tileAllocation, vehicleAllocation, amount, description } = action
-		const { tile: { content }, vehicle } = character
+		const {
+			tile: { content },
+			vehicle,
+		} = character
 		assert(content, 'tile.content must be set')
 		assert(vehicle, 'tile.vehicle must be set')
-		
+
 		return new WaitStep(amount * vehicle.transferTime, 'convey', description)
 			.finished(() => {
 				content.fulfill(tileAllocation)
@@ -317,7 +331,7 @@ class WorkFunctions {
 	harvestStep() {
 		const unbuiltLand = this[subject].tile.content as UnBuiltLand
 		assert(unbuiltLand instanceof UnBuiltLand, 'tile.content must be an UnBuiltLand')
-		const module = this[subject].assignedModule
+		const module = this[subject].assignedModule as Ssh.ModuleDefinition<Ssh.HarvestingAction>
 		assert(module, 'assignedModule must be set')
 		assert(module.action.type === 'harvest', 'assignedModule.action must be a harvest')
 		const action = module.action as Ssh.HarvestingAction
@@ -327,7 +341,7 @@ class WorkFunctions {
 		)
 		const deposit = unbuiltLand.deposit!
 		// Check if character can store any of the output goods
-		const outputGoods = module.output
+		const outputGoods = module.action.output
 		const canStoreAny = Object.keys(outputGoods).some(
 			(goodType) => this[subject].vehicle.hasRoom(goodType as GoodType) > 0,
 		)
@@ -342,7 +356,7 @@ class WorkFunctions {
 			`harvest.${this[subject].assignedModule!.name}`,
 		).finished(() => {
 			// Add all output goods to character inventory
-			Object.entries(module.output).forEach(([goodType, qty]) => {
+			Object.entries(module.action.output).forEach(([goodType, qty]) => {
 				this[subject].vehicle.addGood(goodType as GoodType, qty)
 			})
 		})

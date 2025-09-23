@@ -2,7 +2,13 @@ import { computed, ReactiveBase, reactive } from 'mutts'
 import { Container } from 'pixi.js'
 import type { GoodType } from '$lib/arktype'
 import { assert } from '$lib/debug'
-import { AllocationError, allocationEnded, guardAllocation, invalidateAllocation, isAllocationValid } from './guard'
+import {
+	AllocationError,
+	allocationEnded,
+	guardAllocation,
+	invalidateAllocation,
+	isAllocationValid,
+} from './guard'
 import type { Storage } from './index'
 
 @reactive
@@ -55,8 +61,12 @@ export class SpecificStorage
 	}
 
 	@computed
-	get goods(): { [k in GoodType]?: number } {
+	get stock(): { [k in GoodType]?: number } {
 		return { ...this._goods }
+	}
+
+	available(goodType: GoodType): number {
+		return Math.max(0, (this._goods[goodType] || 0) - (this._reserved[goodType] || 0))
 	}
 
 	renderGoods(_game: any, _size: number) {
@@ -127,7 +137,7 @@ export class SpecificStorage
 		return {
 			type: 'SpecificStorage',
 			maxAmounts: this.maxAmounts,
-			currentGoods: this.goods,
+			currentGoods: this.stock,
 		}
 	}
 }

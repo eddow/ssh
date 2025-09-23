@@ -16,7 +16,7 @@
 		stepType: character.stepExecutor?.type as Ssh.ActivityType | undefined,
 		stepDescription: (character.stepExecutor?.description || undefined) as string | undefined,
 		step: character.stepExecutor instanceof AEvolutionStep ? character.stepExecutor : undefined,
-		goods: character.vehicle.goods
+		goods: character.vehicle.stock
 	}))
 
 	const stepEvolution = $derived(

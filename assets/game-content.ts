@@ -16,6 +16,7 @@ export const terrain = {
 			deposits: { berry_bush: 0.1 },
 		},
 	},
+	concrete: {},
 	sand: {
 		generation: {
 			deposits: { rock: 0.3 },
@@ -54,27 +55,31 @@ export const deposits = {
 export const modules = {
 	tree_chopper: {
 		preparationTime: 2,
-		action: { type: "harvest", deposit: "tree" },
-		output: { wood: 1 },
+		action: { type: "harvest", deposit: "tree", output: { wood: 1 } },
 		workTime: 3,
 		sprites: ["chopper"],
 		icon: "chopper",
 	},
 	stonecutter: {
 		preparationTime: 3,
-		action: { type: "harvest", deposit: "rock" },
-		output: { stone: 1 },
+		action: { type: "harvest", deposit: "rock", output: { stone: 1 } },
 		workTime: 4,
 		sprites: ["cutter"],
 		icon: "cutter",
 	},
 	sawmill: {
 		preparationTime: 1,
-		action: { type: "transform", inputs: { wood: 1 } },
-		output: { planks: 1 },
+		action: { type: "transform", inputs: { wood: 1 }, output: { planks: 1 } },
 		workTime: 2,
 		sprites: ["sawmill"],
 		icon: "sawmill",
+	},
+	transit: {
+		preparationTime: 1,
+		action: { type: "transit", byFoot: true, buffer: 2 },
+		workTime: 2,
+		sprites: ["transit"],
+		icon: "transit",
 	},
 } as const satisfies Record<string, Ssh.ModuleDefinition>
 

@@ -8,13 +8,13 @@ import type { GoodType } from '$lib/arktype'
 
 export type Goods = { [k in GoodType]?: number }
 
-export interface Storage<Allocation> {
+export abstract class Storage<Allocation> {
 	/**
 	 * Check how much of a good can be stored
 	 * @param goodType - The type of good to check
 	 * @returns The maximum quantity that can be stored
 	 */
-	hasRoom(goodType?: GoodType): number
+	abstract hasRoom(goodType?: GoodType): number
 
 	/**
 	 * Add goods to storage
@@ -22,7 +22,7 @@ export interface Storage<Allocation> {
 	 * @param qty - The quantity to add
 	 * @returns The actual quantity that was stored
 	 */
-	addGood(goodType: GoodType, qty: number): number
+	abstract addGood(goodType: GoodType, qty: number): number
 
 	/**
 	 * Remove goods from storage
@@ -30,33 +30,37 @@ export interface Storage<Allocation> {
 	 * @param qty - The quantity to remove
 	 * @returns The actual quantity that was removed
 	 */
-	removeGood(goodType: GoodType, qty: number): number
-	/** Allocation token type is implementation-defined */
+	abstract removeGood(goodType: GoodType, qty: number): number
+
 	/**
 	 * Allocate room for a good and return an opaque allocation token
 	 * @throws Error if allocation fails (insufficient room)
 	 */
-	allocate(goodType: GoodType, qty: number, reason: any): Allocation
+	abstract allocate(goodType: GoodType, qty: number, reason: any): Allocation
 	/**
 	 * Reserve existing goods for removal and return an opaque allocation token
 	 * @throws Error if reservation fails (insufficient goods)
 	 */
-	reserve(goodType: GoodType, qty: number, reason: any): Allocation
+	abstract reserve(goodType: GoodType, qty: number, reason: any): Allocation
 	/**
 	 * Fulfill an allocation: convert allocation into present goods
 	 */
-	fulfill(allocation: Allocation): void
+	abstract fulfill(allocation: Allocation): void
 	/**
 	 * Free an allocation without adding goods
 	 */
-	cancel(allocation: Allocation): void
+	abstract cancel(allocation: Allocation): void
 
 	/**
-	 * Get all goods currently stored
-	 * @returns A record of goods and their quantities
+	 * Get all goods currently stored (stock totals, includes reserved)
 	 */
-	get goods(): Goods
+	abstract get stock(): Goods
+
+	/**
+	 * Get currently available (unreserved) quantity for a good type
+	 */
+	abstract available(goodType: GoodType): number
 
 	/** Render a visualization of stored goods */
-	renderGoods(game: any, size: number): ContainerChild
+	abstract renderGoods(game: any, size: number): ContainerChild
 }

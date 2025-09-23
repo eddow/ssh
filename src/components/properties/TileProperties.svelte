@@ -14,7 +14,7 @@
 	let tileContent = $derived(ms(() => tile.content))
 	// TODO: we still have reactivity issues: it works without $goods, but tilecontent ms has to be deep
 	// and the performances crashes
-	let goods = $derived(ms(() => tile.content!.goods))
+	let goods = $derived(ms(() => tile.content!.stock))
 	// TODO: terrain type as background color
 </script>
 
@@ -36,13 +36,13 @@
 			</div>
 			<PropertyGrid>
 				<PropertyGridRow label={$T.goods}>
-					<GoodsList goods={$goods} game={tile.hex.game} />
+					<GoodsList goods={$goods} game={tile.board.game} />
 				</PropertyGridRow>
 
 				{#if $tileContent instanceof UnBuiltLand}
 					<UnBuiltProperties content={$tileContent} />
 				{:else if $tileContent instanceof Module}
-					<ModuleProperties content={$tileContent} game={tile.hex.game} />
+					<ModuleProperties content={$tileContent} game={tile.board.game} />
 				{/if}
 			</PropertyGrid>
 		</div>

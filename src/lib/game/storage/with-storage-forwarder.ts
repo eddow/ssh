@@ -45,8 +45,12 @@ export function withStorageForwarder<Allocation, TBase extends new (...args: any
 			this.storage.cancel(allocation)
 		}
 
-		get goods() {
-			return this.storage.goods
+		get stock() {
+			return this.storage.stock
+		}
+
+		available(goodType: GoodType): number {
+			return this.storage.available(goodType)
 		}
 
 		renderGoods(game: any, size: number) {

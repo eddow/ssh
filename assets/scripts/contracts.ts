@@ -1,6 +1,6 @@
 import { GoodType, type ContractType } from '$lib/arktype'
 import { TileType } from '$lib/game/board/tile'
-import { Module } from '$lib/game/board/content/module'
+import { Module } from '$lib/game/board/content/module/module'
 import { Position } from '$lib/game/position'
 import { type } from 'arktype'
 import { TileBorderType } from '$lib/game'

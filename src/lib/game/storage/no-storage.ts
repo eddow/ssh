@@ -4,7 +4,7 @@ import type { GoodType } from '$lib/arktype'
 import { AllocationError } from './guard'
 import type { Storage } from './index'
 
-export class NoStorage implements Storage<never> {
+class NoStorage implements Storage<never> {
 	hasRoom(_goodType?: GoodType): number {
 		return 0
 	}
@@ -18,8 +18,12 @@ export class NoStorage implements Storage<never> {
 	}
 
 	@computed
-	get goods(): { [k in GoodType]?: number } {
+	get stock(): { [k in GoodType]?: number } {
 		return {}
+	}
+
+	available(_goodType: GoodType): number {
+		return 0
 	}
 
 	allocate(_goodType: GoodType, qty: number, reason: any): never {
@@ -52,3 +56,5 @@ export class NoStorage implements Storage<never> {
 		}
 	}
 }
+
+export const noStorage = new NoStorage()

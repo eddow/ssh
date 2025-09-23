@@ -1,12 +1,9 @@
 // Library used by Pixi
 import EventEmitter from 'eventemitter3'
-import { computed, effect, ReactiveBase, type ScopedCallback, unreactive } from 'mutts'
-import type { ExecutionContext } from 'npc-script/src'
+import { effect, ReactiveBase, type ScopedCallback, unreactive } from 'mutts'
 import { Ticker } from 'pixi.js'
 import type { Tile } from './board/tile'
 import type { Game } from './game'
-import { ScriptExecution } from './npcs/scripts'
-import { ASingleStep } from './npcs/steps'
 import type { Position } from './position'
 
 // All pixi objects extend this `EventEmitter` and should be unreactive

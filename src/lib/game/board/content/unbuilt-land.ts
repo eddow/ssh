@@ -10,7 +10,7 @@ import type { TileContent } from './index'
 import { GcClassed, GcClasses } from './utils'
 
 export class Deposit extends GcClassed<Ssh.DepositDefinition>() {
-	static class = GcClasses(Deposit, deposits)
+	static class = GcClasses(() => Deposit, deposits)
 	constructor(public amount: number) {
 		super()
 	}

@@ -1,9 +1,9 @@
-import { computed } from "mutts"
-import type { ExecutionContext } from "npc-script/src"
-import { type TickedGameObject, withTicked, GameObject } from "../object"
-import { ScriptExecution } from "./scripts"
-import { ASingleStep } from "./steps"
-import type { Game } from "../game"
+import { computed } from 'mutts'
+import type { ExecutionContext } from 'npc-script/src'
+import type { Game } from '../game'
+import type { GameObject, TickedGameObject, withTicked } from '../object'
+import { ScriptExecution } from './scripts'
+import { ASingleStep } from './steps'
 
 export function withScripted<T extends new (...args: any[]) => TickedGameObject>(Base: T) {
 	abstract class ScriptedMixin extends Base {
@@ -66,7 +66,7 @@ export function withScripted<T extends new (...args: any[]) => TickedGameObject>
 				if (remaining !== undefined) {
 					this.stepExecutor = undefined
 					this.nextStep()
-					const newType = this.stepExecutor!?.type
+					const newType = this.stepExecutor?.type
 					if (uselessStepExecutor === newType) throw new Error(`Useless step executor: ${newType}`)
 				}
 			}

@@ -90,3 +90,10 @@ export function maxBy<T>(array: T[], fn: (item: T) => number | undefined): T | u
 	}
 	return maxItem
 }
+
+export function setPop<T>(set: Set<T>): T | undefined {
+	if (!set.size) return undefined
+	const value = set.values().next().value!
+	set.delete(value)
+	return value
+}

@@ -1,33 +1,39 @@
 import { type } from 'arktype'
-import { effect, reactive, watch } from 'mutts'
+import { computed, effect, reactive, watch } from 'mutts'
 import { ColorMatrixFilter, Container, Graphics, Point, TilingSprite } from 'pixi.js'
 
 import type { ModuleType } from '$lib/arktype'
 import { mrg } from '$lib/globals.svelte'
-import type { AxialCoord } from '$lib/hex'
+import { type AxialCoord, axial } from '$lib/hex'
 import { tileSize } from '$lib/utils'
 import { gameIsaTypes } from '../npcs/utils'
 import { GameObject, withGenerator, withInteractive } from '../object'
-import { type Position, toAxialCoord, toWorldCoord } from '../position'
+import {
+	axialDistance,
+	type Position,
+	type Positioned,
+	toAxialCoord,
+	toWorldCoord,
+} from '../position'
 import type { HexBoard } from '.'
 import type { TileBorder } from './border'
 import type { TileContent } from './content'
-import { Module } from './content/module'
+import { moduleClass } from './content/module'
 
 @reactive
 export class Tile extends withInteractive(withGenerator(GameObject)) {
 	get content(): TileContent | undefined {
-		return this.hex.getTileContent(toAxialCoord(this.position))
+		return this.board.getTileContent(toAxialCoord(this.position))
 	}
 	set content(content: TileContent) {
 		this.content?.destroy?.()
-		this.hex.setTileContent(toAxialCoord(this.position), content)
+		this.board.setTileContent(toAxialCoord(this.position), content)
 	}
 	constructor(
-		public readonly hex: HexBoard,
+		public readonly board: HexBoard,
 		coord: AxialCoord,
 	) {
-		super(hex.game, `hex-tile:${coord.q},${coord.r}`)
+		super(board.game, `hex-tile:${coord.q},${coord.r}`)
 		this.position = coord
 		// Set tile reference on content
 	}
@@ -56,28 +62,46 @@ export class Tile extends withInteractive(withGenerator(GameObject)) {
 		if (!this.canInteract(`build:${moduleType}`)) {
 			return false
 		}
-		const ModuleClass = Module.class[moduleType]
+		const ModuleClass = moduleClass[moduleType]
 		if (!ModuleClass) return false
 		const newModule = new ModuleClass(this)
-		// Set tile reference on new content
 		this.content = newModule
 		return true
 	}
 
-	/**
-	 * Retrieve the six borders around this tile at:
-	 * {q+.5,r}, {q-.5,r}, {q,r+.5}, {q,r-.5}, {q-.5,r+.5}, {q+.5,r-.5}
-	 */
-	getBorders(): (TileBorder | undefined)[] {
+	get surroundings(): { border: TileBorder; tile: TileContent }[] {
+		return axial
+			.neighbors(toAxialCoord(this.position))
+			.map((n) => ({ border: this.borderWith(n), tile: this.board.getTileContent(n) }))
+			.filter((b) => b.border !== undefined && b.tile !== undefined) as {
+			border: TileBorder
+			tile: TileContent
+		}[]
+		/*
 		const { q, r } = toAxialCoord(this.position)
 		return [
-			this.hex.getBorder({ q: q + 0.5, r }),
-			this.hex.getBorder({ q: q - 0.5, r }),
-			this.hex.getBorder({ q, r: r + 0.5 }),
-			this.hex.getBorder({ q, r: r - 0.5 }),
-			this.hex.getBorder({ q: q - 0.5, r: r + 0.5 }),
-			this.hex.getBorder({ q: q + 0.5, r: r - 0.5 }),
-		]
+			this.board.getBorder({ q: q + 0.5, r }),
+			this.board.getBorder({ q: q - 0.5, r }),
+			this.board.getBorder({ q, r: r + 0.5 }),
+			this.board.getBorder({ q, r: r - 0.5 }),
+			this.board.getBorder({ q: q - 0.5, r: r + 0.5 }),
+			this.board.getBorder({ q: q + 0.5, r: r - 0.5 }),
+		]*/
+	}
+
+	borderWith(positioned: Positioned): TileBorder | undefined {
+		const thisCoord = toAxialCoord(this)
+		const otherCoord = toAxialCoord(positioned)
+		if (axialDistance(this, positioned) !== 1) return
+		const coord = axial.linear([0.5, thisCoord], [0.5, otherCoord])
+		return this.board.getBorder(coord)
+	}
+	@computed
+	get neighborTiles(): Tile[] {
+		return axial
+			.neighbors(toAxialCoord(this.position))
+			.map((neighbor) => this.board.getTile(neighbor))
+			.filter((tile): tile is Tile => tile !== undefined)
 	}
 
 	render() {

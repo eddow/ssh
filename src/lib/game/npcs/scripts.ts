@@ -9,7 +9,13 @@ import {
 } from 'npc-script/src'
 import { deposits, goods, modules, terrain } from '$assets/game-content'
 import { CharacterContract } from '$assets/scripts/contracts'
-import { type Contract, contract, isContract, overloadContract, registerContract } from '$lib/arktype'
+import {
+	type Contract,
+	contract,
+	isContract,
+	overloadContract,
+	registerContract,
+} from '$lib/arktype'
 import { epsilon, objectMap } from '$lib/utils'
 import type { GameObject, InteractiveGameObject } from '../object'
 import { isPosition, Positioned, positionRoughly, toAxialCoord } from '../position'
@@ -122,8 +128,7 @@ class GameScript extends NpcScript {
 		super(source, gameOperators, gameIsaTypes)
 	}
 	callNative(func: any, args: any[], context: ExecutionContext) {
-		if (!isContract(func))
-			throw new Error(`Function ${func.name} is not a contract`)
+		if (!isContract(func)) throw new Error(`Function ${func.name} is not a contract`)
 		return func.apply(context, args)
 	}
 }
@@ -153,10 +158,10 @@ export class Finalized {
 		return this
 	}
 	cancel() {
-		for(const callback of [...this.#canceled, ...this.#final]) callback()
+		for (const callback of [...this.#canceled, ...this.#final]) callback()
 	}
 	finish() {
-		for(const callback of [...this.#finished, ...this.#final]) callback()
+		for (const callback of [...this.#finished, ...this.#final]) callback()
 	}
 }
 

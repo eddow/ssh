@@ -3,7 +3,13 @@ import { ColorMatrixFilter, Container, Sprite } from 'pixi.js'
 import { goods as goodsCatalog } from '$assets/game-content'
 import type { GoodType } from '$lib/arktype'
 import { assert } from '$lib/debug'
-import { AllocationError, allocationEnded, guardAllocation, invalidateAllocation, isAllocationValid } from './guard'
+import {
+	AllocationError,
+	allocationEnded,
+	guardAllocation,
+	invalidateAllocation,
+	isAllocationValid,
+} from './guard'
 import type { Storage } from './index'
 
 export interface Slot {
@@ -89,7 +95,7 @@ export class SlottedStorage extends ReactiveBase implements Storage<number[]> {
 	}
 
 	@computed
-	get goods(): { [k in GoodType]?: number } {
+	get stock(): { [k in GoodType]?: number } {
 		const result: { [k in GoodType]?: number } = {}
 
 		for (const slot of this.slots) {
@@ -99,6 +105,14 @@ export class SlottedStorage extends ReactiveBase implements Storage<number[]> {
 		}
 
 		return result
+	}
+
+	available(goodType: GoodType): number {
+		let total = 0
+		for (const slot of this.slots) {
+			if (slot?.goodType === goodType) total += Math.max(0, slot.quantity - slot.reserved)
+		}
+		return total
 	}
 
 	allocate(goodType: GoodType, qty: number, reason: any): number[] {
@@ -137,7 +151,7 @@ export class SlottedStorage extends ReactiveBase implements Storage<number[]> {
 	reserve(goodType: GoodType, qty: number, reason: any): number[] {
 		assert(qty > 0, 'Cannot reserve non-positive quantity')
 		const alloc: number[] = Array(this.slots.length).fill(0)
-		let remaining = Math.min(qty, this.presentAmount(goodType))
+		let remaining = Math.min(qty, this.available(goodType))
 		if (remaining <= 0)
 			throw new AllocationError(`Insufficient goods to reserve ${qty} of ${goodType}`, reason)
 
@@ -206,13 +220,7 @@ export class SlottedStorage extends ReactiveBase implements Storage<number[]> {
 		}
 	}
 
-	private presentAmount(goodType: GoodType): number {
-		let total = 0
-		for (const slot of this.slots) {
-			if (slot?.goodType === goodType) total += slot.quantity
-		}
-		return total
-	}
+	// presentAmount replaced by available()
 	renderGoods(game: any, size: number) {
 		const root = new Container()
 		effect(() => {
@@ -222,7 +230,7 @@ export class SlottedStorage extends ReactiveBase implements Storage<number[]> {
 			for (let i = 0; i < n; i++) {
 				const slot = this.slots[i]
 				if (!slot || (slot.quantity === 0 && slot.allocated === 0 && slot.reserved === 0)) continue
-				
+
 				// Render present goods (normal colors) - one sprite per quantity
 				for (let q = 0; q < slot.quantity; q++) {
 					const sprite = new Sprite(game.getTexture(goodsCatalog[slot.goodType].sprites[0]))
@@ -241,7 +249,7 @@ export class SlottedStorage extends ReactiveBase implements Storage<number[]> {
 					root.addChild(sprite)
 					sprites.push(sprite)
 				}
-				
+
 				// Render reserved goods (reddish tint) - one sprite per reserved quantity
 				for (let r = 0; r < slot.reserved; r++) {
 					const sprite = new Sprite(game.getTexture(goodsCatalog[slot.goodType].sprites[0]))
@@ -262,7 +270,7 @@ export class SlottedStorage extends ReactiveBase implements Storage<number[]> {
 					root.addChild(sprite)
 					sprites.push(sprite)
 				}
-				
+
 				// Render allocated goods (black & white) - one sprite per allocated quantity
 				for (let a = 0; a < slot.allocated; a++) {
 					const sprite = new Sprite(game.getTexture(goodsCatalog[slot.goodType].sprites[0]))
