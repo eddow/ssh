@@ -3,7 +3,8 @@ import { SpecificStorage } from '$lib/game/storage'
 import type { Tile } from '../../tile'
 import { Module, multiplyGoodsQty, outputBufferSize } from './module'
 export class HarvestModule extends Module {
-	constructor(tile: Tile, def: Ssh.ModuleDefinition) {
+	constructor(tile: Tile) {
+		const def: Ssh.ModuleDefinition = new.target.prototype
 		if (def.action.type !== 'harvest') {
 			throw new Error('HarvestModule can only be created from a harvest action')
 		}

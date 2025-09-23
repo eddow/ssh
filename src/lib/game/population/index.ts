@@ -3,9 +3,7 @@ export * from './vehicle'
 export * from './vehicle/by-hands'
 
 import type { AxialCoord } from '$lib/hex'
-import { AxialSet } from '$lib/mem'
 import { type RandGenerator, uuid } from '$lib/numbers'
-import { UnBuiltLand } from '../board/content'
 import type { Game } from '../game'
 import { GameObject, withContainer, withHittable } from '../object'
 import { Character } from './character'
@@ -28,29 +26,6 @@ export class Population extends withContainer(withHittable(GameObject)) {
 			if (character.hitTest(coord, selectedAction)) return character
 		}
 		return false
-	}
-	generateCharacters(n: number = 3, _radius = 200): void {
-		const used = new AxialSet()
-		for (let i = 0; i < n; i++) {
-			const characterPath = this.game.hex.findNearest(
-				{ q: 0, r: 0 },
-				(c) => {
-					if (used.has(c)) return false
-					const tile = this.game.hex.getTile(c)!
-					return (
-						tile.content instanceof UnBuiltLand &&
-						tile.content.terrain !== 'water' &&
-						tile.content.deposit === undefined
-					)
-				},
-				5,
-			)
-			if (characterPath) {
-				const characterCoord = characterPath.pop()!
-				this.createCharacter(`Character ${i}`, characterCoord)
-				used.add(characterCoord)
-			} else break
-		}
 	}
 
 	// Create a new character

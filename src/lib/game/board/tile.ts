@@ -22,18 +22,22 @@ import { moduleClass } from './content/module'
 
 @reactive
 export class Tile extends withInteractive(withGenerator(GameObject)) {
+	// True when the tile is exactly as produced by generation
+	public asGenerated: boolean = false
 	get content(): TileContent | undefined {
 		return this.board.getTileContent(toAxialCoord(this.position))
 	}
 	set content(content: TileContent) {
 		this.content?.destroy?.()
 		this.board.setTileContent(toAxialCoord(this.position), content)
+		// Mark as modified from generation when content changes
+		this.asGenerated = false
 	}
 	constructor(
 		public readonly board: HexBoard,
 		coord: AxialCoord,
 	) {
-		super(board.game, `hex-tile:${coord.q},${coord.r}`)
+		super(board.game, `tile:${coord.q},${coord.r}`)
 		this.position = coord
 		// Set tile reference on content
 	}
@@ -162,7 +166,7 @@ export class Tile extends withInteractive(withGenerator(GameObject)) {
 	}
 }
 
-export const TileType = type.instanceOf(Tile)
+export const TileArkType = type.instanceOf(Tile)
 gameIsaTypes.tile = (value: any) => {
 	return value instanceof Tile
 }

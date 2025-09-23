@@ -76,7 +76,7 @@ export const modules = {
 	},
 	transit: {
 		preparationTime: 1,
-		action: { type: "transit", byFoot: true, buffer: 2 },
+		action: { type: "transit", individual: true },
 		workTime: 2,
 		sprites: ["transit"],
 		icon: "transit",

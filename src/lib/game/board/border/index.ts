@@ -42,4 +42,4 @@ export class TileBorder {
 	}
 }
 
-export const TileBorderType = type.instanceOf(TileBorder)
+export const TileBorderArkType = type.instanceOf(TileBorder)

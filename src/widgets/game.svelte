@@ -1,14 +1,55 @@
 <script lang="ts">
 	import type { Readable, Writable } from 'svelte/store'
 	import { onMount, onDestroy } from 'svelte'
-	import { games, interactionMode } from '$lib/globals.svelte'
+	import {
+		games,
+		interactionMode,
+		selectionState,
+		getObjectInfoPanelId,
+		validateStoredSelectionState
+	} from '$lib/globals.svelte'
 	import { type InteractiveGameObject, GameView } from '$lib/game'
 	import { getDockviewContext } from 'dockview-svelte/src'
 	import { Tile } from '$lib/game/board'
 	import { T } from '$lib/i18n'
 	import type { ModuleType } from '$lib/arktype'
 
-	const dvContext = getDockviewContext()
+	const { addDock, api } = getDockviewContext()
+
+	// Helper function to handle selection info display
+	function showSelectionInfo(object: InteractiveGameObject) {
+		// Check for existing object-info panel for this specific object
+		const objectInfoPanelId = getObjectInfoPanelId(object.uid)
+		if (objectInfoPanelId) {
+			const objectInfoPanel = api?.getPanel(objectInfoPanelId)
+			if (objectInfoPanel) {
+				// Focus the object-info panel for this object
+				objectInfoPanel.focus()
+				return
+			}
+		}
+
+		// Update global selected object
+		selectionState.selectedUid = object.uid
+
+		// Handle selection-info panel (generalist)
+		if (selectionState.panelId) {
+			const selectionInfoPanel = api?.getPanel(selectionState.panelId)
+			if (selectionInfoPanel) {
+				// Focus existing selection-info panel - it will update content via global state
+				selectionInfoPanel.focus()
+			}
+		} else {
+			// Create new selection-info panel
+			addDock(
+				'selection-info',
+				{},
+				{
+					floating: true
+				}
+			)
+		}
+	}
 	let {
 		size,
 		game: gameName,
@@ -37,6 +78,9 @@
 	onMount(() => {
 		// Remove the canvas from wherever it might be
 		gameView = new GameView(game, container!)
+
+		// Validate stored selection state
+		validateStoredSelectionState(api)
 	})
 
 	onDestroy(() => {
@@ -64,13 +108,7 @@
 					handleBuildingAction(object)
 				} else {
 					// Default behavior: show selection info
-					dvContext.addDock(
-						'selection-info',
-						{ uid: object.uid },
-						{
-							floating: true
-						}
-					)
+					showSelectionInfo(object)
 				}
 			}
 		}

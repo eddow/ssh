@@ -1,9 +1,9 @@
 import { GoodType, type ContractType } from '$lib/arktype'
-import { TileType } from '$lib/game/board/tile'
-import { Module } from '$lib/game/board/content/module/module'
+import { TileArkType } from '$lib/game/board/tile'
+import { ModuleArkType } from '$lib/game/board/content/module/module'
 import { Position } from '$lib/game/position'
-import { type } from 'arktype'
-import { TileBorderType } from '$lib/game'
+import { Module, type } from 'arktype'
+import { TileBorderArkType } from '$lib/game'
 export const CharacterContract = {
 	walk: {
 		into: [Position.array()],
@@ -12,16 +12,16 @@ export const CharacterContract = {
 	inventory: {
 		dropAll: [],
 		makeRoom: [],
-		goDrop: [GoodType, 'number', type.or(TileType, TileBorderType), Position.array()],
-		goGrab: [GoodType, 'number', type.or(TileType, TileBorderType), Position.array()],
+		goDrop: [GoodType, 'number', TileArkType, Position.array()],
+		goGrab: [GoodType, 'number', TileArkType, Position.array()],
 	},
 	selfCare: {
 		goEat: [],
 		wander: [],
 	},
 	work: {
-		goWork: [type.instanceOf(Module), 'string', Position.array()],
-		harvest: [type.instanceOf(Module)],
+		goWork: [ModuleArkType, 'string', Position.array()],
+		harvest: [ModuleArkType],
 	},
 } as const
 

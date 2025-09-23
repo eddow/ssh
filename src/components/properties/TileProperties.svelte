@@ -11,7 +11,7 @@
 	import PropertyGrid from '$components/parts/PropertyGrid.svelte'
 
 	let { tile }: { tile: Tile } = $props()
-	let tileContent = $derived(ms(() => tile.content))
+	let tileContent = $derived(((tile) => ms(() => tile.content))(tile))
 	// TODO: we still have reactivity issues: it works without $goods, but tilecontent ms has to be deep
 	// and the performances crashes
 	let goods = $derived(ms(() => tile.content!.stock))

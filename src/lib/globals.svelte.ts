@@ -21,7 +21,36 @@ class Games extends Eventful<GamedEvents> {
 	game(name: string) {
 		const game = this.games.get(name)
 		if (!game) {
-			const game = new Game()
+			const game = new Game(
+				{
+					boardSize: 12,
+					terrainSeed: 12345,
+					characterCount: 1,
+					characterRadius: 5,
+				},
+				{
+					tiles: [
+						// Transit zone at (0,0)
+						{
+							coord: { q: 0, r: 0 },
+							content: {
+								type: 'Module',
+								module: 'transit',
+								walkTime: 1,
+							},
+						},
+						// Woodcutter (tree_chopper) at (1,0)
+						{
+							coord: { q: 1, r: 0 },
+							content: {
+								type: 'Module',
+								module: 'tree_chopper',
+								walkTime: 1,
+							},
+						},
+					],
+				},
+			)
 			// Load game here
 			this.games.set(name, game)
 			/*game.hook(
@@ -46,3 +75,90 @@ export const mrg = reactive({
 export const interactionMode = $state({
 	selectedAction: '' as string,
 })
+
+/**
+ * Selection state stored in localStorage
+ * Contains both panel ID and selected object UID
+ */
+interface SelectionState {
+	panelId?: string
+	selectedUid?: string
+}
+
+// Load from localStorage on module initialization
+let storedState: SelectionState = {}
+try {
+	const stored = localStorage.getItem('selectionState')
+	if (stored) {
+		storedState = JSON.parse(stored)
+	}
+} catch {
+	// Invalid JSON, use empty state
+}
+
+// Internal state
+const _state = $state<SelectionState>(storedState)
+
+// Save to localStorage (no reactive effects, just manual calls)
+function save() {
+	localStorage.setItem('selectionState', JSON.stringify(_state))
+}
+
+// Exported selection state object with get/set properties
+export const selectionState = {
+	get panelId() {
+		return _state.panelId
+	},
+	set panelId(value: string | undefined) {
+		_state.panelId = value
+		save()
+	},
+	get selectedUid() {
+		return _state.selectedUid
+	},
+	set selectedUid(value: string | undefined) {
+		_state.selectedUid = value
+		save()
+	},
+}
+
+/**
+ * Centralized dictionary to track object-info panels by UID
+ * Maps UID to panel ID for efficient lookup
+ */
+const objectInfoPanels = $state(new Map<string, string>())
+
+/**
+ * Register an object-info panel
+ */
+export function registerObjectInfoPanel(uid: string, panelId: string) {
+	objectInfoPanels.set(uid, panelId)
+}
+
+/**
+ * Unregister an object-info panel
+ */
+export function unregisterObjectInfoPanel(uid: string) {
+	objectInfoPanels.delete(uid)
+}
+
+/**
+ * Get panel ID for an object-info panel by UID
+ */
+export function getObjectInfoPanelId(uid: string): string | undefined {
+	return objectInfoPanels.get(uid)
+}
+
+/**
+ * Validate and clean up stored selection state if panel no longer exists
+ * Should be called when dockview API is available
+ */
+export function validateStoredSelectionState(api: any) {
+	if (selectionState.panelId && api) {
+		const panel = api.getPanel(selectionState.panelId)
+		if (!panel) {
+			// Panel no longer exists, clear the stored state
+			selectionState.panelId = undefined
+		}
+	}
+}

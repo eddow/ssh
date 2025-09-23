@@ -3,8 +3,8 @@
  * Based on Ken Perlin's improved noise algorithm
  */
 
-import type { TerrainType } from '$lib/game'
-import type { AxialCoord } from './axial'
+import type { TerrainType } from '$lib/arktype'
+import type { AxialCoord } from '$lib/hex/axial'
 
 export interface TerrainConfig {
 	// Noise parameters
@@ -151,34 +151,64 @@ export class PerlinTerrainGenerator {
 	 */
 	generateTerrain(coord: AxialCoord, config: TerrainConfig = DEFAULT_TERRAIN_CONFIG): TerrainType {
 		// Convert axial coordinates to world coordinates for noise sampling
-		const worldX = coord.q * 0.866 // sqrt(3)/2
+		const worldX = coord.q * 0.866
 		const worldY = coord.r + coord.q * 0.5
 
-		// Generate base height using FBM
-		const height = this.fbm(
+		// Reduce axis-aligned regularity by blending rotated FBM samples
+		const angle1 = Math.PI / 6 // 30°
+		const cos1 = Math.cos(angle1)
+		const sin1 = Math.sin(angle1)
+		const x1 = worldX * cos1 - worldY * sin1
+		const y1 = worldX * sin1 + worldY * cos1
+
+		const angle2 = -Math.PI / 6 // -30°
+		const cos2 = Math.cos(angle2)
+		const sin2 = Math.sin(angle2)
+		const x2 = worldX * cos2 - worldY * sin2
+		const y2 = worldX * sin2 + worldY * cos2
+
+		// Generate base height using blended FBM
+		const h0 = this.fbm(
 			worldX * config.scale,
 			worldY * config.scale,
 			config.octaves,
 			config.persistence,
 			config.lacunarity,
 		)
+		const h1 = this.fbm(
+			x1 * config.scale,
+			y1 * config.scale,
+			config.octaves,
+			config.persistence,
+			config.lacunarity,
+		)
+		const h2 = this.fbm(
+			x2 * config.scale,
+			y2 * config.scale,
+			config.octaves,
+			config.persistence,
+			config.lacunarity,
+		)
+		const height = (h0 + h1 + h2) / 3
 
-		// Generate temperature and humidity for biome variation
-		const temperature = this.fbm(
-			worldX * config.temperatureScale,
-			worldY * config.temperatureScale,
+		// Generate temperature and humidity with different rotations to avoid alignment
+		const t = this.fbm(
+			(worldX * 0.9 + y1 * 0.1) * config.temperatureScale,
+			(worldY * 0.9 + x2 * 0.1) * config.temperatureScale,
 			3,
 			0.5,
 			2.0,
 		)
+		const temperature = t
 
-		const humidity = this.fbm(
-			worldX * config.humidityScale,
-			worldY * config.humidityScale,
+		const h = this.fbm(
+			(worldX * 0.85 + x1 * 0.15) * config.humidityScale,
+			(worldY * 0.85 + y2 * 0.15) * config.humidityScale,
 			3,
 			0.5,
 			2.0,
 		)
+		const humidity = h
 
 		// Determine terrain based on height and biome factors
 		return this.determineTerrainType(height, temperature, humidity, config)

@@ -1,11 +1,9 @@
 function goWork(module, job, path)
 	inventory.dropAll
-	do while tile != module.tile
+	if tile != module.tile then do 
 		walk.until path
-		if tile != module.tile then
-			path = find.path(module.tile, false)
-			if not path then return false
-		end if
+	while tile != module.tile
+		path = find.path(module.tile, false)
 	loop
 	walk.enter
 	work.prepare

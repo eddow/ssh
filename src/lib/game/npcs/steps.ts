@@ -13,7 +13,8 @@ import { lerp } from './utils'
 export abstract class ASingleStep extends Finalized {
 	get description(): string | false {
 		return casing(this.constructor.name).transform((terms) => {
-			console.assert(terms.pop() === 'Step')
+			const lastTerm = terms.pop()
+			assert(lastTerm === 'Step', 'Last term of step constructor name is not Step')
 		}).kebab
 	}
 

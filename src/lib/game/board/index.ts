@@ -3,8 +3,6 @@ export * from './content'
 export * from './tile'
 
 import type { Sprite } from 'pixi.js'
-import { terrain as terrainDetails } from '$assets/game-content'
-import type { DepositType, TerrainType } from '$lib/arktype'
 import { assert } from '$lib/debug'
 import { GameObject, withContainer, withHittable } from '$lib/game/object'
 import {
@@ -17,7 +15,6 @@ import {
 	findPath,
 	fromCartesian,
 	type NeighborInfo,
-	PerlinTerrainGenerator,
 	type Scoring,
 	type WorldCoord,
 } from '$lib/hex'
@@ -26,7 +23,7 @@ import { isInteger, tileSize } from '$lib/utils'
 import type { Game } from '../game'
 import type { Character } from '../population'
 import { TileBorder, type TileBorderContent } from './border'
-import { Deposit, Module, type TileContent, UnBuiltLand } from './content'
+import { Module, type TileContent } from './content'
 import { Tile } from './tile'
 
 export function isTileCoord(coord: AxialCoord): boolean {
@@ -36,7 +33,6 @@ export function isTileCoord(coord: AxialCoord): boolean {
 export class HexBoard extends withContainer(withHittable(GameObject)) {
 	private contents: AxialKeyMap<TileContent | TileBorderContent>
 	private occupied: AxialKeyMap<Character>
-	private terrainGenerator: PerlinTerrainGenerator
 
 	axial2world(coord: AxialRef): WorldCoord {
 		return cartesian(coord, tileSize)
@@ -54,7 +50,6 @@ export class HexBoard extends withContainer(withHittable(GameObject)) {
 		this.contents = new AxialKeyMap()
 		this.occupied = new AxialKeyMap()
 		this.zIndex = -1
-		this.terrainGenerator = new PerlinTerrainGenerator(12345)
 	}
 
 	hitTest(worldX: number, worldY: number, selectedAction?: string): any {
@@ -75,55 +70,6 @@ export class HexBoard extends withContainer(withHittable(GameObject)) {
 		sprite.scale.y /= scale
 	}
 
-	public generateBoard(): void {
-		for (const coord of axial.enum(this.boardSize - 1)) {
-			const seed = axial.access(coord).key
-			const terrain = this.terrainGenerator.generateTerrain(coord)
-			const deposit = this.generateRandomDeposit(seed, terrain)
-			const tile = new Tile(this, coord)
-			const land = new UnBuiltLand(tile, 3, terrain, deposit)
-			this.generateRandomGoods(land, seed, terrain, deposit)
-			tile.content = land
-		}
-	}
-
-	private generateRandomGoods(
-		content: UnBuiltLand,
-		seed: number,
-		terrain: TerrainType,
-		deposit: Deposit | undefined,
-	): void {
-		const rnd = this.game.lcg(`goods-${seed}`)
-		const details: Ssh.TerrainDefinition = terrainDetails[terrain]
-		if (deposit?.generation?.goods) {
-			let gen = rnd()
-			for (const [good, chance] of Object.entries(deposit.generation.goods)) {
-				if (gen < chance) {
-					content.addGood(good as any, 1)
-					break
-				}
-				gen -= chance
-			}
-		}
-		const ambient = details.generation?.goods ?? {}
-		for (const [good, chance] of Object.entries(ambient)) {
-			if (rnd() < (chance as number)) content.addGood(good as any, 1)
-		}
-	}
-
-	private generateRandomDeposit(seed: number, terrain: TerrainType): Deposit | undefined {
-		const rnd = this.game.lcg(`deposit+${seed}`)
-		const details: Ssh.TerrainDefinition = terrainDetails[terrain]
-		const table = details.generation?.deposits ?? {}
-		for (const [depKey, chance] of Object.entries(table)) {
-			if (rnd() < (chance as number)) {
-				const Kind = Deposit.class[depKey as DepositType]
-				return new Kind(Math.floor(((1 + rnd() * 2) * Kind.prototype.maxAmount) / 3))
-			}
-		}
-		return undefined
-	}
-
 	inBound(coord: AxialRef): boolean {
 		coord = axial.access(coord)
 		return axial.distance(coord) < this.boardSize
@@ -140,6 +86,9 @@ export class HexBoard extends withContainer(withHittable(GameObject)) {
 		assert(isTileCoord(coord), 'coord must be a tile coordinate')
 		if (!content) this.contents.delete({ q: coord.q << 1, r: coord.r << 1 })
 		else this.contents.set({ q: coord.q << 1, r: coord.r << 1 }, content)
+		// If a tile content is set programmatically post-generation, mark tile dirty
+		const tile = content?.tile ?? this.getTile(coord)
+		if (tile) tile.asGenerated = false
 	}
 
 	getTile(ref: AxialRef): Tile | undefined {
@@ -218,9 +167,7 @@ export class HexBoard extends withContainer(withHittable(GameObject)) {
 				if (
 					!tile ||
 					// If character is carrying items and tile has a module, make it unwalkable
-					(character.aCarriedGood &&
-						tile.content instanceof Module &&
-						!tile.content.allowTransit) ||
+					(character.aCarriedGood && tile.content instanceof Module) ||
 					// If tile is occupied by another character, make it unwalkable
 					this.isOccupied(neighbor)
 				)

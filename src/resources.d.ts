@@ -25,8 +25,7 @@ declare namespace Ssh {
 	}
 	interface TransitAction {
 		type: 'transit'
-		buffer: number
-		byFoot: boolean
+		individual: boolean
 	}
 	type Action = HarvestingAction | TransformationAction | TransitAction
 

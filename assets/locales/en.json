@@ -7,7 +7,8 @@
 	"modules": {
 		"tree_chopper": "Tree Chopper",
 		"stonecutter": "Stone Cutter",
-		"sawmill": "Sawmill"
+		"sawmill": "Sawmill",
+		"transit": "Loading/Unloading Zone"
 	},
 	"goods": {
 		"berries": "Berries",

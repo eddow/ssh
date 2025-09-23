@@ -1,10 +1,15 @@
 <script lang="ts">
-	import { games, interactionMode } from '$lib/globals.svelte'
-	import { Button } from 'flowbite-svelte'
+	import {
+		games,
+		interactionMode,
+		selectionState,
+		registerObjectInfoPanel,
+		unregisterObjectInfoPanel
+	} from '$lib/globals.svelte'
 	import Icon from '@iconify/svelte'
 	import { Tile, type InteractiveGameObject, Character } from '$lib/game'
 	import { mrg } from '$lib/globals.svelte'
-	import { m2s, mns } from '$lib/mutts.svelte'
+	import { m2s } from '$lib/mutts.svelte'
 	import { watch } from 'mutts'
 	import TileProperties from '$components/properties/TileProperties.svelte'
 	import CharacterProperties from '$components/properties/CharacterProperties.svelte'
@@ -13,6 +18,8 @@
 	import { T } from '$lib/i18n'
 	import { TabContent } from 'dockview-svelte/src'
 	import type { DockviewPanelApi } from 'dockview-core'
+	import { getDockviewContext } from 'dockview-svelte/src'
+	import { onDestroy } from 'svelte'
 
 	let {
 		uid,
@@ -20,19 +27,29 @@
 		tabContent,
 		panelApi
 	}: {
-		uid: string
+		uid?: string
 		title: Writable<string>
 		tabContent: Writable<HTMLElement | null>
 		panelApi: DockviewPanelApi
 	} = $props()
 	let object: InteractiveGameObject | undefined = $state(undefined)
+	const { addDock, api } = getDockviewContext()
+
 	let logLastLine = $state(true) // Flag to track if we should auto-scroll to last line
 	let logsContainer: HTMLDivElement | undefined = $state(undefined)
 	const game = games.game('GameX')
 
 	// Auto-scroll to bottom when new logs are added and logLastLine is true
-	mns(() => {
-		object = game.getObject(uid)
+	$effect(() => {
+		// For object-info panels, use the object from the parameters; otherwise use global selected object
+		if (uid) {
+			// Object-info panel: use the specific UID from parameters
+			object = game.getObject(uid)
+		} else {
+			// Selection-info panel: use the global selected object UID
+			object = selectionState.selectedUid ? game.getObject(selectionState.selectedUid) : undefined
+		}
+
 		if (object)
 			return watch(object.logs, () => {
 				if (object && logLastLine && logsContainer) {
@@ -47,7 +64,29 @@
 			})
 	})
 	$effect(() => {
-		title.set(object?.title ?? $T.game.unknownObject({ uid }))
+		if (uid) {
+			title.set(object?.title ?? $T.game.noSelection)
+		} else {
+			title.set(object?.title ?? $T.game.unknownObject({ uid: uid || 'unknown' }))
+		}
+	})
+
+	// Manage panel registration
+	$effect(() => {
+		if (uid) {
+			// Register this panel as an object-info panel
+			registerObjectInfoPanel(uid, panelApi.id)
+		} else {
+			// Register this panel as the selection-info panel
+			selectionState.panelId = panelApi.id
+		}
+	})
+	onDestroy(() => {
+		if (uid) {
+			unregisterObjectInfoPanel(uid)
+		} else {
+			selectionState.panelId = undefined
+		}
 	})
 
 	function handleLogScroll() {
@@ -74,15 +113,28 @@
 			game.simulateObjectClick(object)
 		}
 	}
+
+	function pinToObjectInfo() {
+		if (!object) return
+
+		// Update the panel parameters to switch it to object-info mode
+		panelApi.updateParameters({
+			uid: object.uid
+		})
+		// Clear global selected object and panel ID
+		selectionState.selectedUid = undefined
+		selectionState.panelId = undefined
+	}
 </script>
 
 <TabContent {panelApi} bind:el={$tabContent}>
 	{#snippet right()}
 		<Icon onclick={goTo} icon="mdi:eye" width="16" height="16" />
+		{#if !uid && object}
+			<Icon onclick={pinToObjectInfo} icon="mdi:pin" width="16" height="16" />
+		{/if}
 		{#if interactionMode.selectedAction && object?.canInteract?.(interactionMode.selectedAction)}
-			<Button onclick={act} size="sm">
-				<Icon icon="mdi:play" width="16" height="16" />
-			</Button>
+			<Icon onclick={act} icon="mdi:play" width="16" height="16" />
 		{/if}
 	{/snippet}
 </TabContent>

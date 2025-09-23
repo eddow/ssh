@@ -3,7 +3,6 @@
 	import type { Game } from '$lib/game'
 	import { Badge } from 'flowbite-svelte'
 	import ModuleFlag from '$components/parts/ModuleFlag.svelte'
-	import GoodsList from '$components/parts/GoodsList.svelte'
 	import PropertyGridRow from '$components/parts/PropertyGridRow.svelte'
 	import ResourceImage from '$components/parts/resourceImage.svelte'
 	import { ms } from '$lib/mutts.svelte'
@@ -11,14 +10,11 @@
 
 	let { content, game }: { content: Module; game: Game } = $props()
 	let module = ms(content)
+	// TODO: property grid per action type
 </script>
 
 <PropertyGridRow label={$T.module.module}>
 	<ResourceImage height={20} {game} sprite={$module.sprites[0]} alt={$T.modules[$module.name!]} />
-</PropertyGridRow>
-
-<PropertyGridRow label={$T.module.output}>
-	<GoodsList goods={$module.output} {game} itemSize={16} />
 </PropertyGridRow>
 
 <PropertyGridRow label={$T.module.action}>

@@ -6,7 +6,8 @@ import { inputBufferSize, Module, multiplyGoodsQty, outputBufferSize } from './m
 
 export class TransformModule extends Module {
 	declare action: Ssh.TransformationAction
-	constructor(tile: Tile, def: Ssh.ModuleDefinition) {
+	constructor(tile: Tile) {
+		const def: Ssh.ModuleDefinition = new.target.prototype
 		if (def.action.type !== 'transform') {
 			throw new Error('TransformModule can only be created from a transform action')
 		}

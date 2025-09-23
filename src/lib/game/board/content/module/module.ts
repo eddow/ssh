@@ -1,3 +1,4 @@
+import { type } from 'arktype'
 import { computed } from 'mutts'
 import { Container, type ContainerChild, Sprite } from 'pixi.js'
 import type { GoodType } from '$lib/arktype'
@@ -111,9 +112,6 @@ export abstract class Module
 				})
 			: 0
 	}
-	get allowTransit(): boolean {
-		return false
-	}
 }
 gameIsaTypes.module = (value: any) => {
 	return value instanceof Module
@@ -126,3 +124,5 @@ export function multiplyGoodsQty(record: Partial<Record<GoodType, number>>, mult
 		Object.entries(record).map(([goodType, quantity]) => [goodType, quantity * multiplier]),
 	)
 }
+
+export const ModuleArkType = type.instanceOf(Module)

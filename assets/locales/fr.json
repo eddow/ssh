@@ -7,7 +7,8 @@
 	"modules": {
 		"tree_chopper": "Bûcheron",
 		"stonecutter": "Tailleur de Pierre",
-		"sawmill": "Scierie"
+		"sawmill": "Scierie",
+		"transit": "Zone de Transbordement"
 	},
 	"goods": {
 		"berries": "Baies",

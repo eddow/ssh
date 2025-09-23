@@ -1,3 +1,4 @@
+import { type } from 'arktype'
 import { effect, reactive, type ScopedCallback } from 'mutts'
 import { ColorMatrixFilter, Sprite } from 'pixi.js'
 import { characterEvolutionRates, characterTriggerLevels, maxWalkTime } from '$assets/constants'
@@ -5,6 +6,7 @@ import { goods as goodsCatalog } from '$assets/game-content'
 import type { GoodType } from '$lib/arktype'
 import { mrg } from '$lib/globals.svelte'
 import { type AxialCoord, type AxialRef, axial } from '$lib/hex'
+import { maxBy } from '$lib/utils'
 import { Module } from '../board/content'
 import type { Tile } from '../board/tile'
 import type { Game } from '../game'
@@ -60,6 +62,7 @@ export class Character extends withInteractive(
 		if (axialDistance(this.position, tile.position) > 1.1) return false
 		const to = toAxialCoord(tile.position)
 		const from = toAxialCoord(this._tile.position)
+		// TODO: Here if the tile is occupied, queue
 		if (!this.game.hex.moveCharacter(this, to, from)) return false
 		this._tile = tile
 		return true
@@ -216,6 +219,4 @@ export class Character extends withInteractive(
 }
 
 // ArkType validation for Character
-import { type } from 'arktype'
-import { maxBy } from '$lib/utils'
-export const CharacterType = type.instanceOf(Character)
+export const CharacterArkType = type.instanceOf(Character)

@@ -6,6 +6,15 @@ import { interactionMode, mrg } from '$lib/globals.svelte'
 import { registerPixiApp, unregisterPixiApp } from '$lib/hmr-pixi'
 import { LCG } from '$lib/numbers'
 import { HexBoard } from './board'
+import { Deposit, UnBuiltLand } from './board/content'
+import { moduleClass } from './board/content/module'
+import { Tile } from './board/tile'
+import {
+	type GameGenerationConfig,
+	GameGenerator,
+	type GeneratedCharacterData,
+	type GeneratedTileData,
+} from './generation'
 import type { HittableGameObject, InteractiveGameObject } from './object'
 import { Population } from './population'
 
@@ -39,7 +48,20 @@ export type GameEvents = {
 	objectClick(pointer: any, object: InteractiveGameObject): void
 }
 unreactive(Eventful)
-@unreactive
+export type GameGenerationOptions = {
+	boardSize: number
+	terrainSeed: number
+	characterCount: number
+	characterRadius?: number
+}
+
+export type GamePatches = {
+	tiles?: Array<{
+		coord: { q: number; r: number }
+		content: any
+	}>
+}
+
 export class Game extends Eventful<GameEvents> {
 	public get name() {
 		return 'GameX'
@@ -67,6 +89,7 @@ export class Game extends Eventful<GameEvents> {
 	public readonly objects = reactive(new Map<string, InteractiveGameObject>())
 	public readonly hittableObjects = new Set<HittableGameObject>()
 	public readonly hex: HexBoard
+	public readonly generator: GameGenerator
 	public loaded: Promise<void>
 	private async load() {
 		this.resources = await assetsLoading
@@ -92,7 +115,15 @@ export class Game extends Eventful<GameEvents> {
 		object.destroy()
 	}
 
-	constructor() {
+	constructor(
+		private readonly generationOptions: GameGenerationOptions = {
+			boardSize: 12,
+			terrainSeed: 12345,
+			characterCount: 1,
+			characterRadius: 200,
+		},
+		private readonly patches: GamePatches = {},
+	) {
 		super()
 		this.loaded = this.load()
 
@@ -118,19 +149,145 @@ export class Game extends Eventful<GameEvents> {
 		// Create population singleton
 		this.population = new Population(this)
 
-		this.generate()
+		// Create game generator
+		this.generator = new GameGenerator()
+
+		this.generate(this.generationOptions, this.patches)
 		this.emit('gameStart')
 	}
 
 	public simulateObjectClick(object: InteractiveGameObject) {
 		this.emit('objectClick', {} as any, object)
 	}
-	generate(_state: any = {}) {
-		this.hex?.generateBoard()
-		this.population.generateCharacters(1)
+	generate(config: GameGenerationConfig, patches: GamePatches = {}) {
+		try {
+			// Generate data from the generator
+			const result = this.generator.generate(config)
+
+			// Load the generated data into the game
+			this.loadGeneratedBoard(result.boardData)
+			this.loadGeneratedPopulation(result.populationData)
+
+			// Apply patches if any
+			if (patches.tiles?.length) {
+				this.applyTilePatches(patches.tiles)
+			}
+		} catch (error) {
+			console.error('Generation failed:', error)
+		}
 	}
 	clickObject(event: any, object: InteractiveGameObject) {
 		this.emit('objectClick', event, object)
+	}
+
+	/**
+	 * Load generated board data into the game
+	 */
+	private loadGeneratedBoard(tileData: GeneratedTileData[]): void {
+		for (const tileInfo of tileData) {
+			const tile = new Tile(this.hex, tileInfo.coord)
+
+			// Create deposit if present
+			let deposit: Deposit | undefined
+			if (tileInfo.deposit) {
+				const DepositClass = Deposit.class[tileInfo.deposit.type as keyof typeof Deposit.class]
+				if (DepositClass) {
+					deposit = new DepositClass(tileInfo.deposit.amount)
+				}
+			}
+
+			const land = new UnBuiltLand(tile, tileInfo.walkTime, tileInfo.terrain, deposit)
+			// As generated state
+			tile.asGenerated = true
+
+			// Add goods to the land
+			for (const [good, amount] of Object.entries(tileInfo.goods)) {
+				const numAmount = amount as number
+				for (let i = 0; i < numAmount; i++) {
+					land.addGood(good as any, 1)
+				}
+			}
+
+			tile.content = land
+		}
+	}
+
+	private applyTilePatches(patches: Array<{ coord: { q: number; r: number }; content: any }>) {
+		for (const p of patches) {
+			const tile = this.hex.getTile(p.coord)
+			if (!tile) continue
+			// Recreate content based on serialized content
+			// Minimal support: UnBuiltLand with terrain, deposit, goods
+			const c = p.content
+			if (c?.type === 'UnBuiltLand') {
+				let deposit: Deposit | undefined
+				if (c.deposit) {
+					const DepositClass = Deposit.class[c.deposit.type as keyof typeof Deposit.class]
+					if (DepositClass) deposit = new DepositClass(c.deposit.amount)
+				}
+				const land = new UnBuiltLand(tile, c.walkTime ?? 3, c.terrain, deposit)
+				for (const [good, qty] of Object.entries(c.goods ?? {})) {
+					for (let i = 0; i < (qty as number); i++) land.addGood(good as any, 1)
+				}
+				tile.content = land
+				tile.asGenerated = false
+			} else if (c?.type === 'Module' && c.module) {
+				// Build a module of given type
+				const ModuleCtor = moduleClass[c.module as keyof typeof moduleClass]
+				if (ModuleCtor) {
+					const mod = new ModuleCtor(tile)
+					// Module ctor attaches itself; ensure tile content is the module
+					tile.content = mod as any
+					tile.asGenerated = false
+				}
+			}
+		}
+	}
+
+	public saveGameData(): {
+		tiles: Array<{ coord: { q: number; r: number }; content: any }>
+		generation: GameGenerationOptions
+	} {
+		const tiles: Array<{ coord: { q: number; r: number }; content: any }> = []
+		// Enumerate using hex board contents map by sampling existing tiles
+		for (let q = -this.hex.boardSize; q <= this.hex.boardSize; q++) {
+			for (let r = -this.hex.boardSize; r <= this.hex.boardSize; r++) {
+				const tile = this.hex.getTile({ q, r })
+				if (!tile || tile.asGenerated) continue
+				const content = tile.content
+				if (!content) continue
+				// Serialize minimal content state
+				if (content instanceof UnBuiltLand) {
+					tiles.push({
+						coord: { q, r },
+						content: {
+							type: 'UnBuiltLand',
+							terrain: content.terrain,
+							deposit: content.deposit
+								? {
+										type:
+											(content.deposit.constructor as any).key ??
+											(content.deposit.constructor as any).name,
+										amount: content.deposit.amount,
+									}
+								: undefined,
+							goods: (content as any).stock ?? {},
+							walkTime: content.walkTime,
+						},
+					})
+				}
+			}
+		}
+		return { tiles, generation: this.generationOptions }
+	}
+
+	/**
+	 * Load generated population data into the game
+	 */
+	private loadGeneratedPopulation(characterData: GeneratedCharacterData[]): void {
+		for (const charInfo of characterData) {
+			this.population.createCharacter(charInfo.name, charInfo.coord)
+		}
 	}
 }
 

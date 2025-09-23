@@ -7,8 +7,8 @@ import { contract, DepositType, GoodType } from '$lib/arktype'
 import { assert } from '$lib/debug'
 import { type AxialCoord, type AxialRef, axial } from '$lib/hex'
 import { objectMap } from '$lib/utils'
-import { type Tile, TileType, UnBuiltLand } from '../board'
-import { type TileBorder, TileBorderType } from '../board/border'
+import { type Tile, TileArkType, UnBuiltLand } from '../board'
+import { type TileBorder, TileBorderArkType } from '../board/border'
 import type { Character } from '../population'
 import { Positioned, positionRoughlyEquals, toAxialCoord } from '../position'
 import { InteractiveContext, loadNpcScripts, protoCtx, subject } from './scripts'
@@ -198,7 +198,7 @@ class InventoryFunctions {
 				vehicle.cancel(vehicleTransfer)
 			})
 	}
-	@contract(GoodType, 'number', type.or(TileType, TileBorderType))
+	@contract(GoodType, 'number', type.or(TileArkType, TileBorderArkType))
 	planDrop(goodType: GoodType, quantity: number, destination: Tile | TileBorder) {
 		const character = this[subject]
 		const content = destination.content
@@ -223,7 +223,7 @@ class InventoryFunctions {
 
 		return { description: 'drop' as const, tileAllocation, vehicleAllocation, amount }
 	}
-	@contract(GoodType, 'number', type.or(TileType, TileBorderType))
+	@contract(GoodType, 'number', type.or(TileArkType, TileBorderArkType))
 	planGrab(goodType: GoodType, quantity: number, source: Tile | TileBorder) {
 		const character = this[subject]
 		const vehicle = character.vehicle
@@ -295,11 +295,11 @@ class WalkFunctions {
 		if (!positionRoughlyEquals(fromAxial, toAxial))
 			return new MoveToStep(axial.distance(fromAxial, toAxial), this[subject], toAxial)
 	}
-	@contract(TileType)
+	@contract(TileArkType)
 	stepOn(tile: Tile) {
 		return this[subject].stepOn(tile)
 	}
-	@contract(TileType)
+	@contract(TileArkType)
 	can(_tile: Tile) {
 		return Number.isFinite(this[subject].tile.content!.walkTime)
 	}
