@@ -1,4 +1,4 @@
-import { computed, effect, ReactiveBase, reactive } from 'mutts'
+import { computed, effect, reactive } from 'mutts'
 import { ColorMatrixFilter, Container, Sprite } from 'pixi.js'
 import { goods as goodsCatalog } from '$assets/game-content'
 import type { GoodType } from '$lib/arktype'
@@ -10,7 +10,8 @@ import {
 	invalidateAllocation,
 	isAllocationValid,
 } from './guard'
-import type { Storage } from './index'
+import type { Goods } from './index'
+import { Storage } from './storage'
 
 export interface Slot {
 	goodType: GoodType
@@ -20,7 +21,7 @@ export interface Slot {
 }
 
 @reactive
-export class SlottedStorage extends ReactiveBase implements Storage<number[]> {
+export class SlottedStorage extends Storage<number[]> {
 	public slots: (Slot | undefined)[]
 
 	constructor(
@@ -218,6 +219,35 @@ export class SlottedStorage extends ReactiveBase implements Storage<number[]> {
 				if (slot.quantity + slot.allocated === 0) this.slots[i] = undefined
 			}
 		}
+	}
+	canStoreAll(_goods: Goods): boolean {
+		// Prepare remaining requirements per good type
+		const remaining: { [k: string]: number } = {}
+		for (const [t, q] of Object.entries(_goods)) {
+			if (!q || q <= 0) continue
+			remaining[t] = q
+		}
+
+		// Try to fit into existing slots of the same type first; count empty slots
+		let emptySlots = 0
+		for (const slot of this.slots) {
+			if (!slot) {
+				emptySlots++
+				continue
+			}
+			const key = String(slot.goodType)
+			const need = remaining[key] || 0
+			if (need <= 0) continue
+			const freeHere = Math.max(0, this.maxQuantityPerSlot - slot.quantity - slot.allocated)
+			if (freeHere <= 0) continue
+			const used = Math.min(need, freeHere)
+			remaining[key] = need - used
+		}
+
+		const slotsNeeded = Object.values(remaining)
+			.map((q) => Math.ceil(q / this.maxQuantityPerSlot))
+			.reduce((acc, q) => acc + q, 0)
+		return slotsNeeded <= this.maxSlots
 	}
 
 	// presentAmount replaced by available()

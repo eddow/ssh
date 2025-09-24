@@ -1,13 +1,11 @@
 import { modules } from '$assets/game-content'
 import type { ModuleType } from '$lib/arktype'
-import type { Tile } from '../../tile'
-import { GcClasses } from '../utils'
+import type { Module } from '../board/content/module'
+import { GcClasses } from '../board/content/utils'
+import type { Tile } from '../board/tile'
 import { HarvestModule } from './harvest'
-import type { Module } from './module'
 import { TransformModule } from './transform'
 import { TransitModule } from './transit'
-
-export * from './module'
 
 export const moduleClass = GcClasses(
 	(def: Ssh.ModuleDefinition) =>
@@ -18,3 +16,5 @@ export const moduleClass = GcClasses(
 		})[def.action.type],
 	modules,
 ) as Record<ModuleType, new (tile: Tile) => Module>
+
+export * from './complex'

@@ -1,8 +1,13 @@
 import type { GoodType } from '$lib/arktype'
 import type { Job } from '$lib/game/job'
 import { SpecificStorage } from '$lib/game/storage'
-import type { Tile } from '../../tile'
-import { inputBufferSize, Module, multiplyGoodsQty, outputBufferSize } from './module'
+import {
+	inputBufferSize,
+	Module,
+	multiplyGoodsQty,
+	outputBufferSize,
+} from '../board/content/module'
+import type { Tile } from '../board/tile'
 
 export class TransformModule extends Module {
 	declare action: Ssh.TransformationAction

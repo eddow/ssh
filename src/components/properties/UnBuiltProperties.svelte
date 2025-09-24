@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { UnBuiltLand } from '$lib/game/board/content'
+	import type { UnBuiltLand } from '$lib/game/board/content/unbuilt-land'
 	import { T } from '$lib/i18n'
 	import EntityBadge from '$components/parts/EntityBadge.svelte'
 	import PropertyGridRow from '$components/parts/PropertyGridRow.svelte'

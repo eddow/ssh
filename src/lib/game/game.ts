@@ -5,10 +5,10 @@ import { prefix, resources } from '$assets/resources'
 import { interactionMode, mrg } from '$lib/globals.svelte'
 import { registerPixiApp, unregisterPixiApp } from '$lib/hmr-pixi'
 import { LCG } from '$lib/numbers'
-import { HexBoard } from './board'
-import { Deposit, UnBuiltLand } from './board/content'
-import { moduleClass } from './board/content/module'
+import { HexBoard } from './board/board'
+import { Deposit, UnBuiltLand } from './board/content/unbuilt-land'
 import { Tile } from './board/tile'
+import { moduleClass } from './complex'
 import {
 	type GameGenerationConfig,
 	GameGenerator,
@@ -16,7 +16,7 @@ import {
 	type GeneratedTileData,
 } from './generation'
 import type { HittableGameObject, InteractiveGameObject } from './object'
-import { Population } from './population'
+import { Population } from './population/population'
 
 unreactive(gameContent)
 

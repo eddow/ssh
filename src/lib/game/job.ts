@@ -1,5 +1,5 @@
 import { type } from 'arktype'
-import type { Character } from './population'
+import type { Character } from './population/population'
 
 export interface Job {
 	/** The activity type from the module's action */

@@ -1,8 +1,9 @@
 import type { Job } from '$lib/game/job'
 import { SpecificStorage } from '$lib/game/storage'
-import type { Tile } from '../../tile'
-import { Module, multiplyGoodsQty, outputBufferSize } from './module'
+import { Module, multiplyGoodsQty, outputBufferSize } from '../board/content/module'
+import type { Tile } from '../board/tile'
 export class HarvestModule extends Module {
+	declare action: Ssh.HarvestingAction
 	constructor(tile: Tile) {
 		const def: Ssh.ModuleDefinition = new.target.prototype
 		if (def.action.type !== 'harvest') {
@@ -13,6 +14,17 @@ export class HarvestModule extends Module {
 			new SpecificStorage({
 				...multiplyGoodsQty(def.action.output, outputBufferSize),
 			}),
+		)
+	}
+	/**
+	 * Used by the NPCS to determine whether to gather or let the goods outside
+	 * @returns true if the module can gather resources
+	 */
+	get gather(): boolean {
+		// TODO: indeed, make a priority thingy
+		return (
+			this.canStoreAll(this.action.output) &&
+			!((this.complex.byActionType.transit?.length && true) /* complex.canStoreAll */)
 		)
 	}
 	moduleSpecificJob(): Job | undefined {

@@ -1,6 +1,6 @@
 function goWork(module, job, path)
 	inventory.dropAll
-	if tile != module.tile then do 
+	if tile != module.tile then do
 		walk.until path
 	while tile != module.tile
 		path = find.path(module.tile, false)
@@ -18,7 +18,23 @@ function harvest(module)
 	loop
 	walk.enter
 	work.harvestStep
-	inventory.dropAll
+	if module.gather then
+		do while tile != module.tile
+			path = find.path(tile, module.tile, false)
+			walk.until path
+		loop
+		walk.enter
+		// try load in the complex grid
+
+		do
+			good = aCarriedGood
+		while aCarriedGood
+			inventory.drop(good, 1)
+		loop
+	else
+		inventory.dropAll
+	end if
+	
 end function
 jobType = { harvest }
 return { goWork }

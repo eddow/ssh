@@ -1,10 +1,11 @@
 import { SlottedStorage } from '$lib/game/storage/slotted-storage'
-import { Module } from '../content'
-import type { TileBorder, TileBorderContent } from './index'
+import { Module } from '../content/module'
+import type { TileBorder, TileBorderContent } from './border'
 
-/** A storage gate placed on a border between two tiles/modules. */
+// A storage gate placed on a border between two tiles/modules.
 export class ModuleGate extends SlottedStorage implements TileBorderContent {
-	/** Connected modules on each side of the border (optional). */
+	// TODO: It seems gates appear now only between modules, so testing contents might not be needed
+	// Or, indeed, we have to decide one way to do
 	get moduleA() {
 		const content = this.border.tile.a.content
 		return content instanceof Module ? content : undefined
@@ -26,7 +27,7 @@ export class ModuleGate extends SlottedStorage implements TileBorderContent {
 		this.border.content = this
 	}
 
-	/** Remove the gate if no modules are connected anymore. */
+	// Remove the gate if no modules are connected anymore.
 	validateOrRemove(): void {
 		if (!this.moduleA && !this.moduleB) {
 			this.border.content = undefined

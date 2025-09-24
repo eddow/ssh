@@ -1,4 +1,4 @@
-import { computed, ReactiveBase, reactive } from 'mutts'
+import { computed, reactive } from 'mutts'
 import { Container } from 'pixi.js'
 import type { GoodType } from '$lib/arktype'
 import { assert } from '$lib/debug'
@@ -9,13 +9,11 @@ import {
 	invalidateAllocation,
 	isAllocationValid,
 } from './guard'
-import type { Storage } from './index'
+import type { Goods } from './index'
+import { Storage } from './storage'
 
 @reactive
-export class SpecificStorage
-	extends ReactiveBase
-	implements Storage<{ goodType: GoodType; qty: number }>
-{
+export class SpecificStorage extends Storage<{ goodType: GoodType; qty: number }> {
 	private _goods: { [k in GoodType]?: number } = {}
 	private _allocated: { [k in GoodType]?: number } = {}
 	private _reserved: { [k in GoodType]?: number } = {}
@@ -26,6 +24,11 @@ export class SpecificStorage
 		this.maxAmounts = { ...maxAmounts }
 	}
 
+	canStoreAll(goods: Goods): boolean {
+		return Object.entries(goods).every(
+			([goodType, qty]) => this.hasRoom(goodType as GoodType) >= qty,
+		)
+	}
 	hasRoom(goodType: GoodType): number {
 		const maxAmount = this.maxAmounts[goodType] || 0
 		const currentAmount = this._goods[goodType] || 0

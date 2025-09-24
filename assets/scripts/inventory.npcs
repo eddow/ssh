@@ -1,26 +1,31 @@
-function goDrop(good, qty, place, path)
+function goDrop(good, qty, place, path = null, punctual = true)
 	drop = inventory.planDrop(good, qty, place)
+	if not path then path = find.path(tile, place, punctual)
 	if tile != place then do
 		walk.into path
 	while tile != place
-		path = find.path(tile, place)
+		path = find.path(tile, place, punctual)
 	loop
+	if not punctual then walk.enter
 	inventory.effectuate drop
 end function
 
-function goGrab(good, qty, place, path)
+function goGrab(good, qty, place, path = null, punctual = true)
+	if not path then path = find.path(tile, place, punctual)
 	grab = inventory.planGrab(good, qty, place)
 	if tile != place then do
 		walk.into path
 	while tile != place
-		path = find.path(tile, place)
+		path = find.path(tile, place, punctual)
 	loop
+	if not punctual then walk.enter
 	inventory.effectuate grab
 end function
 
 function dropAll()
-	do while aCarriedGood
+	do
 		good = aCarriedGood
+	while good
 		spot = find.freeSpot(good)
 		if not spot then error "Try to drop but has no free spot"
 		goDrop good, spot.qty, spot.tile, spot.path

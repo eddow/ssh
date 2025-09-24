@@ -1,18 +1,22 @@
+import { computed, ReactiveBase, reactive } from 'mutts'
 import type { GoodType } from '$lib/arktype'
 import { type AxialCoord, type AxialRef, axial, findNearest } from '$lib/hex'
 import { AxialKeyMap } from '$lib/mem'
 import { setPop } from '$lib/utils'
-import { type HexBoard, isTileCoord, type Tile } from './board'
-import { Module } from './board/content/module/module'
-import { toAxialCoord } from './position'
-
+import { type HexBoard, isTileCoord } from '../board/board'
+import { Module } from '../board/content/module'
+import type { Tile } from '../board/tile'
+import { toAxialCoord } from '../position'
 export interface MovingGood {
 	goodType: GoodType
 	path: AxialCoord[]
 }
 
-export class Complex {
-	private constructor(public readonly board: HexBoard) {}
+@reactive
+export class Complex extends ReactiveBase {
+	private constructor(public readonly board: HexBoard) {
+		super()
+	}
 	//#region Complexes management on tile add/remove
 	static for(tile: Tile) {
 		const complexes = new Set<Complex>()
@@ -29,6 +33,16 @@ export class Complex {
 	}
 	public name?: string
 	public readonly modules = new Set<Module>()
+	@computed
+	get byActionType() {
+		const rv: Partial<Record<Ssh.Action['type'], Module[]>> = {}
+		for (const module of this.modules) {
+			const type = module.action.type
+			if (!rv[type]) rv[type] = []
+			rv[type].push(module)
+		}
+		return rv
+	}
 	public attach(module: Module) {
 		this.modules.add(module)
 		module.complex = this

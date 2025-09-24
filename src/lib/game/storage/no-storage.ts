@@ -2,9 +2,10 @@ import { computed } from 'mutts'
 import { Container } from 'pixi.js'
 import type { GoodType } from '$lib/arktype'
 import { AllocationError } from './guard'
-import type { Storage } from './index'
+import type { Goods } from './index'
+import { Storage } from './storage'
 
-class NoStorage implements Storage<never> {
+class NoStorage extends Storage<never> {
 	hasRoom(_goodType?: GoodType): number {
 		return 0
 	}
@@ -54,6 +55,9 @@ class NoStorage implements Storage<never> {
 		return {
 			type: 'NoStorage',
 		}
+	}
+	canStoreAll(_goods: Goods): boolean {
+		return false
 	}
 }
 

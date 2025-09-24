@@ -6,6 +6,7 @@ import type { ModuleType } from '$lib/arktype'
 import { mrg } from '$lib/globals.svelte'
 import { type AxialCoord, axial } from '$lib/hex'
 import { tileSize } from '$lib/utils'
+import { moduleClass } from '../complex'
 import { gameIsaTypes } from '../npcs/utils'
 import { GameObject, withGenerator, withInteractive } from '../object'
 import {
@@ -15,10 +16,9 @@ import {
 	toAxialCoord,
 	toWorldCoord,
 } from '../position'
-import type { HexBoard } from '.'
-import type { TileBorder } from './border'
-import type { TileContent } from './content'
-import { moduleClass } from './content/module'
+import type { HexBoard } from './board'
+import type { TileBorder } from './border/border'
+import type { TileContent } from './content/content'
 
 @reactive
 export class Tile extends withInteractive(withGenerator(GameObject)) {

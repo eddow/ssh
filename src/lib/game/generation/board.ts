@@ -7,7 +7,7 @@ import { terrain as terrainDetails } from '$assets/game-content'
 import type { DepositType, TerrainType } from '$lib/arktype'
 import type { AxialCoord } from '$lib/hex'
 import { axial } from '$lib/hex'
-import { Deposit } from '../board/content'
+import { Deposit } from '../board/content/unbuilt-land'
 import { TerrainGenerator } from './terrain'
 
 export interface BoardGenerationConfig {

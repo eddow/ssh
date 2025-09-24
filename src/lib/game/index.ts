@@ -1,5 +1,5 @@
-export * from './board'
+export * from './board/board'
 export * from './game'
 export * from './object'
-export * from './population'
+export * from './population/population'
 export * from './storage'

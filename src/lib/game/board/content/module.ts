@@ -2,17 +2,18 @@ import { type } from 'arktype'
 import { computed } from 'mutts'
 import { Container, type ContainerChild, Sprite } from 'pixi.js'
 import type { GoodType } from '$lib/arktype'
-import { Complex } from '$lib/game/complex'
+import { Complex } from '$lib/game/complex/complex'
 import type { Game } from '$lib/game/game'
 import type { Job } from '$lib/game/job'
 import { gameIsaTypes } from '$lib/game/npcs/utils'
-import type { Character } from '$lib/game/population'
+import type { Character } from '$lib/game/population/character'
 import { tileSize } from '$lib/utils'
-import { type Storage, withStorageForwarder } from '../../../storage'
-import { ModuleGate } from '../../border'
-import type { Tile } from '../../tile'
-import { type TileContent, UnBuiltLand } from '../index'
-import { GcClassed } from '../utils'
+import { type Storage, withStorageForwarder } from '../../storage'
+import { ModuleGate } from '../border/module-gate'
+import type { Tile } from '../tile'
+import type { TileContent } from './content'
+import { UnBuiltLand } from './unbuilt-land'
+import { GcClassed } from './utils'
 
 export abstract class Module
 	extends withStorageForwarder(GcClassed<Ssh.ModuleDefinition>())
@@ -52,6 +53,14 @@ export abstract class Module
 		return this.tile.surroundings
 			.map((b) => b.border.content)
 			.filter((b): b is ModuleGate => b instanceof ModuleGate)
+	}
+
+	/**
+	 * Whether the worker should go on its work in this module
+	 * @returns true if the module can keep working
+	 */
+	get keepWorking(): boolean {
+		return true
 	}
 
 	// Render module sprite + a vertical goods bar on the right side of the tile

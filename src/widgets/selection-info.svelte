@@ -7,7 +7,9 @@
 		unregisterObjectInfoPanel
 	} from '$lib/globals.svelte'
 	import Icon from '@iconify/svelte'
-	import { Tile, type InteractiveGameObject, Character } from '$lib/game'
+	import { type InteractiveGameObject } from '$lib/game'
+	import { Character } from '$lib/game/population/character'
+	import { Tile } from '$lib/game/board/tile'
 	import { mrg } from '$lib/globals.svelte'
 	import { m2s } from '$lib/mutts.svelte'
 	import { watch } from 'mutts'
@@ -33,7 +35,6 @@
 		panelApi: DockviewPanelApi
 	} = $props()
 	let object: InteractiveGameObject | undefined = $state(undefined)
-	const { addDock, api } = getDockviewContext()
 
 	let logLastLine = $state(true) // Flag to track if we should auto-scroll to last line
 	let logsContainer: HTMLDivElement | undefined = $state(undefined)

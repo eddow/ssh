@@ -1,6 +1,7 @@
 <script lang="ts">
-	import type { Tile } from '$lib/game'
-	import { UnBuiltLand, Module } from '$lib/game/board/content'
+	import type { Tile } from '$lib/game/board/tile'
+	import { UnBuiltLand } from '$lib/game/board/content/unbuilt-land'
+	import { Module } from '$lib/game/board/content/module'
 	import { Badge } from 'flowbite-svelte'
 	import UnBuiltProperties from '$components/properties/UnBuiltProperties.svelte'
 	import ModuleProperties from '$components/properties/ModuleProperties.svelte'

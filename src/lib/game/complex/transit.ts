@@ -1,6 +1,6 @@
 import { noStorage } from '$lib/game/storage'
-import type { Tile } from '../../tile'
-import { Module } from './module'
+import { Module } from '../board/content/module'
+import type { Tile } from '../board/tile'
 
 export class TransitModule extends Module {
 	declare action: Ssh.TransitAction

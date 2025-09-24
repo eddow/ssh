@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Character } from '$lib/game'
+	import type { Character } from '$lib/game/population/character'
 	import { Badge } from 'flowbite-svelte'
 	import StatProgressBar from '$components/parts/StatProgressBar.svelte'
 	import { ms, m2s } from '$lib/mutts.svelte'

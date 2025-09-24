@@ -30,18 +30,9 @@ class Games extends Eventful<GamedEvents> {
 				},
 				{
 					tiles: [
-						// Transit zone at (0,0)
+						// Woodcutter (tree_chopper) at (0,0)
 						{
 							coord: { q: 0, r: 0 },
-							content: {
-								type: 'Module',
-								module: 'transit',
-								walkTime: 1,
-							},
-						},
-						// Woodcutter (tree_chopper) at (1,0)
-						{
-							coord: { q: 1, r: 0 },
 							content: {
 								type: 'Module',
 								module: 'tree_chopper',

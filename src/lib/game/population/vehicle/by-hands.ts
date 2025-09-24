@@ -1,7 +1,7 @@
 import { reactive } from 'mutts'
 import { activityDurations } from '$assets/constants'
 import { SlottedStorage } from '../../storage/slotted-storage'
-import type { Vehicle } from './index'
+import type { Vehicle } from './vehicle'
 
 @reactive
 export class ByHands extends SlottedStorage implements Vehicle {

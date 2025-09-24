@@ -7,7 +7,7 @@ import type { GoodType } from '$lib/arktype'
 import { mrg } from '$lib/globals.svelte'
 import { type AxialCoord, type AxialRef, axial } from '$lib/hex'
 import { maxBy } from '$lib/utils'
-import { Module } from '../board/content'
+import { Module } from '../board/content/module'
 import type { Tile } from '../board/tile'
 import type { Game } from '../game'
 import { bestPossibleJobScore, calculateJobScore, type Job } from '../job'
@@ -17,8 +17,8 @@ import { withScripted } from '../npcs/object'
 import { type ScriptExecution, subject } from '../npcs/scripts'
 import { GameObject, withGenerator, withInteractive, withTicked } from '../object'
 import { axialDistance, type Position, toAxialCoord, toWorldCoord } from '../position'
-import type { Vehicle } from './vehicle'
 import { ByHands } from './vehicle/by-hands'
+import type { Vehicle } from './vehicle/vehicle'
 
 @reactive
 export class Character extends withInteractive(
@@ -29,7 +29,7 @@ export class Character extends withInteractive(
 	public assignedModule: Module | undefined = undefined
 
 	// Character needs levels (starting at 0, incrementing 1 per second)
-	public hunger: number = 1000
+	public hunger: number = 0
 	public tiredness: number = 0
 	public fatigue: number = 0
 
@@ -62,7 +62,7 @@ export class Character extends withInteractive(
 		if (axialDistance(this.position, tile.position) > 1.1) return false
 		const to = toAxialCoord(tile.position)
 		const from = toAxialCoord(this._tile.position)
-		// TODO: Here if the tile is occupied, queue
+		// TODO: Here if the tile is occupied, queue?
 		if (!this.game.hex.moveCharacter(this, to, from)) return false
 		this._tile = tile
 		return true
@@ -111,6 +111,15 @@ export class Character extends withInteractive(
 			jobProvider.assignedWorker = undefined
 			this.assignedModule = undefined
 		})
+	}
+
+	get keepWorking(): boolean {
+		return (
+			this.hunger < this.triggerLevels.hunger.high &&
+			this.fatigue < this.triggerLevels.fatigue.high &&
+			this.tiredness < this.triggerLevels.tiredness.high &&
+			this.assignedModule!.keepWorking
+		)
 	}
 
 	get carriedFood(): GoodType | undefined {

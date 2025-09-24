@@ -6,7 +6,7 @@ import type { Game } from '$lib/game/game'
 import { tileSize } from '$lib/utils'
 import { SlottedStorage } from '../../storage/slotted-storage'
 import type { Tile } from '../tile'
-import type { TileContent } from './index'
+import type { TileContent } from './content'
 import { GcClassed, GcClasses } from './utils'
 
 export class Deposit extends GcClassed<Ssh.DepositDefinition>() {
@@ -41,7 +41,6 @@ export class UnBuiltLand extends SlottedStorage implements TileContent {
 	get background() {
 		return `terrain-${this.terrain}`
 	}
-	// TODO: effects should have a deallocation moment - manage the `destroy` chain
 	render(game: Game): ContainerChild {
 		const size = tileSize
 		const root = new Container()
