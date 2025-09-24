@@ -2,9 +2,9 @@ import { type } from 'arktype'
 import type { Character } from './population/population'
 
 export interface Job {
-	/** The activity type from the module's action */
+	/** The activity type from the alveolus's action */
 	readonly type: Ssh.Action['type']
-	/** Estimated fatigue cost based on type + module configuration */
+	/** Estimated fatigue cost based on type + alveolus configuration */
 	readonly fatigue: number
 	/** Urgency level (1 = normal, higher = more urgent) */
 	readonly urgency: number

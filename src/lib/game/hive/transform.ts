@@ -2,19 +2,19 @@ import type { GoodType } from '$lib/arktype'
 import type { Job } from '$lib/game/job'
 import { SpecificStorage } from '$lib/game/storage'
 import {
+	Alveolus,
 	inputBufferSize,
-	Module,
 	multiplyGoodsQty,
 	outputBufferSize,
-} from '../board/content/module'
+} from '../board/content/alveolus'
 import type { Tile } from '../board/tile'
 
-export class TransformModule extends Module {
+export class TransformAlveolus extends Alveolus {
 	declare action: Ssh.TransformationAction
 	constructor(tile: Tile) {
-		const def: Ssh.ModuleDefinition = new.target.prototype
+		const def: Ssh.AlveolusDefinition = new.target.prototype
 		if (def.action.type !== 'transform') {
-			throw new Error('TransformModule can only be created from a transform action')
+			throw new Error('TransformAlveolus can only be created from a transform action')
 		}
 		super(
 			tile,
@@ -24,7 +24,7 @@ export class TransformModule extends Module {
 			}),
 		)
 	}
-	moduleSpecificJob(): Job | undefined {
+	alveolusSpecificJob(): Job | undefined {
 		// For transformers, check if we have required inputs
 		const hasInputs = Object.entries(this.action.inputs || {}).every(([goodType, required]) => {
 			return this.available(goodType as GoodType) >= (required as number)

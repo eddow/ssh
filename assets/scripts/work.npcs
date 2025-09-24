@@ -1,30 +1,30 @@
-function goWork(module, job, path)
+function goWork(alveolus, job, path)
 	inventory.dropAll
-	if tile != module.tile then do
+	if tile != alveolus.tile then do
 		walk.until path
-	while tile != module.tile
-		path = find.path(module.tile, false)
+	while tile != alveolus.tile
+		path = find.path(alveolus.tile, false)
 	loop
 	walk.enter
 	work.prepare
-	jobType[job] module
+	jobType[job] alveolus
 end function
 
-function harvest(module)
-	do while not tile.content.deposit or tile.content.deposit.name != module.action.deposit
-		where = find.deposit(module.action.deposit)
+function harvest(alveolus)
+	do while not tile.content.deposit or tile.content.deposit.name != alveolus.action.deposit
+		where = find.deposit(alveolus.action.deposit)
 		if not where then return false
 		walk.until where
 	loop
 	walk.enter
 	work.harvestStep
-	if module.gather then
-		do while tile != module.tile
-			path = find.path(tile, module.tile, false)
+	if alveolus.gather then
+		do while tile != alveolus.tile
+			path = find.path(tile, alveolus.tile, false)
 			walk.until path
 		loop
 		walk.enter
-		// try load in the complex grid
+		// try load in the hive grid
 
 		do
 			good = aCarriedGood

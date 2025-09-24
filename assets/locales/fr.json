@@ -4,7 +4,7 @@
 		"rock": "Rocher",
 		"tree": "Arbre"
 	},
-	"modules": {
+	"alveoli": {
 		"tree_chopper": "Bûcheron",
 		"stonecutter": "Tailleur de Pierre",
 		"sawmill": "Scierie",

@@ -52,7 +52,7 @@ export const deposits = {
 	},
 } as const satisfies Record<string, Ssh.DepositDefinition>
 
-export const modules = {
+export const alveoli = {
 	tree_chopper: {
 		preparationTime: 2,
 		action: { type: "harvest", deposit: "tree", output: { wood: 1 } },
@@ -81,7 +81,7 @@ export const modules = {
 		sprites: ["transit"],
 		icon: "transit",
 	},
-} as const satisfies Record<string, Ssh.ModuleDefinition>
+} as const satisfies Record<string, Ssh.AlveolusDefinition>
 
 export const goods = {
 	berries: {

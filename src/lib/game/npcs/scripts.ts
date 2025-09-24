@@ -7,7 +7,7 @@ import {
 	FunctionDefinition,
 	NpcScript,
 } from 'npc-script/src'
-import { deposits, goods, modules, terrain } from '$assets/game-content'
+import { alveoli, deposits, goods, terrain } from '$assets/game-content'
 import { CharacterContract } from '$assets/scripts/contracts'
 import {
 	type Contract,
@@ -106,7 +106,7 @@ export class GameContext<Subject extends GameObject> extends GlobalContext {
 	}
 }
 
-Object.assign(GameContext.prototype, { terrain, deposits, modules, goods })
+Object.assign(GameContext.prototype, { terrain, deposits, alveoli, goods })
 
 export class InteractiveContext<
 	Subject extends InteractiveGameObject,
@@ -193,9 +193,9 @@ export class ScriptExecution extends Finalized {
 	}
 }
 
-export function loadNpcScripts(modules: Record<string, string>, context: ExecutionContext) {
+export function loadNpcScripts(alveoli: Record<string, string>, context: ExecutionContext) {
 	const npcScripts = Object.fromEntries(
-		Object.entries(modules).map(([path, source]) => {
+		Object.entries(alveoli).map(([path, source]) => {
 			const name = path
 				.split('/scripts/')
 				.pop()!

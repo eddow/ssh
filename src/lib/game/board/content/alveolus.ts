@@ -2,26 +2,26 @@ import { type } from 'arktype'
 import { computed } from 'mutts'
 import { Container, type ContainerChild, Sprite } from 'pixi.js'
 import type { GoodType } from '$lib/arktype'
-import { Complex } from '$lib/game/complex/complex'
 import type { Game } from '$lib/game/game'
+import { Hive } from '$lib/game/hive/hive'
 import type { Job } from '$lib/game/job'
 import { gameIsaTypes } from '$lib/game/npcs/utils'
 import type { Character } from '$lib/game/population/character'
 import { tileSize } from '$lib/utils'
 import { type Storage, withStorageForwarder } from '../../storage'
-import { ModuleGate } from '../border/module-gate'
+import { AlveolusGate } from '../border/alveolus-gate'
 import type { Tile } from '../tile'
 import type { TileContent } from './content'
 import { UnBuiltLand } from './unbuilt-land'
 import { GcClassed } from './utils'
 
-export abstract class Module
-	extends withStorageForwarder(GcClassed<Ssh.ModuleDefinition>())
+export abstract class Alveolus
+	extends withStorageForwarder(GcClassed<Ssh.AlveolusDefinition>())
 	implements TileContent
 {
 	public assignedWorker: Character | undefined
 
-	public declare complex: Complex
+	public declare hive: Hive
 	// Configurable properties
 	public walkway: boolean = true
 	public conveyor: boolean = true
@@ -31,10 +31,10 @@ export abstract class Module
 		storage: Storage<any>,
 	) {
 		super(storage)
-		const complex = Complex.for(tile)
-		complex.attach(this)
+		const hive = Hive.for(tile)
+		hive.attach(this)
 		for (const surrounding of this.tile.surroundings)
-			surrounding.border.content = new ModuleGate(surrounding.border)
+			surrounding.border.content = new AlveolusGate(surrounding.border)
 	}
 
 	get debugInfo() {
@@ -49,25 +49,25 @@ export abstract class Module
 	get background() {
 		return 'concrete'
 	}
-	get gates(): ModuleGate[] {
+	get gates(): AlveolusGate[] {
 		return this.tile.surroundings
 			.map((b) => b.border.content)
-			.filter((b): b is ModuleGate => b instanceof ModuleGate)
+			.filter((b): b is AlveolusGate => b instanceof AlveolusGate)
 	}
 
 	/**
-	 * Whether the worker should go on its work in this module
-	 * @returns true if the module can keep working
+	 * Whether the worker should go on its work in this alveolus
+	 * @returns true if the alveolus can keep working
 	 */
 	get keepWorking(): boolean {
 		return true
 	}
 
-	// Render module sprite + a vertical goods bar on the right side of the tile
+	// Render alveolus sprite + a vertical goods bar on the right side of the tile
 	render(game: Game): ContainerChild {
 		const root = new Container()
 		const size = tileSize
-		// Module sprite (centered)
+		// Alveolus sprite (centered)
 		if (this.sprites?.[0]) {
 			const sprite = new Sprite(game.getTexture(this.sprites[0]))
 			// approximate size scaling similar to hexboard
@@ -81,21 +81,21 @@ export abstract class Module
 	}
 
 	canInteract(_action: string): boolean {
-		// Modules can't be built on (they already exist)
+		// Alveoli can't be built on (they already exist)
 		return false
 	}
-	moduleSpecificJob?(): Job | undefined
+	alveolusSpecificJob?(): Job | undefined
 
 	getJob(): Job | undefined {
 		// perhaps carry/...
-		return this.moduleSpecificJob?.()
+		return this.alveolusSpecificJob?.()
 	}
 
 	protected getFatigueCost(): number {
 		// Base fatigue based on action type
 		const baseFatigue = this.action.type === 'harvest' ? this.workTime + 2 : this.workTime
 
-		// Add time-based fatigue (if module has time configuration)
+		// Add time-based fatigue (if alveolus has time configuration)
 		// For now, just return base fatigue
 		return baseFatigue
 	}
@@ -103,17 +103,17 @@ export abstract class Module
 	deconstruct() {
 		this.tile.content = new UnBuiltLand(this.tile, 0, 'concrete')
 		for (const gate of this.gates) gate.border.content = undefined
-		this.complex.removeModule(this)
+		this.hive.removeAlveolus(this)
 	}
 
 	@computed
-	get neighborModules(): Module[] {
+	get neighborAlveoli(): Alveolus[] {
 		return this.tile.neighborTiles
 			.map((neighbor) => neighbor?.content)
-			.filter((c): c is Module => c instanceof Module)
+			.filter((c): c is Alveolus => c instanceof Alveolus)
 	}
 
-	pull(goodType: GoodType, target: Module): any {
+	pull(goodType: GoodType, target: Alveolus): any {
 		return goodType in this.output && this.storage.available(goodType) > 0
 			? this.storage.reserve(goodType, 1, {
 					type: 'pull',
@@ -122,8 +122,8 @@ export abstract class Module
 			: 0
 	}
 }
-gameIsaTypes.module = (value: any) => {
-	return value instanceof Module
+gameIsaTypes.alveolus = (value: any) => {
+	return value instanceof Alveolus
 }
 
 export const inputBufferSize = 3
@@ -134,4 +134,4 @@ export function multiplyGoodsQty(record: Partial<Record<GoodType, number>>, mult
 	)
 }
 
-export const ModuleArkType = type.instanceOf(Module)
+export const AlveolusArkType = type.instanceOf(Alveolus)

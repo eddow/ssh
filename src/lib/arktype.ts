@@ -1,15 +1,15 @@
 import { type Type, type } from 'arktype'
-import { deposits, type goods, goods as goodsCatalog, modules, terrain } from '$assets/game-content'
+import { alveoli, deposits, type goods, goods as goodsCatalog, terrain } from '$assets/game-content'
 import type { ScriptExecution } from './game/npcs/scripts'
 
 export type TerrainType = keyof typeof terrain
 export type GoodType = keyof typeof goods
 export type DepositType = keyof typeof deposits
-export type ModuleType = keyof typeof modules
+export type AlveolusType = keyof typeof alveoli
 export const GoodType = type.enumerated(...Object.keys(goodsCatalog))
 export const TerrainType = type.enumerated(...Object.keys(terrain))
 export const DepositType = type.enumerated(...Object.keys(deposits))
-export const ModuleType = type.enumerated(...Object.keys(modules))
+export const AlveolusType = type.enumerated(...Object.keys(alveoli))
 
 // Decorator for validating multiple arguments with individual schemas
 export type ArkDef = Parameters<typeof type>[0]

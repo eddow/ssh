@@ -43,8 +43,8 @@
 			"stonecutter": "Cut stone"
 		}
 	},
-	"module": {
-		"module": "Module",
+	"alveolus": {
+		"alveolus": "Alveolus",
 		"output": "Output",
 		"action": "Action",
 		"time": "Time",
@@ -52,8 +52,8 @@
 		"configuration": "Configuration",
 		"walkway": "Walkway",
 		"conveyor": "Conveyor",
-		"walkwayTooltip": "Allow characters to walk through this module",
-		"conveyorTooltip": "Allow unrelated goods to pass through this module"
+		"walkwayTooltip": "Allow characters to walk through this alveolus",
+		"conveyorTooltip": "Allow unrelated goods to pass through this alveolus"
 	},
 	"deposit": "Resources",
 	"goods": "Goods"

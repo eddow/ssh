@@ -115,21 +115,21 @@
 		</ToolbarGroup>
 		<ToolbarGroup>
 			<ButtonGroup>
-				{#each Object.entries(gameContent.modules) as [name, module]}
+				{#each Object.entries(gameContent.alveoli) as [name, alveolus]}
 					<RadioButton
 						name="action-selection"
 						value={`build:${name}`}
 						bind:group={interactionMode.selectedAction}
 						checkedClass="!bg-gray-200 !text-gray-900 !border-2 !border-gray-400 dark:!bg-gray-700 dark:!text-gray-100 dark:!border-gray-500"
-						title={$T.modules[name]}
+						title={$T.alveoli[name]}
 						outline
 					>
 						<ResourceImage
 							{game}
-							sprite={module.sprites[0]}
+							sprite={alveolus.sprites[0]}
 							width={24}
 							height={24}
-							alt={$T.modules[name]}
+							alt={$T.alveoli[name]}
 						/>
 					</RadioButton>
 				{/each}

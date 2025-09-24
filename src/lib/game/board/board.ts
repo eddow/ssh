@@ -19,8 +19,8 @@ import { isInteger, tileSize } from '$lib/utils'
 import type { Game } from '../game'
 import type { Character } from '../population/character'
 import { TileBorder, type TileBorderContent } from './border/border'
+import { Alveolus } from './content/alveolus'
 import type { TileContent } from './content/content'
-import { Module } from './content/module'
 import { Tile } from './tile'
 
 export function isTileCoord(coord: AxialCoord): boolean {
@@ -163,8 +163,8 @@ export class HexBoard extends withContainer(withHittable(GameObject)) {
 				const tile = this.getTile(neighbor)
 				if (
 					!tile ||
-					// If character is carrying items and tile has a module, make it unwalkable
-					(character.aCarriedGood && tile.content instanceof Module) ||
+					// If character is carrying items and tile has a alveolus, make it unwalkable
+					(character.aCarriedGood && tile.content instanceof Alveolus) ||
 					// If tile is occupied by another character, make it unwalkable
 					// TODO: remove this for character path finding, manage queues somehow
 					this.isOccupied(neighbor)

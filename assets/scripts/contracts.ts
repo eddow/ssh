@@ -1,9 +1,7 @@
 import { GoodType, type ContractType } from '$lib/arktype'
 import { TileArkType } from '$lib/game/board/tile'
-import { ModuleArkType } from '$lib/game/board/content/module'
+import { AlveolusArkType } from '$lib/game/board/content/alveolus'
 import { Position } from '$lib/game/position'
-import { Module, type } from 'arktype'
-import { TileBorderArkType } from '$lib/game'
 export const CharacterContract = {
 	walk: {
 		into: [Position.array()],
@@ -20,8 +18,8 @@ export const CharacterContract = {
 		wander: [],
 	},
 	work: {
-		goWork: [ModuleArkType, 'string', Position.array()],
-		harvest: [ModuleArkType],
+		goWork: [AlveolusArkType, 'string', Position.array()],
+		harvest: [AlveolusArkType],
 	},
 } as const
 

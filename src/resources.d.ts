@@ -29,7 +29,7 @@ declare namespace Ssh {
 	}
 	type Action = HarvestingAction | TransformationAction | TransitAction
 
-	interface ModuleDefinition<ActionType extends Action = Action> {
+	interface AlveolusDefinition<ActionType extends Action = Action> {
 		name?: string
 		preparationTime: number
 		action: ActionType

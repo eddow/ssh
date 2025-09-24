@@ -1,2 +1,2 @@
+export * from './alveolus-gate'
 export * from './border'
-export * from './module-gate'

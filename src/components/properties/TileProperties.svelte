@@ -1,10 +1,10 @@
 <script lang="ts">
 	import type { Tile } from '$lib/game/board/tile'
 	import { UnBuiltLand } from '$lib/game/board/content/unbuilt-land'
-	import { Module } from '$lib/game/board/content/module'
+	import { Alveolus } from '$lib/game/board/content/alveolus'
 	import { Badge } from 'flowbite-svelte'
 	import UnBuiltProperties from '$components/properties/UnBuiltProperties.svelte'
-	import ModuleProperties from '$components/properties/ModuleProperties.svelte'
+	import AlveolusProperties from '$components/properties/AlveolusProperties.svelte'
 	import { ms } from '$lib/mutts.svelte'
 	import { T } from '$lib/i18n'
 	import GoodsList from '$components/parts/GoodsList.svelte'
@@ -42,8 +42,8 @@
 
 				{#if $tileContent instanceof UnBuiltLand}
 					<UnBuiltProperties content={$tileContent} />
-				{:else if $tileContent instanceof Module}
-					<ModuleProperties content={$tileContent} game={tile.board.game} />
+				{:else if $tileContent instanceof Alveolus}
+					<AlveolusProperties content={$tileContent} game={tile.board.game} />
 				{/if}
 			</PropertyGrid>
 		</div>

@@ -43,8 +43,8 @@
 			"stonecutter": "Taille une pierre"
 		}
 	},
-	"module": {
-		"module": "Module",
+	"alveolus": {
+		"alveolus": "Alvéole",
 		"output": "Sortie",
 		"action": "Action",
 		"time": "Temps",
@@ -52,8 +52,8 @@
 		"configuration": "Configuration",
 		"walkway": "Passage",
 		"conveyor": "Convoyeur",
-		"walkwayTooltip": "Permettre aux personnages de marcher à travers ce module",
-		"conveyorTooltip": "Permettre aux marchandises non liées de passer à travers ce module"
+		"walkwayTooltip": "Permettre aux personnages de marcher à travers cette alvéole",
+		"conveyorTooltip": "Permettre aux marchandises non liées de passer à travers cette alvéole"
 	},
 	"deposit": "Ressources",
 	"goods": "Marchandises"

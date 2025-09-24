@@ -4,7 +4,7 @@
 		"rock": "Rock",
 		"tree": "Tree"
 	},
-	"modules": {
+	"alveoli": {
 		"tree_chopper": "Tree Chopper",
 		"stonecutter": "Stone Cutter",
 		"sawmill": "Sawmill",

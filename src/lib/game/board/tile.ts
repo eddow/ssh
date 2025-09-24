@@ -2,11 +2,11 @@ import { type } from 'arktype'
 import { computed, effect, reactive, watch } from 'mutts'
 import { ColorMatrixFilter, Container, Graphics, Point, TilingSprite } from 'pixi.js'
 
-import type { ModuleType } from '$lib/arktype'
+import type { AlveolusType } from '$lib/arktype'
 import { mrg } from '$lib/globals.svelte'
 import { type AxialCoord, axial } from '$lib/hex'
 import { tileSize } from '$lib/utils'
-import { moduleClass } from '../complex'
+import { alveolusClass } from '../hive'
 import { gameIsaTypes } from '../npcs/utils'
 import { GameObject, withGenerator, withInteractive } from '../object'
 import {
@@ -62,14 +62,14 @@ export class Tile extends withInteractive(withGenerator(GameObject)) {
 		return this.content?.canInteract?.(action) ?? false
 	}
 
-	build(moduleType: ModuleType): boolean {
-		if (!this.canInteract(`build:${moduleType}`)) {
+	build(alveolusType: AlveolusType): boolean {
+		if (!this.canInteract(`build:${alveolusType}`)) {
 			return false
 		}
-		const ModuleClass = moduleClass[moduleType]
-		if (!ModuleClass) return false
-		const newModule = new ModuleClass(this)
-		this.content = newModule
+		const AlveolusClass = alveolusClass[alveolusType]
+		if (!AlveolusClass) return false
+		const newAlveolus = new AlveolusClass(this)
+		this.content = newAlveolus
 		return true
 	}
 

@@ -7,7 +7,7 @@ import type { GoodType } from '$lib/arktype'
 import { mrg } from '$lib/globals.svelte'
 import { type AxialCoord, type AxialRef, axial } from '$lib/hex'
 import { maxBy } from '$lib/utils'
-import { Module } from '../board/content/module'
+import { Alveolus } from '../board/content/alveolus'
 import type { Tile } from '../board/tile'
 import type { Game } from '../game'
 import { bestPossibleJobScore, calculateJobScore, type Job } from '../job'
@@ -26,7 +26,7 @@ export class Character extends withInteractive(
 ) {
 	readonly triggerLevels = characterTriggerLevels
 
-	public assignedModule: Module | undefined = undefined
+	public assignedAlveolus: Alveolus | undefined = undefined
 
 	// Character needs levels (starting at 0, incrementing 1 per second)
 	public hunger: number = 0
@@ -82,7 +82,7 @@ export class Character extends withInteractive(
 		// Score function: evaluates how good a job is at a given coordinate
 		const scoreJob = (coord: AxialRef): number | false => {
 			const content = this.game.hex.getTile(coord)?.content
-			if (!(content instanceof Module)) return false
+			if (!(content instanceof Alveolus)) return false
 			const job = content.getJob()
 			return job ? calculateJobScore(this, job) : false
 		}
@@ -101,15 +101,15 @@ export class Character extends withInteractive(
 
 		const targetCoord = path[path.length - 1]
 		const targetTile = this.game.hex.getTile(targetCoord)!
-		const jobProvider = targetTile.content as Module
+		const jobProvider = targetTile.content as Alveolus
 		const job = jobProvider.getJob() as Job
 		this.log('character.beginJob', job.type)
 		jobProvider.assignedWorker = this
-		this.assignedModule = jobProvider
+		this.assignedAlveolus = jobProvider
 		return this.scriptsContext.work.goWork(jobProvider, job.type, path).final(() => {
 			this.log('character.finishedJob', job.type)
 			jobProvider.assignedWorker = undefined
-			this.assignedModule = undefined
+			this.assignedAlveolus = undefined
 		})
 	}
 
@@ -118,7 +118,7 @@ export class Character extends withInteractive(
 			this.hunger < this.triggerLevels.hunger.high &&
 			this.fatigue < this.triggerLevels.fatigue.high &&
 			this.tiredness < this.triggerLevels.tiredness.high &&
-			this.assignedModule!.keepWorking
+			this.assignedAlveolus!.keepWorking
 		)
 	}
 
@@ -142,7 +142,7 @@ export class Character extends withInteractive(
 			return false
 		}
 		// For other actions, characters might be able to act
-		// This could be expanded based on character state, assigned module, etc.
+		// This could be expanded based on character state, assigned alveolus, etc.
 		return false
 	}
 

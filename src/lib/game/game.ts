@@ -8,13 +8,13 @@ import { LCG } from '$lib/numbers'
 import { HexBoard } from './board/board'
 import { Deposit, UnBuiltLand } from './board/content/unbuilt-land'
 import { Tile } from './board/tile'
-import { moduleClass } from './complex'
 import {
 	type GameGenerationConfig,
 	GameGenerator,
 	type GeneratedCharacterData,
 	type GeneratedTileData,
 } from './generation'
+import { alveolusClass } from './hive'
 import type { HittableGameObject, InteractiveGameObject } from './object'
 import { Population } from './population/population'
 
@@ -231,12 +231,12 @@ export class Game extends Eventful<GameEvents> {
 				}
 				tile.content = land
 				tile.asGenerated = false
-			} else if (c?.type === 'Module' && c.module) {
-				// Build a module of given type
-				const ModuleCtor = moduleClass[c.module as keyof typeof moduleClass]
-				if (ModuleCtor) {
-					const mod = new ModuleCtor(tile)
-					// Module ctor attaches itself; ensure tile content is the module
+			} else if (c?.type === 'Alveolus' && c.alveolus) {
+				// Build a alveolus of given type
+				const AlveolusCtor = alveolusClass[c.alveolus as keyof typeof alveolusClass]
+				if (AlveolusCtor) {
+					const mod = new AlveolusCtor(tile)
+					// Alveolus ctor attaches itself; ensure tile content is the alveolus
 					tile.content = mod as any
 					tile.asGenerated = false
 				}

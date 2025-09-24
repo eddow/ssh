@@ -46,7 +46,7 @@ export class Population extends withContainer(withHittable(GameObject)) {
 	}
 	get nbrFree(): number {
 		return Array.from(this.characters.values()).reduce(
-			(acc, character) => (character.assignedModule === undefined ? acc + 1 : acc),
+			(acc, character) => (character.assignedAlveolus === undefined ? acc + 1 : acc),
 			0,
 		)
 	}

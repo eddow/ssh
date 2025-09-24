@@ -34,8 +34,8 @@ class Games extends Eventful<GamedEvents> {
 						{
 							coord: { q: 0, r: 0 },
 							content: {
-								type: 'Module',
-								module: 'tree_chopper',
+								type: 'Alveolus',
+								alveolus: 'tree_chopper',
 								walkTime: 1,
 							},
 						},
@@ -76,7 +76,7 @@ interface SelectionState {
 	selectedUid?: string
 }
 
-// Load from localStorage on module initialization
+// Load from localStorage on alveolus initialization
 let storedState: SelectionState = {}
 try {
 	const stored = localStorage.getItem('selectionState')

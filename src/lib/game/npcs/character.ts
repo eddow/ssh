@@ -323,26 +323,26 @@ class WorkFunctions {
 	@contract()
 	prepare() {
 		return new WaitStep(
-			this[subject].assignedModule!.preparationTime,
+			this[subject].assignedAlveolus!.preparationTime,
 			'work',
-			`prepare.${this[subject].assignedModule!.name}`,
+			`prepare.${this[subject].assignedAlveolus!.name}`,
 		)
 	}
 	@contract()
 	harvestStep() {
 		const unbuiltLand = this[subject].tile.content as UnBuiltLand
 		assert(unbuiltLand instanceof UnBuiltLand, 'tile.content must be an UnBuiltLand')
-		const module = this[subject].assignedModule as Ssh.ModuleDefinition<Ssh.HarvestingAction>
-		assert(module, 'assignedModule must be set')
-		assert(module.action.type === 'harvest', 'assignedModule.action must be a harvest')
-		const action = module.action as Ssh.HarvestingAction
+		const alveolus = this[subject].assignedAlveolus as Ssh.AlveolusDefinition<Ssh.HarvestingAction>
+		assert(alveolus, 'assignedAlveolus must be set')
+		assert(alveolus.action.type === 'harvest', 'assignedAlveolus.action must be a harvest')
+		const action = alveolus.action as Ssh.HarvestingAction
 		assert(
 			action.deposit === unbuiltLand.deposit?.name,
-			'assignedModule.action.deposit must be the same as tile.content.deposit.name',
+			'assignedAlveolus.action.deposit must be the same as tile.content.deposit.name',
 		)
 		const deposit = unbuiltLand.deposit!
 		// Check if character can store any of the output goods
-		const outputGoods = module.action.output
+		const outputGoods = alveolus.action.output
 		const canStoreAny = Object.keys(outputGoods).some(
 			(goodType) => this[subject].vehicle.hasRoom(goodType as GoodType) > 0,
 		)
@@ -352,12 +352,12 @@ class WorkFunctions {
 			unbuiltLand.deposit = undefined
 		}
 		return new WaitStep(
-			this[subject].assignedModule!.workTime,
+			this[subject].assignedAlveolus!.workTime,
 			'work',
-			`harvest.${this[subject].assignedModule!.name}`,
+			`harvest.${this[subject].assignedAlveolus!.name}`,
 		).finished(() => {
 			// Add all output goods to character inventory
-			Object.entries(module.action.output).forEach(([goodType, qty]) => {
+			Object.entries(alveolus.action.output).forEach(([goodType, qty]) => {
 				this[subject].vehicle.addGood(goodType as GoodType, qty)
 			})
 		})
@@ -396,12 +396,12 @@ const characterContext = protoCtx(CharacterContext, {
 	...gameContent,
 })
 
-const modules = import.meta.glob('$assets/scripts/**/*.npcs', {
+const alveoli = import.meta.glob('$assets/scripts/**/*.npcs', {
 	query: '?raw',
 	eager: true,
 })
 loadNpcScripts(
-	objectMap(modules, (v: any) => v.default) as Record<string, string>,
+	objectMap(alveoli, (v: any) => v.default) as Record<string, string>,
 	characterContext,
 )
 export default function aCharacterContext(character: Character) {

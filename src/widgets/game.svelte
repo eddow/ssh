@@ -12,7 +12,7 @@
 	import { getDockviewContext } from 'dockview-svelte/src'
 	import { Tile } from '$lib/game/board/tile'
 	import { T } from '$lib/i18n'
-	import type { ModuleType } from '$lib/arktype'
+	import type { AlveolusType } from '$lib/arktype'
 
 	const { addDock, api } = getDockviewContext()
 
@@ -121,11 +121,11 @@
 		const tile = object as Tile
 		const action = interactionMode.selectedAction
 
-		// Extract module type from action (e.g., "build:sawmill" -> "sawmill")
-		const moduleType = action.replace('build:', '') as ModuleType
+		// Extract alveolus type from action (e.g., "build:sawmill" -> "sawmill")
+		const alveolusType = action.replace('build:', '') as AlveolusType
 
 		// Use the tile's build method
-		const success = tile.build(moduleType)
+		const success = tile.build(alveolusType)
 
 		if (success) {
 			// Reset to selection mode
