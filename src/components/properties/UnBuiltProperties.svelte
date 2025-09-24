@@ -3,25 +3,34 @@
 	import { T } from '$lib/i18n'
 	import EntityBadge from '$components/parts/EntityBadge.svelte'
 	import PropertyGridRow from '$components/parts/PropertyGridRow.svelte'
-	import { ms } from '$lib/mutts.svelte'
+	import { p2s } from '$lib/mutts.svelte'
 
 	let { content }: { content: UnBuiltLand } = $props()
 	const game = content.tile.board.game
-	const deposit = $derived(ms(() => content.deposit, true))
+	const deposit = $derived.by(
+		p2s(
+			() =>
+				content.deposit && {
+					sprites: content.deposit.sprites,
+					name: content.deposit.name,
+					amount: content.deposit.amount
+				}
+		)
+	)
 	//TODO:
 	// - Badge does not refresh
 	// - Badge takes all line
 	// - When killing the deposit, doesn't go to drop afterward
 </script>
 
-{#if $deposit}
+{#if deposit}
 	<PropertyGridRow label={$T.deposit} class="flex items-center">
 		<EntityBadge
 			{game}
 			height={16}
-			sprite={$deposit.sprites[0]}
-			text={$T.deposits[$deposit.name!]}
-			qty={$deposit.amount}
+			sprite={deposit.sprites[0]}
+			text={$T.deposits[deposit.name!]}
+			qty={deposit.amount}
 		/>
 	</PropertyGridRow>
 {/if}

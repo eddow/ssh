@@ -365,6 +365,9 @@ class WorkFunctions {
 }
 
 class CharacterContext extends InteractiveContext<Character> {
+	get I() {
+		return this[subject]
+	}
 	get hunger() {
 		return this[subject].hunger
 	}

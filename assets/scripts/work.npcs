@@ -11,30 +11,32 @@ function goWork(alveolus, job, path)
 end function
 
 function harvest(alveolus)
-	do while not tile.content.deposit or tile.content.deposit.name != alveolus.action.deposit
-		where = find.deposit(alveolus.action.deposit)
-		if not where then return false
-		walk.until where
-	loop
-	walk.enter
-	work.harvestStep
-	if alveolus.gather then
-		do while tile != alveolus.tile
-			path = find.path(tile, alveolus.tile, false)
-			walk.until path
+	do while I.keepWorking
+		do while not tile.content.deposit or tile.content.deposit.name != alveolus.action.deposit
+			where = find.deposit(alveolus.action.deposit)
+			if not where then return false
+			walk.until where
 		loop
 		walk.enter
-		// try load in the hive grid
+		work.harvestStep
+		if alveolus.gather then
+			do while tile != alveolus.tile
+				path = find.path(alveolus.tile, false)
+				walk.until path
+			loop
+			walk.enter
+			// try load in the hive grid
 
-		do
-			good = aCarriedGood
-		while aCarriedGood
-			inventory.drop(good, 1)
-		loop
-	else
-		inventory.dropAll
-	end if
-	
+			do
+				good = aCarriedGood
+			while aCarriedGood
+				inventory.drop good
+			loop
+		else
+			inventory.dropAll
+		end if
+	loop
 end function
+// TODO: if jobtype is externalized, it will appear in the action description
 jobType = { harvest }
 return { goWork }

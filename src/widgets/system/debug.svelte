@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { ms } from '$lib/mutts.svelte'
+	import { p2s } from '$lib/mutts.svelte'
 	import {
 		Button,
 		Table,
@@ -45,15 +45,15 @@
 			.map(([k, v]) => [k, debugged(v)])
 			.join(' | ')
 	}
-	let mrgHoveredObject = ms(() => mrg.hoveredObject)
+	let mrgHoveredObject = $derived.by(p2s(() => mrg.hoveredObject))
 </script>
 
 <Button class="w-full" onclick={resetLayout}>{$T.ui.resetLayout}</Button>
-<h1>{$T.ui.selection} : {$mrgHoveredObject?.title ?? $T.ui.none}</h1>
-{#if $mrgHoveredObject}
+<h1>{$T.ui.selection} : {mrgHoveredObject?.title ?? $T.ui.none}</h1>
+{#if mrgHoveredObject}
 	<Table>
 		<TableBody title={$T.ui.debugInfo}>
-			{#each ownEntries($mrgHoveredObject.debugInfo) as kvp}
+			{#each ownEntries(mrgHoveredObject.debugInfo) as kvp}
 				<TableBodyRow>
 					<TableHeadCell>{kvp[0]}</TableHeadCell>
 					<TableBodyCell>{displayed(kvp[1])}</TableBodyCell>

@@ -5,45 +5,55 @@
 	import { Badge } from 'flowbite-svelte'
 	import UnBuiltProperties from '$components/properties/UnBuiltProperties.svelte'
 	import AlveolusProperties from '$components/properties/AlveolusProperties.svelte'
-	import { ms } from '$lib/mutts.svelte'
+	import { p2s } from '$lib/mutts.svelte'
 	import { T } from '$lib/i18n'
 	import GoodsList from '$components/parts/GoodsList.svelte'
 	import PropertyGridRow from '$components/parts/PropertyGridRow.svelte'
 	import PropertyGrid from '$components/parts/PropertyGrid.svelte'
 
 	let { tile }: { tile: Tile } = $props()
-	let tileContent = $derived(((tile) => ms(() => tile.content))(tile))
+	let tileContent = $derived.by(p2s(() => tile.content))
 	// TODO: we still have reactivity issues: it works without $goods, but tilecontent ms has to be deep
 	// and the performances crashes
-	let goods = $derived(ms(() => tile.content!.stock))
+	/*let stock = $derived(
+		ms(
+			(
+				(tile) => () =>
+					tile.content!.stock
+			)(tile)
+		)
+	)*/
+	let stock = $derived.by(p2s(() => tile.content!.stock))
 	// TODO: terrain type as background color
 </script>
 
-{#if $tileContent}
+{#if tileContent}
 	<div class="tile-properties">
 		<div class="space-y-2">
 			<div class="flex items-center gap-2">
 				<span class="font-medium">{$T.tile.content}:</span>
-				<Badge color="green">{$tileContent.constructor.name}</Badge>
+				<Badge color="green">{tileContent.constructor.name}</Badge>
 			</div>
 
 			<div class="flex items-center gap-2">
 				<span class="font-medium">{$T.tile.walkTime}:</span>
-				<Badge color={$tileContent.walkTime === Number.POSITIVE_INFINITY ? 'red' : 'yellow'}>
-					{$tileContent.walkTime === Number.POSITIVE_INFINITY
+				<Badge color={tileContent.walkTime === Number.POSITIVE_INFINITY ? 'red' : 'yellow'}>
+					{tileContent.walkTime === Number.POSITIVE_INFINITY
 						? $T.tile.unwalkable
-						: $tileContent.walkTime}
+						: tileContent.walkTime}
 				</Badge>
 			</div>
 			<PropertyGrid>
-				<PropertyGridRow label={$T.goods}>
-					<GoodsList goods={$goods} game={tile.board.game} />
-				</PropertyGridRow>
+				{#if stock}
+					<PropertyGridRow label={$T.goods}>
+						<GoodsList goods={stock} game={tile.board.game} />
+					</PropertyGridRow>
+				{/if}
 
-				{#if $tileContent instanceof UnBuiltLand}
-					<UnBuiltProperties content={$tileContent} />
-				{:else if $tileContent instanceof Alveolus}
-					<AlveolusProperties content={$tileContent} game={tile.board.game} />
+				{#if tileContent instanceof UnBuiltLand}
+					<UnBuiltProperties content={tileContent} />
+				{:else if tileContent instanceof Alveolus}
+					<AlveolusProperties content={tileContent} game={tile.board.game} />
 				{/if}
 			</PropertyGrid>
 		</div>

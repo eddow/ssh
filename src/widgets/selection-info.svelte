@@ -11,7 +11,7 @@
 	import { Character } from '$lib/game/population/character'
 	import { Tile } from '$lib/game/board/tile'
 	import { mrg } from '$lib/globals.svelte'
-	import { m2s } from '$lib/mutts.svelte'
+	import { p2s } from '$lib/mutts.svelte'
 	import { watch } from 'mutts'
 	import TileProperties from '$components/properties/TileProperties.svelte'
 	import CharacterProperties from '$components/properties/CharacterProperties.svelte'
@@ -20,7 +20,6 @@
 	import { T } from '$lib/i18n'
 	import { TabContent } from 'dockview-svelte/src'
 	import type { DockviewPanelApi } from 'dockview-core'
-	import { getDockviewContext } from 'dockview-svelte/src'
 	import { onDestroy } from 'svelte'
 
 	let {
@@ -126,6 +125,7 @@
 		selectionState.selectedUid = undefined
 		selectionState.panelId = undefined
 	}
+	let logs = $derived.by(p2s(() => object?.logs))
 </script>
 
 <TabContent {panelApi} bind:el={$tabContent}>
@@ -152,9 +152,9 @@
 		{/if}
 	</div>
 
-	{#if object}
+	{#if object && logs}
 		<div class="logs" bind:this={logsContainer} onscroll={handleLogScroll}>
-			{#each m2s(object.logs) as line}
+			{#each logs as line}
 				<div class="log-line">{line}</div>
 			{/each}
 		</div>

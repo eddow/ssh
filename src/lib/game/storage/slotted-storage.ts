@@ -29,7 +29,7 @@ export class SlottedStorage extends Storage<number[]> {
 		public readonly maxQuantityPerSlot: number = 1,
 	) {
 		super()
-		this.slots = Array(maxSlots).fill(undefined)
+		this.slots = reactive(Array(maxSlots).fill(undefined))
 	}
 
 	hasRoom(goodType?: GoodType): number {
