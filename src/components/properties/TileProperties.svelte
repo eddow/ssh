@@ -13,16 +13,6 @@ import { p2s } from '$lib/mutts.svelte'
 
 let { tile }: { tile: Tile } = $props()
 let tileContent = $derived.by(p2s(() => tile.content))
-// TODO: we still have reactivity issues: it works without $goods, but tilecontent ms has to be deep
-// and the performances crashes
-/*let stock = $derived(
-		ms(
-			(
-				(tile) => () =>
-					tile.content!.stock
-			)(tile)
-		)
-	)*/
 let stock = $derived.by(p2s(() => tile.content!.stock))
 // TODO: terrain type as background color
 </script>

@@ -1,3 +1,4 @@
+import { match } from 'arktype'
 import { unreactive } from 'mutts'
 import {
 	type IsaTypes,
@@ -7,15 +8,45 @@ import {
 	NpcScript,
 	type Operators,
 } from 'npc-script/src'
+import { axial } from '$lib/hex'
 import { epsilon } from '$lib/utils'
 import {
-	axialDistance,
 	isPosition,
 	Position,
-	type Positioned,
+	Positioned,
 	positionLerp,
 	positionRoughlyEquals,
+	toAxialCoord,
 } from '../position'
+
+const equals = match({})
+	.case([Positioned, Positioned], ([left, right]) => positionRoughlyEquals(left, right))
+	.case(['number', 'number'], ([left, right]) => Math.abs(left - right) < epsilon)
+	.case(['unknown', 'unknown'], ([left, right]) => jsOperators['=='](left, right))
+	.default('assert')
+
+const subtract = match({})
+	.case([Positioned, Positioned], ([left, right]) =>
+		axial.linear(toAxialCoord(left), [-1, toAxialCoord(right)]),
+	)
+	.case(['unknown', 'unknown'], ([left, right]) => jsOperators['-'](left, right))
+	.default('assert')
+const add = match({})
+	.case([Positioned, Positioned], ([left, right]) =>
+		axial.linear(toAxialCoord(left), toAxialCoord(right)),
+	)
+	.case(['unknown', 'unknown'], ([left, right]) => jsOperators['+'](left, right))
+	.default('assert')
+
+const multiply = match({})
+	.case([Positioned, 'number'], ([left, right]) => axial.linear([right, toAxialCoord(left)]))
+	.case(['number', Positioned], ([left, right]) => axial.linear([left, toAxialCoord(right)]))
+	.case(['unknown', 'unknown'], ([left, right]) => jsOperators['*'](left, right))
+	.default('assert')
+const divide = match({})
+	.case([Positioned, 'number'], ([left, right]) => axial.linear([1 / right, toAxialCoord(left)]))
+	.case(['unknown', 'unknown'], ([left, right]) => jsOperators['/'](left, right))
+	.default('assert')
 
 unreactive(MiniScriptExecutor)
 unreactive(NpcScript)
@@ -24,26 +55,12 @@ unreactive(NpcScript)
  */
 export const gameOperators: Operators = Object.setPrototypeOf(
 	{
-		'=='(left: any, right: any) {
-			return isPosition(left) && isPosition(right)
-				? positionRoughlyEquals(left, right)
-				: typeof left === 'number' && typeof right === 'number'
-					? Math.abs(left - right) < epsilon
-					: left === right
-		},
-		'!='(left: any, right: any) {
-			return isPosition(left) && isPosition(right)
-				? !positionRoughlyEquals(left, right)
-				: typeof left === 'number' && typeof right === 'number'
-					? Math.abs(left - right) >= epsilon
-					: left !== right
-		},
-		'-'(left: any, right: any) {
-			if (isPosition(left) && isPosition(right)) {
-				return axialDistance(left, right)
-			}
-			return jsOperators['-'](left, right)
-		},
+		'==': (left: any, right: any) => equals([left, right]),
+		'!=': (left: any, right: any) => !equals([left, right]),
+		'-': (left: any, right: any) => subtract([left, right]),
+		'+': (left: any, right: any) => add([left, right]),
+		'*': (left: any, right: any) => multiply([left, right]),
+		'/': (left: any, right: any) => divide([left, right]),
 	},
 	jsOperators,
 )

@@ -3,7 +3,6 @@ declare namespace Ssh {
 	type SpriteDefinition = string
 	type Sprite = string
 	interface DepositDefinition {
-		name?: string
 		maxAmount: number
 		regenerate?: number
 		sprites: Sprite[]
@@ -30,7 +29,6 @@ declare namespace Ssh {
 	type Action = HarvestingAction | TransformationAction | TransitAction
 
 	interface AlveolusDefinition<ActionType extends Action = Action> {
-		name?: string
 		preparationTime: number
 		action: ActionType
 		workTime: number

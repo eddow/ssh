@@ -12,8 +12,8 @@ export interface TileContent extends Storage<any> {
 	readonly walkTime: number
 	readonly background: string
 	/**
-	 * Render the tile
-	 * @param tile - The tile to render
+	 * Render the tile content
+	 * @param game - The game instance
 	 * @returns The container child to render
 	 */
 	render(game: Game): ContainerChild

@@ -1,7 +1,7 @@
 import { computed, reactive } from 'mutts'
-import { Container } from 'pixi.js'
-import type { GoodType } from '$lib/arktype'
+import { GoodType } from '$lib/arktype'
 import { assert } from '$lib/debug'
+import { type GoodSlot, renderGoods } from './goods-renderer'
 import {
 	AllocationError,
 	allocationEnded,
@@ -72,9 +72,21 @@ export class SpecificStorage extends Storage<{ goodType: GoodType; qty: number }
 		return Math.max(0, (this._goods[goodType] || 0) - (this._reserved[goodType] || 0))
 	}
 
-	renderGoods(_game: any, _size: number) {
-		// No visual for specific storage for now: TODO
-		return new Container()
+	renderGoods(game: any, size: number) {
+		const getSlots = () => {
+			const slots: GoodSlot[] = []
+			for (const [goodType, maxAmount] of Object.entries(this.maxAmounts)) {
+				assert(GoodType.allows(goodType), 'Good type not found in goods')
+				const present = this._goods[goodType] || 0
+				const allocated = this._allocated[goodType] || 0
+				const reserved = this._reserved[goodType] || 0
+				const allowed = maxAmount
+				slots.push({ goodType, present, allocated, reserved, allowed })
+			}
+			return slots
+		}
+
+		return renderGoods(game, size, getSlots, Object.keys(this.maxAmounts).length)
 	}
 
 	allocate(goodType: GoodType, qty: number, reason: any): { goodType: GoodType; qty: number } {

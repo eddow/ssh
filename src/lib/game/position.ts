@@ -14,25 +14,14 @@ function roughly(x: number) {
 }
 
 // Position concept - can be any coordinate representation
-export const { Position } = type.define({
-	Position: type.or({ q: 'number', r: 'number' }, { x: 'number', y: 'number' }),
-})
+export const Position = type.or({ q: 'number', r: 'number' }, { x: 'number', y: 'number' })
 export type Position = typeof Position.infer
-export const { Positioned } = type.define({
-	Positioned: type.or(Position, { position: Position }),
-})
+export const Positioned = type.or(Position, { position: Position })
 export type Positioned = typeof Positioned.infer
 
 // Type guards
-// TODO: use ark
 export function isPosition(value: any): value is Positioned {
-	if (typeof value === 'number') return true // AxialKey
-	if (typeof value === 'object' && value !== null) {
-		if ('x' in value && 'y' in value) return true // WorldCoord
-		if ('q' in value && 'r' in value) return true // AxialCoord
-		if ('position' in value) return true // { position: Position }
-	}
-	return false
+	return Positioned.allows(value)
 }
 
 export function isWorldCoord(value: any): value is WorldCoord {

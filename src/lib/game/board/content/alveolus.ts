@@ -76,6 +76,7 @@ export abstract class Alveolus
 			sprite.anchor.set(0.5)
 			root.addChild(sprite)
 		}
+		root.addChild(this.renderGoods(game, size))
 
 		return root
 	}

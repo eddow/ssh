@@ -47,6 +47,7 @@ function displayed(content: any) {
 		.join(' | ')
 }
 let mrgHoveredObject = $derived.by(p2s(() => mrg.hoveredObject))
+// TODO: display mutts:reactive stats!!
 </script>
 
 <Button class="w-full" onclick={resetLayout}>{$T.ui.resetLayout}</Button>

@@ -1,3 +1,4 @@
+export * from './goods-renderer'
 export * from './no-storage'
 export * from './slotted-storage'
 export * from './specific-storage'

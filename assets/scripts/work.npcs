@@ -20,13 +20,14 @@ function harvest(alveolus)
 		walk.enter
 		work.harvestStep
 		if alveolus.gather then
+			drop = inventory.planDrop(aCarriedGood, 1, alveolus.tile)
 			do while tile != alveolus.tile
 				path = find.path(alveolus.tile, false)
 				walk.until path
 			loop
 			walk.enter
 			// try load in the hive grid
-
+			inventory.effectuate drop
 			do
 				good = aCarriedGood
 			while aCarriedGood

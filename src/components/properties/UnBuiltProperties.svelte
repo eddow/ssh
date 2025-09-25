@@ -17,10 +17,6 @@ const deposit = $derived.by(
 			},
 	),
 )
-//TODO:
-// - Badge does not refresh
-// - Badge takes all line
-// - When killing the deposit, doesn't go to drop afterward
 </script>
 
 {#if deposit}
