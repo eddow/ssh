@@ -1,6 +1,7 @@
 import { type } from 'arktype'
 import {
 	type AxialCoord,
+	AxialKey,
 	type AxialRef,
 	axial,
 	cartesian,
@@ -12,7 +13,7 @@ import { epsilon, tileSize } from '$lib/utils'
 function roughly(x: number) {
 	return Math.round(x / epsilon) * epsilon
 }
-
+// TODO: mutts idea: un-reactivity callback -> test for q,r or x,y
 // Position concept - can be any coordinate representation
 export const Position = type.or({ q: 'number', r: 'number' }, { x: 'number', y: 'number' })
 export type Position = typeof Position.infer
@@ -36,9 +37,9 @@ export function isAxialRef(value: any): value is AxialRef {
 }
 
 // Conversion functions
-export function toWorldCoord(positioned: Positioned): WorldCoord {
+export function toWorldCoord(positioned: Positioned | AxialKey): WorldCoord {
 	if (isWorldCoord(positioned)) return positioned
-	if (typeof positioned === 'number') return cartesian(positioned, tileSize)
+	if (typeof positioned === AxialKey) return cartesian(positioned as AxialKey, tileSize)
 	if (isAxialRef(positioned)) {
 		Object.assign(positioned, cartesian(positioned, tileSize))
 		return positioned as unknown as WorldCoord

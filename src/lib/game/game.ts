@@ -2,9 +2,12 @@ import { Eventful, reactive, unreactive, zip } from 'mutts'
 import { Application, Assets, Container, Point, Spritesheet, Texture } from 'pixi.js'
 import * as gameContent from '$assets/game-content'
 import { prefix, resources } from '$assets/resources'
+import type { AlveolusType, DepositType, GoodType } from '$lib/arktype'
+import { assert } from '$lib/debug'
 import { interactionMode, mrg } from '$lib/globals.svelte'
 import { registerPixiApp, unregisterPixiApp } from '$lib/hmr-pixi'
 import { LCG } from '$lib/numbers'
+import { Alveolus } from './board'
 import { HexBoard } from './board/board'
 import { Deposit, UnBuiltLand } from './board/content/unbuilt-land'
 import { Tile } from './board/tile'
@@ -14,7 +17,7 @@ import {
 	type GeneratedCharacterData,
 	type GeneratedTileData,
 } from './generation'
-import { alveolusClass } from './hive'
+import { alveolusClass, type Hive } from './hive'
 import type { HittableGameObject, InteractiveGameObject } from './object'
 import { Population } from './population/population'
 
@@ -55,10 +58,26 @@ export type GameGenerationOptions = {
 	characterRadius?: number
 }
 
-export type GamePatches = {
-	tiles?: Array<{
-		coord: { q: number; r: number }
-		content: any
+export interface TilePatchRoot {
+	coord: { q: number; r: number }
+	goods?: Partial<Record<GoodType, number>>
+}
+
+export interface AlveolusPatch extends TilePatchRoot {
+	alveolus: AlveolusType
+}
+
+export interface TilePatch extends TilePatchRoot {
+	deposit?: {
+		type: DepositType
+		amount: number
+	}
+}
+export interface GamePatches {
+	tiles?: Array<TilePatch>
+	hives?: Array<{
+		name?: string
+		alveoli: Array<AlveolusPatch>
 	}>
 }
 
@@ -167,11 +186,9 @@ export class Game extends Eventful<GameEvents> {
 			// Load the generated data into the game
 			this.loadGeneratedBoard(result.boardData)
 			this.loadGeneratedPopulation(result.populationData)
-
 			// Apply patches if any
-			if (patches.tiles?.length) {
-				this.applyTilePatches(patches.tiles)
-			}
+			if (patches.tiles?.length) this.applyTilePatches(patches.tiles)
+			if (patches.hives?.length) this.applyHivesPatches(patches.hives)
 		} catch (error) {
 			console.error('Generation failed:', error)
 		}
@@ -212,43 +229,44 @@ export class Game extends Eventful<GameEvents> {
 		}
 	}
 
-	private applyTilePatches(patches: Array<{ coord: { q: number; r: number }; content: any }>) {
+	private applyTilePatches(patches: NonNullable<GamePatches['tiles']>) {
 		for (const p of patches) {
 			const tile = this.hex.getTile(p.coord)
 			if (!tile) continue
-			// Recreate content based on serialized content
-			// Minimal support: UnBuiltLand with terrain, deposit, goods
-			const c = p.content
-			if (c?.type === 'UnBuiltLand') {
-				let deposit: Deposit | undefined
-				if (c.deposit) {
-					const DepositClass = Deposit.class[c.deposit.type as keyof typeof Deposit.class]
-					if (DepositClass) deposit = new DepositClass(c.deposit.amount)
+			const content = tile.content
+			if (content instanceof UnBuiltLand) {
+				if (p.deposit) {
+					const DepositClass = Deposit.class[p.deposit.type as keyof typeof Deposit.class]
+					if (DepositClass) content.deposit = new DepositClass(p.deposit.amount)
 				}
-				const land = new UnBuiltLand(tile, c.walkTime ?? 3, c.terrain, deposit)
-				for (const [good, qty] of Object.entries(c.goods ?? {})) {
-					for (let i = 0; i < (qty as number); i++) land.addGood(good as any, 1)
-				}
-				tile.content = land
+				if (p.goods)
+					for (const [good, qty] of Object.entries(p.goods)) content.addGood(good as GoodType, qty)
 				tile.asGenerated = false
-			} else if (c?.type === 'Alveolus' && c.alveolus) {
-				// Build a alveolus of given type
-				const AlveolusCtor = alveolusClass[c.alveolus as keyof typeof alveolusClass]
-				if (AlveolusCtor) {
-					const mod = new AlveolusCtor(tile)
-					// Alveolus ctor attaches itself; ensure tile content is the alveolus
-					tile.content = mod as any
-					tile.asGenerated = false
-				}
 			}
 		}
 	}
 
-	public saveGameData(): {
-		tiles: Array<{ coord: { q: number; r: number }; content: any }>
-		generation: GameGenerationOptions
-	} {
-		const tiles: Array<{ coord: { q: number; r: number }; content: any }> = []
+	private applyHivesPatches(hives: NonNullable<GamePatches['hives']>) {
+		for (const hive of hives) {
+			for (const a of hive.alveoli) {
+				const tile = this.hex.getTile(a.coord)
+				if (!tile) continue
+				const AlveolusCtor = alveolusClass[a.alveolus as keyof typeof alveolusClass]
+				if (!AlveolusCtor) continue
+				const alv = new AlveolusCtor(tile)
+				assert(alv.hive, 'Alveolus building on load')
+				alv.hive.name = hive.name
+				if (a.goods)
+					for (const [good, qty] of Object.entries(a.goods)) alv.addGood(good as GoodType, qty)
+				tile.content = alv
+				tile.asGenerated = false
+			}
+		}
+	}
+
+	public saveGameData(): GamePatches {
+		const tiles: Array<TilePatch> = []
+		const hives = new Map<Hive, Array<AlveolusPatch>>()
 		// Enumerate using hex board contents map by sampling existing tiles
 		for (let q = -this.hex.boardSize; q <= this.hex.boardSize; q++) {
 			for (let r = -this.hex.boardSize; r <= this.hex.boardSize; r++) {
@@ -260,25 +278,32 @@ export class Game extends Eventful<GameEvents> {
 				if (content instanceof UnBuiltLand) {
 					tiles.push({
 						coord: { q, r },
-						content: {
-							type: 'UnBuiltLand',
-							terrain: content.terrain,
-							deposit: content.deposit
-								? {
-										type:
-											(content.deposit.constructor as any).key ??
-											(content.deposit.constructor as any).name,
-										amount: content.deposit.amount,
-									}
-								: undefined,
-							goods: (content as any).stock ?? {},
-							walkTime: content.walkTime,
-						},
+						deposit: content.deposit
+							? {
+									type:
+										(content.deposit.constructor as any).key ??
+										(content.deposit.constructor as any).name,
+									amount: content.deposit.amount,
+								}
+							: undefined,
+						goods: content.stock,
+					})
+				} else if (content instanceof Alveolus) {
+					// Assume alveolus-like content decorated by GcClassed with resourceName accessible via .name
+					const alveolusName = content.name
+					if (!hives.has(content.hive)) hives.set(content.hive, [])
+					hives.get(content.hive)!.push({
+						coord: { q, r },
+						alveolus: alveolusName as AlveolusType,
+						goods: content.stock,
 					})
 				}
 			}
 		}
-		return { tiles, generation: this.generationOptions }
+		return {
+			tiles,
+			hives: Array.from(hives.entries()).map(([hive, alveoli]) => ({ name: hive.name, alveoli })),
+		}
 	}
 
 	/**
@@ -288,6 +313,17 @@ export class Game extends Eventful<GameEvents> {
 		for (const charInfo of characterData) {
 			this.population.createCharacter(charInfo.name, charInfo.coord)
 		}
+	}
+
+	/**
+	 * Transform seconds to game time
+	 * Centralization of time management (speed-up, pause, etc.)
+	 * @param seconds seconds to transform
+	 * @returns
+	 */
+	transformTime(seconds: number) {
+		if (seconds > 1) return 0
+		return seconds * 5
 	}
 }
 

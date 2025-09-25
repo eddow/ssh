@@ -54,7 +54,6 @@ class CaseFormatter {
 			.trim()
 		this.terms = spaced ? spaced.split(/\s+/) : []
 	}
-	// biome-ignore lint/suspicious/noConfusingVoidType: We love `void`
 	transform(fn: (terms: string[]) => string[] | void): this {
 		this.terms = fn(this.terms) ?? this.terms
 		return this

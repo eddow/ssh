@@ -9,7 +9,22 @@ export function GcClass<BaseCtor extends Ctor<any>>(
 		static resourceName = name
 	}
 	Object.defineProperties(Sub, { name: { value: `${Base.name}<${name}>` } })
-	Object.assign((Sub as any).prototype, def)
+	Object.assign(Sub.prototype, def)
+	// Expose a helpful debug label for instances
+	try {
+		Object.defineProperties(Sub.prototype, {
+			[Symbol.toStringTag]: { value: `${Base.name}<${name}>`, configurable: true },
+			[Symbol.for('nodejs.util.inspect.custom')]: {
+				// eslint-disable-next-line @typescript-eslint/no-unused-vars
+				value(this: unknown, _depth?: number, _options?: unknown, _inspect?: unknown) {
+					return `${Base.name}<${name}>`
+				},
+				configurable: true,
+			},
+		})
+	} catch {
+		// Best-effort; ignore environments where symbols are not configurable
+	}
 	return Sub as unknown as BaseCtor
 }
 
@@ -34,5 +49,5 @@ export function GcClassed<T extends object>() {
 		}
 	} as new (
 		...args: any[]
-	) => T
+	) => T & { readonly name: string }
 }

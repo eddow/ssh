@@ -1,9 +1,9 @@
 import { type } from 'arktype'
-import type { Character } from './population/population'
+import type { Character } from './population/character'
 
 export interface Job {
-	/** The activity type from the alveolus's action */
-	readonly type: Ssh.Action['type']
+	/** The job name offered at an alveolus */
+	readonly type: 'harvest' | 'transform' | 'convey' | 'gather'
 	/** Estimated fatigue cost based on type + alveolus configuration */
 	readonly fatigue: number
 	/** Urgency level (1 = normal, higher = more urgent) */

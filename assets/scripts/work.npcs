@@ -7,7 +7,7 @@ function goWork(alveolus, job, path)
 	loop
 	walk.enter
 	work.prepare
-	jobType[job] alveolus
+	work[job] alveolus
 end function
 
 function harvest(alveolus)
@@ -33,11 +33,12 @@ function harvest(alveolus)
 			while aCarriedGood
 				inventory.drop good
 			loop
+			pokeAlveolus	// We just did add resources in the hive, tell this alveolus to perhaps signal it
+			work.convey
 		else
 			inventory.dropAll
 		end if
 	loop
 end function
-// TODO: if jobtype is externalized, it will appear in the action description
-jobType = { harvest }
-return { goWork }
+
+return { goWork, harvest }

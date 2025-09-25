@@ -20,6 +20,7 @@ export const CharacterContract = {
 	work: {
 		goWork: [AlveolusArkType, 'string', Position.array()],
 		harvest: [AlveolusArkType],
+		convey: [AlveolusArkType],
 	},
 } as const
 

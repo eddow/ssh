@@ -1,5 +1,6 @@
 import { Eventful, reactive } from 'mutts'
 import { Game, type GameEvents, type InteractiveGameObject } from './game'
+import { chopSaw as patches } from './game/exampleGames'
 
 const storedConfig = localStorage.getItem('configuration')
 export const configuration = $state(
@@ -28,19 +29,7 @@ class Games extends Eventful<GamedEvents> {
 					characterCount: 1,
 					characterRadius: 5,
 				},
-				{
-					tiles: [
-						// Woodcutter (tree_chopper) at (0,0)
-						{
-							coord: { q: 0, r: 0 },
-							content: {
-								type: 'Alveolus',
-								alveolus: 'tree_chopper',
-								walkTime: 1,
-							},
-						},
-					],
-				},
+				patches,
 			)
 			// Load game here
 			this.games.set(name, game)

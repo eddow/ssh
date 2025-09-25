@@ -251,7 +251,7 @@ export function loadNpcScripts(alveoli: Record<string, string>, context: Executi
 			name,
 			CharacterContract[name as keyof typeof CharacterContract],
 		)
-		const existing = (context as any)[name]
+		const existing = context[name]
 		if (name in context && typeof context[name] === 'object') {
 			Object.assign(existing, exposed)
 		} else {

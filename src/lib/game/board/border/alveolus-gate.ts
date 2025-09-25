@@ -1,5 +1,5 @@
 import { SlottedStorage } from '$lib/game/storage/slotted-storage'
-import { Alveolus } from '../content/alveolus'
+import type { Alveolus } from '../content/alveolus'
 import type { TileBorder, TileBorderContent } from './border'
 
 // A storage gate placed on a border between two tiles/alveoli.
@@ -7,29 +7,27 @@ export class AlveolusGate extends SlottedStorage implements TileBorderContent {
 	// TODO: It seems gates appear now only between alveoli, so testing contents might not be needed
 	// Or, indeed, we have to decide one way to do
 	get alveolusA() {
-		const content = this.border.tile.a.content
-		return content instanceof Alveolus ? content : undefined
+		return this.border.tile.a.content as Alveolus
 	}
 	get alveolusB() {
-		const content = this.border.tile.b.content
-		return content instanceof Alveolus ? content : undefined
+		return this.border.tile.b.content as Alveolus
 	}
 
 	get hive() {
-		return this.alveolusA?.hive ?? this.alveolusB!.hive!
+		return this.alveolusA!.hive
 	}
 
 	constructor(readonly border: TileBorder) {
-		super(2, 3) // 2 slots, max quantity 3 per slot
+		super(2, 1) // 2 slots, max quantity 3 per slot
 	}
 
 	attach(): void {
 		this.border.content = this
 	}
 
-	// Remove the gate if no alveoli are connected anymore.
+	// Remove the gate if not exactly two alveoli are connected.
 	validateOrRemove(): void {
-		if (!this.alveolusA && !this.alveolusB) {
+		if (!this.alveolusA || !this.alveolusB) {
 			this.border.content = undefined
 		}
 	}

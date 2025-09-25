@@ -37,7 +37,7 @@ export function withGenerator<T extends new (...args: any[]) => GameObject>(Base
 			}
 		}
 
-		abstract render(): ScopedCallback | undefined
+		abstract render(): ScopedCallback | undefined | void
 
 		destroy() {
 			this.renderCleanup?.()
@@ -84,7 +84,7 @@ export function withInteractive<T extends new (...args: any[]) => GameObject>(Ba
 		abstract readonly tile: Tile
 
 		destroy(): void {
-			this.game.unregister(this as any)
+			this.game.unregister(this)
 			super.destroy()
 		}
 	}
@@ -101,11 +101,11 @@ export function withHittable<T extends new (...args: any[]) => GameObject>(Base:
 
 		constructor(...args: any[]) {
 			super(...args)
-			this.game.registerHittable(this as any)
+			this.game.registerHittable(this)
 		}
 
 		destroy(): void {
-			this.game.unregisterHittable(this as any)
+			this.game.unregisterHittable(this)
 			super.destroy()
 		}
 
@@ -129,7 +129,7 @@ export function withTicked<T extends new (...args: any[]) => GameObject>(Base: T
 		}
 
 		updateCallback = (timer: Ticker) => {
-			this.update(timer.elapsedMS / 1000)
+			this.update(this.game.transformTime(timer.elapsedMS / 1000))
 		}
 
 		abstract update(deltaTime: number): void

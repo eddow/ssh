@@ -11,12 +11,11 @@ export interface AxialKeyDictionary<T> {
 }
 
 class AxialFixedKeyIndex {
-	protected array: Int32Array
+	protected array: AxialKey[]
 	constructor(keys: Iterable<AxialRef>) {
 		const ordered = Array.from(keys).map((k) => axial.key(k))
-		this.array = new Int32Array(ordered.length)
 		ordered.sort()
-		this.array.set(ordered)
+		this.array = ordered
 	}
 
 	index(key: AxialRef): number | undefined {
@@ -84,7 +83,7 @@ export class AxialKeyMap<T> implements AxialKeyDictionary<T>, Iterable<[AxialKey
 			})(),
 		)
 	}
-	[Symbol.iterator](): Iterator<[number, T], any, any> {
+	[Symbol.iterator](): Iterator<[AxialKey, T], any, any> {
 		return this.map[Symbol.iterator]()
 	}
 	get(key: AxialRef): T | undefined {

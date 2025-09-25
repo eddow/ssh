@@ -14,6 +14,7 @@ import type { Character } from '../population/character'
 import { Positioned, positionRoughlyEquals, toAxialCoord } from '../position'
 import { InteractiveContext, loadNpcScripts, protoCtx, subject } from './scripts'
 import { EatStep, MoveToStep, PonderingStep, WaitStep } from './steps'
+import { AlveolusArkType } from '../board'
 
 export interface Action<T = any> {
 	readonly description: 'grab' | 'drop'
@@ -165,12 +166,12 @@ class InventoryFunctions {
 		const tileTransfer = content.reserve(goodType, amount, `grab.${goodType}`)
 		return new WaitStep(amount * vehicle.transferTime, 'convey', `grab.${goodType}`)
 			.finished(() => {
-				vehicle.fulfill(vehicleTransfer)
-				content.fulfill(tileTransfer)
+				vehicleTransfer.fulfill()
+				tileTransfer.fulfill()
 			})
 			.canceled(() => {
-				vehicle.cancel(vehicleTransfer)
-				content.cancel(tileTransfer)
+				vehicleTransfer.cancel()
+				tileTransfer.cancel()
 			})
 	}
 	@contract(GoodType, 'number?')
@@ -191,12 +192,12 @@ class InventoryFunctions {
 		const vehicleTransfer = vehicle.reserve(goodType, amount, `drop.${goodType}`)
 		return new WaitStep(amount * vehicle.transferTime, 'convey', `drop.${goodType}`)
 			.finished(() => {
-				content.fulfill(tileTransfer)
-				vehicle.fulfill(vehicleTransfer)
+				tileTransfer.fulfill()
+				vehicleTransfer.fulfill()
 			})
 			.canceled(() => {
-				content.cancel(tileTransfer)
-				vehicle.cancel(vehicleTransfer)
+				tileTransfer.cancel()
+				vehicleTransfer.cancel()
 			})
 	}
 	@contract(GoodType, 'number', type.or(TileArkType, TileBorderArkType))
@@ -218,8 +219,8 @@ class InventoryFunctions {
 		// Register final callback to cancel allocations when script ends
 		assert(character.runningScript, 'character.runningScript must be set')
 		character.runningScript.final(() => {
-			content.cancel(tileAllocation)
-			vehicle.cancel(vehicleAllocation)
+			tileAllocation.cancel()
+			vehicleAllocation.cancel()
 		})
 
 		return { description: 'drop' as const, tileAllocation, vehicleAllocation, amount }
@@ -243,8 +244,8 @@ class InventoryFunctions {
 		// Register final callback to cancel allocations when script ends
 		assert(character.runningScript, 'character.runningScript must be set')
 		character.runningScript.final(() => {
-			vehicle.cancel(vehicleAllocation)
-			content.cancel(tileAllocation)
+			vehicleAllocation.cancel()
+			tileAllocation.cancel()
 		})
 
 		return { description: 'grab' as const, tileAllocation, vehicleAllocation, amount }
@@ -262,12 +263,12 @@ class InventoryFunctions {
 
 		return new WaitStep(amount * vehicle.transferTime, 'convey', description)
 			.finished(() => {
-				content.fulfill(tileAllocation)
-				vehicle.fulfill(vehicleAllocation)
+				tileAllocation.fulfill()
+				vehicleAllocation.fulfill()
 			})
 			.canceled(() => {
-				content.cancel(tileAllocation)
-				vehicle.cancel(vehicleAllocation)
+				tileAllocation.cancel()
+				vehicleAllocation.cancel()
 			})
 	}
 }
@@ -328,6 +329,47 @@ class WorkFunctions {
 			`prepare.${this[subject].assignedAlveolus!.name}`,
 		)
 	}
+	@contract(AlveolusArkType.optional())
+	convey() {
+		const character = this[subject]
+		const alveolus = character.assignedAlveolus!
+		assert(
+			alveolus.tile === character.tile,
+			'Character must be assigned to the alveolus on the same tile',
+		)
+		// Pick one movement that passes through this alveolus
+		const movements = alveolus.goodMovements
+		if (movements.length === 0) return
+		const mg = movements[0]
+		const hive = alveolus.hive
+
+		// Advance one hop along the path
+		const hop = mg.hop()!
+		// If moving from tile -> border, allocate on border and fulfill provider reservation
+		const nextStorage = hive.storageAt(hop)
+		const hopAlloc = mg.path.length ?
+			nextStorage!.allocate(mg.goodType, 1, { type: 'convey.hop', movement: mg }) :
+			undefined
+		mg.allocations.provider.fulfill()
+		const moving = character.game.hex.freeGoods.add(alveolus.tile, mg.goodType, mg.from)
+		const time = character.vehicle.transferTime * axial.distance(mg.from, hop)
+
+		return new MoveToStep(time, moving, hop, 'convey')
+			.canceled(() => {
+				hopAlloc?.cancel()
+				mg.allocations.demander.cancel()
+				mg.demander.poke()
+				mg.finish()
+			}).finished(() => {
+				moving.remove()
+				if(!mg.path.length) {
+					mg.allocations.demander.fulfill()
+				} else {
+					hopAlloc!.fulfill()
+					mg.allocations.provider = nextStorage!.reserve(mg.goodType, 1, { type: 'convey.path', movement: mg })
+				}
+			})
+	}
 	@contract()
 	harvestStep() {
 		const unbuiltLand = this[subject].tile.content as UnBuiltLand
@@ -387,6 +429,10 @@ class CharacterContext extends InteractiveContext<Character> {
 	@contract(GoodType.optional())
 	haveRoom(goodType?: GoodType): number {
 		return this[subject].vehicle.hasRoom(goodType)
+	}
+	@contract()
+	pokeAlveolus() {
+		return this[subject].assignedAlveolus!.poke()
 	}
 }
 

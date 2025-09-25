@@ -1,5 +1,5 @@
 import { AxialKeyMap, HeapMin } from '../mem'
-import type { AxialCoord, AxialRef } from './axial'
+import type { AxialCoord, AxialKey, AxialRef } from './axial'
 import { axial } from './axial'
 
 export type GetNeighbors = (coord: AxialRef) => (NeighborInfo | AxialCoord)[]
@@ -69,7 +69,7 @@ export function findPath(
 	const goalDistance = punctual ? 0 : 1
 
 	// Initialize data structures
-	const openSet = new HeapMin<number, number>()
+	const openSet = new HeapMin<AxialKey, number>()
 	const openSetMap = new AxialKeyMap<HeuristicPathfindingNode>()
 	const closedSet = new AxialKeyMap<PathfindingNode>()
 	const gCosts = new AxialKeyMap<number>()
@@ -138,6 +138,7 @@ export function findPath(
 			openSet.set(axial.key(neighborCoord), neighborNode.fCost)
 			openSetMap.set(neighborCoord, neighborNode)
 			if (openSet.size !== openSetMap.size) {
+				//TODO: okay, it's the same .... so, why 2 sets?
 				debugger
 			}
 		}

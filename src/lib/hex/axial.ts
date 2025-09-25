@@ -5,7 +5,8 @@ import type { Sextuplet } from '../../types'
 import { assert } from '../debug'
 import type { RandGenerator } from '../numbers'
 
-export type AxialKey = number
+export type AxialKey = string
+export const AxialKey = 'string'
 export interface AxialCoord {
 	q: number
 	r: number
@@ -143,20 +144,22 @@ function bitShiftUnpair(z: number): AxialCoord {
 
 export const axial = {
 	access(aRef: AxialRef): Axial {
-		if (typeof aRef === 'number') return axial.keyAccess(aRef)
+		if (typeof aRef === 'string') return axial.keyAccess(aRef)
 		return axial.coordAccess(aRef)
 	},
 	keyAccess(aRef: AxialKey): Axial {
 		return {
 			key: aRef,
-			...bitShiftUnpair(aRef),
+			...axial.coord(aRef),
 		}
 	},
 	coordAccess(aRef: AxialCoord): Axial {
+		assert(typeof aRef === 'object', 'aRef must be an object')
 		assert(!('key' in aRef) || aRef.key !== undefined, 'key must be defined if set')
 		if ('key' in aRef) return aRef as Axial
 		return Object.assign(aRef, {
-			key: bitShiftPair(aRef),
+			//key: bitShiftPair(aRef),
+			key: `${aRef.q},${aRef.r}`,
 		})
 	},
 	/**
@@ -180,11 +183,15 @@ export const axial = {
 	 * @returns string
 	 */
 	key(aRef: AxialRef | string): AxialKey {
-		switch (typeof aRef) {
+		switch (
+			typeof aRef /*
 			case 'number':
 				return aRef
 			case 'string':
-				return bitShiftPair(axial.coord(aRef))
+				return bitShiftPair(axial.coord(aRef))*/
+		) {
+			case 'string':
+				return aRef
 			default:
 				return axial.coordAccess(aRef as Axial).key // cache it
 		}
@@ -216,7 +223,7 @@ export const axial = {
 	 * @returns boolean
 	 */
 	zero(aRef: AxialRef) {
-		if (typeof aRef !== 'object') return aRef === 0
+		if (typeof aRef !== 'object') return aRef === '0,0'
 		const { q, r } = axial.coord(aRef)
 		return q === 0 && r === 0
 	},

@@ -1,7 +1,7 @@
 import { computed, reactive } from 'mutts'
 import type { GoodType } from '$lib/arktype'
 import { assert } from '$lib/debug'
-import { type GoodSlot, renderGoods as renderGenericGoods } from './goods-renderer'
+import type { RenderedGoodSlot, RenderedGoodSlots } from './goods-renderer'
 import {
 	AllocationError,
 	allocationEnded,
@@ -10,7 +10,65 @@ import {
 	isAllocationValid,
 } from './guard'
 import type { Goods } from './index'
-import { Storage } from './storage'
+import { type AllocationBase, Storage } from './storage'
+
+class SlottedAllocation implements AllocationBase {
+	constructor(
+		private storage: SlottedStorage,
+		public readonly allocation: number[],
+		reason: any,
+	) {
+		guardAllocation(this, reason)
+	}
+
+	cancel(): void {
+		if (!isAllocationValid(this)) return
+		allocationEnded(this)
+		invalidateAllocation(this)
+		for (let i = 0; i < this.allocation.length; i++) {
+			const amount = this.allocation[i]
+			if (amount === 0) continue
+			const slot = this.storage.slots[i]
+			if (!slot) continue
+			if (amount > 0) {
+				const reduce = Math.min(amount, slot.allocated)
+				slot.allocated -= reduce
+				if (slot.quantity + slot.allocated === 0) this.storage.slots[i] = undefined
+			} else {
+				const reduce = Math.min(-amount, slot.reserved)
+				slot.reserved -= reduce
+				// quantity unchanged on cancel of negative allocation
+				if (slot.quantity + slot.allocated === 0) this.storage.slots[i] = undefined
+			}
+		}
+	}
+
+	fulfill(): void {
+		if (!isAllocationValid(this)) return
+		allocationEnded(this)
+		invalidateAllocation(this)
+		for (let i = 0; i < this.allocation.length; i++) {
+			const amount = this.allocation[i]
+			if (amount === 0) continue
+			const slot = this.storage.slots[i]
+			if (!slot) continue
+			if (amount > 0) {
+				const use = Math.min(amount, slot.allocated)
+				const roomHere = this.storage.maxQuantityPerSlot - slot.quantity
+				const toPresent = Math.min(use, roomHere)
+				slot.quantity += toPresent
+				slot.allocated -= toPresent
+				if (slot.quantity + slot.allocated === 0) this.storage.slots[i] = undefined
+			} else {
+				const want = -amount
+				const use = Math.min(want, slot.reserved, slot.quantity)
+				slot.quantity -= use
+				slot.reserved -= use
+				if (slot.quantity + slot.allocated === 0) this.storage.slots[i] = undefined
+			}
+		}
+	}
+}
 
 export interface Slot {
 	goodType: GoodType
@@ -20,11 +78,11 @@ export interface Slot {
 }
 
 @reactive
-export class SlottedStorage extends Storage<number[]> {
+export class SlottedStorage extends Storage<SlottedAllocation> {
 	public slots: (Slot | undefined)[]
 
 	constructor(
-		public readonly maxSlots: number,
+		maxSlots: number,
 		public readonly maxQuantityPerSlot: number = 1,
 	) {
 		super()
@@ -115,7 +173,7 @@ export class SlottedStorage extends Storage<number[]> {
 		return total
 	}
 
-	allocate(goodType: GoodType, qty: number, reason: any): number[] {
+	allocate(goodType: GoodType, qty: number, reason: any): SlottedAllocation {
 		assert(qty > 0, 'Cannot allocate non-positive quantity')
 		const alloc: number[] = Array(this.slots.length).fill(0)
 		let remaining = Math.min(qty, this.hasRoom(goodType))
@@ -143,82 +201,31 @@ export class SlottedStorage extends Storage<number[]> {
 			remaining -= take
 		}
 
-		// Register GC guard
-		guardAllocation(alloc, reason)
-		return alloc
+		return new SlottedAllocation(this, alloc, reason)
 	}
 
-	reserve(goodType: GoodType, qty: number, reason: any): number[] {
+	reserve(goodType: GoodType, qty: number, reason: any): SlottedAllocation {
 		assert(qty > 0, 'Cannot reserve non-positive quantity')
 		const alloc: number[] = Array(this.slots.length).fill(0)
 		let remaining = Math.min(qty, this.available(goodType))
 		if (remaining <= 0)
 			throw new AllocationError(`Insufficient goods to reserve ${qty} of ${goodType}`, reason)
 
-		// Reserve removal from present goods
+		// Reserve goods that are present but not yet reserved
 		for (let i = 0; i < this.slots.length && remaining > 0; i++) {
 			const slot = this.slots[i]
 			if (!slot || slot.goodType !== goodType) continue
-			const freeRemovable = Math.max(0, slot.quantity - slot.reserved)
-			if (freeRemovable <= 0) continue
-			const take = Math.min(remaining, freeRemovable)
+			const freeReservable = Math.max(0, slot.quantity - slot.reserved)
+			if (freeReservable <= 0) continue
+			const take = Math.min(remaining, freeReservable)
 			slot.reserved += take
-			alloc[i] -= take // negative marks removal reservation
+			alloc[i] -= take // negative marks reservation
 			remaining -= take
 		}
 
-		// Register GC guard
-		guardAllocation(alloc, reason)
-		return alloc
+		return new SlottedAllocation(this, alloc, reason)
 	}
 
-	fulfill(allocation: number[]): void {
-		if (!isAllocationValid(allocation)) return
-		allocationEnded(allocation)
-		invalidateAllocation(allocation)
-		for (let i = 0; i < allocation.length; i++) {
-			const amount = allocation[i]
-			if (amount === 0) continue
-			const slot = this.slots[i]
-			if (!slot) continue
-			if (amount > 0) {
-				const use = Math.min(amount, slot.allocated)
-				const roomHere = this.maxQuantityPerSlot - slot.quantity
-				const toPresent = Math.min(use, roomHere)
-				slot.quantity += toPresent
-				slot.allocated -= toPresent
-				if (slot.quantity + slot.allocated === 0) this.slots[i] = undefined
-			} else {
-				const want = -amount
-				const use = Math.min(want, slot.reserved, slot.quantity)
-				slot.quantity -= use
-				slot.reserved -= use
-				if (slot.quantity + slot.allocated === 0) this.slots[i] = undefined
-			}
-		}
-	}
-
-	cancel(allocation: number[]): void {
-		if (!isAllocationValid(allocation)) return
-		allocationEnded(allocation)
-		invalidateAllocation(allocation)
-		for (let i = 0; i < allocation.length; i++) {
-			const amount = allocation[i]
-			if (amount === 0) continue
-			const slot = this.slots[i]
-			if (!slot) continue
-			if (amount > 0) {
-				const reduce = Math.min(amount, slot.allocated)
-				slot.allocated -= reduce
-				if (slot.quantity + slot.allocated === 0) this.slots[i] = undefined
-			} else {
-				const reduce = Math.min(-amount, slot.reserved)
-				slot.reserved -= reduce
-				// quantity unchanged on cancel of negative allocation
-				if (slot.quantity + slot.allocated === 0) this.slots[i] = undefined
-			}
-		}
-	}
 	canStoreAll(_goods: Goods): boolean {
 		// Prepare remaining requirements per good type
 		const remaining: { [k: string]: number } = {}
@@ -250,28 +257,25 @@ export class SlottedStorage extends Storage<number[]> {
 	}
 
 	// presentAmount replaced by available()
-	renderGoods(game: any, size: number) {
-		const getSlots = (): GoodSlot[] => {
-			const result: GoodSlot[] = []
-			for (const slot of this.slots) {
-				if (!slot) continue
-				result.push({
-					goodType: slot.goodType,
-					present: Math.max(0, slot.quantity),
-					reserved: Math.max(0, slot.reserved),
-					allocated: Math.max(0, slot.allocated),
-					allowed: this.maxQuantityPerSlot,
-				})
-			}
-			return result
+	renderedGoods(): RenderedGoodSlots {
+		const slots: RenderedGoodSlot[] = []
+		for (const slot of this.slots) {
+			if (!slot) continue
+			slots.push({
+				goodType: slot.goodType,
+				present: Math.max(0, slot.quantity - slot.reserved),
+				reserved: Math.max(0, slot.reserved),
+				allocated: Math.max(0, slot.allocated),
+				allowed: this.maxQuantityPerSlot,
+			})
 		}
-		return renderGenericGoods(game, size, getSlots, this.slots.length)
+		return { slots, assumedMaxSlots: this.slots.length }
 	}
 
 	get debugInfo(): Record<string, any> {
 		return {
 			type: 'SlottedStorage',
-			maxSlots: this.maxSlots,
+			maxSlots: this.slots.length,
 			maxQuantityPerSlot: this.maxQuantityPerSlot,
 			slots: this.slots.map((slot, index) => ({
 				index,

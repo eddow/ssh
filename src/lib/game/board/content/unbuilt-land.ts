@@ -8,6 +8,7 @@ import { SlottedStorage } from '../../storage/slotted-storage'
 import type { Tile } from '../tile'
 import type { TileContent } from './content'
 import { GcClassed, GcClasses } from './utils'
+import { renderTileGoods } from '$lib/game/storage'
 
 export class Deposit extends GcClassed<Ssh.DepositDefinition>() {
 	static class = GcClasses(() => Deposit, deposits)
@@ -58,7 +59,7 @@ export class UnBuiltLand extends SlottedStorage implements TileContent {
 			}
 		})
 
-		root.addChild(this.renderGoods(game, size))
+		root.addChild(renderTileGoods(game, size, () => this.renderedGoods()))
 
 		return root
 	}

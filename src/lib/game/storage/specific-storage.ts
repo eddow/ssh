@@ -1,7 +1,7 @@
 import { computed, reactive } from 'mutts'
 import { GoodType } from '$lib/arktype'
 import { assert } from '$lib/debug'
-import { type GoodSlot, renderGoods } from './goods-renderer'
+import type { RenderedGoodSlot } from './goods-renderer'
 import {
 	AllocationError,
 	allocationEnded,
@@ -9,14 +9,60 @@ import {
 	invalidateAllocation,
 	isAllocationValid,
 } from './guard'
-import type { Goods } from './index'
-import { Storage } from './storage'
+import type { Goods, RenderedGoodSlots } from './index'
+import { type AllocationBase, Storage } from './storage'
+
+class SpecificAllocation implements AllocationBase {
+	constructor(
+		private storage: SpecificStorage,
+		public readonly goodType: GoodType,
+		public readonly qty: number,
+		reason: any,
+	) {
+		guardAllocation(this, reason)
+	}
+
+	cancel(): void {
+		if (!isAllocationValid(this)) return
+		allocationEnded(this)
+		invalidateAllocation(this)
+		const { goodType, qty } = this
+		if (qty > 0) {
+			const curAlloc = this.storage._allocated[goodType] || 0
+			this.storage._allocated[goodType] = Math.max(0, curAlloc - qty)
+		} else if (qty < 0) {
+			const curRes = this.storage._reserved[goodType] || 0
+			this.storage._reserved[goodType] = Math.max(0, curRes + qty)
+		}
+	}
+
+	fulfill(): void {
+		if (!isAllocationValid(this)) return
+		allocationEnded(this)
+		invalidateAllocation(this)
+		const { goodType, qty } = this
+		if (qty > 0) {
+			const curAlloc = this.storage._allocated[goodType] || 0
+			const use = Math.min(qty, curAlloc)
+			if (use <= 0) return
+			this.storage._allocated[goodType] = curAlloc - use
+			this.storage._goods[goodType] = (this.storage._goods[goodType] || 0) + use
+		} else if (qty < 0) {
+			const want = -qty
+			const curRes = this.storage._reserved[goodType] || 0
+			const use = Math.min(want, curRes, this.storage._goods[goodType] || 0)
+			if (use <= 0) return
+			this.storage._reserved[goodType] = curRes - use
+			this.storage._goods[goodType] = Math.max(0, (this.storage._goods[goodType] || 0) - use)
+		}
+	}
+}
 
 @reactive
-export class SpecificStorage extends Storage<{ goodType: GoodType; qty: number }> {
-	private _goods: { [k in GoodType]?: number } = {}
-	private _allocated: { [k in GoodType]?: number } = {}
-	private _reserved: { [k in GoodType]?: number } = {}
+export class SpecificStorage extends Storage<SpecificAllocation> {
+	public readonly _goods: { [k in GoodType]?: number } = {}
+	public readonly _allocated: { [k in GoodType]?: number } = {}
+	public readonly _reserved: { [k in GoodType]?: number } = {}
 	public readonly maxAmounts: { [k in GoodType]?: number }
 
 	constructor(maxAmounts: { [k in GoodType]?: number }) {
@@ -72,80 +118,37 @@ export class SpecificStorage extends Storage<{ goodType: GoodType; qty: number }
 		return Math.max(0, (this._goods[goodType] || 0) - (this._reserved[goodType] || 0))
 	}
 
-	renderGoods(game: any, size: number) {
-		const getSlots = () => {
-			const slots: GoodSlot[] = []
-			for (const [goodType, maxAmount] of Object.entries(this.maxAmounts)) {
-				assert(GoodType.allows(goodType), 'Good type not found in goods')
-				const present = this._goods[goodType] || 0
-				const allocated = this._allocated[goodType] || 0
-				const reserved = this._reserved[goodType] || 0
-				const allowed = maxAmount
-				slots.push({ goodType, present, allocated, reserved, allowed })
-			}
-			return slots
+	renderedGoods(): RenderedGoodSlots {
+		const slots: RenderedGoodSlot[] = []
+		for (const [goodType, maxAmount] of Object.entries(this.maxAmounts)) {
+			assert(GoodType.allows(goodType), 'Good type not found in goods')
+			const present = (this._goods[goodType] || 0) - (this._reserved[goodType] || 0)
+			const allocated = this._allocated[goodType] || 0
+			const reserved = this._reserved[goodType] || 0
+			const allowed = maxAmount
+			slots.push({ goodType, present, allocated, reserved, allowed })
 		}
-
-		return renderGoods(game, size, getSlots, Object.keys(this.maxAmounts).length)
+		return { slots, assumedMaxSlots: Object.keys(this.maxAmounts).length }
 	}
 
-	allocate(goodType: GoodType, qty: number, reason: any): { goodType: GoodType; qty: number } {
+	allocate(goodType: GoodType, qty: number, reason: any): SpecificAllocation {
 		assert(qty > 0, 'Cannot allocate non-positive quantity')
 		const room = this.hasRoom(goodType)
 		const take = Math.min(qty, room)
 		if (take <= 0)
 			throw new AllocationError(`Insufficient room to allocate ${qty} of ${goodType}`, reason)
 		this._allocated[goodType] = (this._allocated[goodType] || 0) + take
-		const token = { goodType, qty: take }
-		guardAllocation(token, reason)
-		return token
+		return new SpecificAllocation(this, goodType, take, reason)
 	}
 
-	reserve(goodType: GoodType, qty: number, reason: any): { goodType: GoodType; qty: number } {
+	reserve(goodType: GoodType, qty: number, reason: any): SpecificAllocation {
 		assert(qty > 0, 'Cannot reserve non-positive quantity')
 		const available = Math.max(0, (this._goods[goodType] || 0) - (this._reserved[goodType] || 0))
 		const take = Math.min(qty, available)
 		if (take <= 0)
 			throw new AllocationError(`Insufficient goods to reserve ${qty} of ${goodType}`, reason)
 		this._reserved[goodType] = (this._reserved[goodType] || 0) + take
-		const token = { goodType, qty: -take }
-		guardAllocation(token, reason)
-		return token
-	}
-
-	fulfill(allocation: { goodType: GoodType; qty: number }): void {
-		if (!isAllocationValid(allocation)) return
-		allocationEnded(allocation)
-		invalidateAllocation(allocation)
-		const { goodType, qty } = allocation
-		if (qty > 0) {
-			const curAlloc = this._allocated[goodType] || 0
-			const use = Math.min(qty, curAlloc)
-			if (use <= 0) return
-			this._allocated[goodType] = curAlloc - use
-			this._goods[goodType] = (this._goods[goodType] || 0) + use
-		} else if (qty < 0) {
-			const want = -qty
-			const curRes = this._reserved[goodType] || 0
-			const use = Math.min(want, curRes, this._goods[goodType] || 0)
-			if (use <= 0) return
-			this._reserved[goodType] = curRes - use
-			this._goods[goodType] = Math.max(0, (this._goods[goodType] || 0) - use)
-		}
-	}
-
-	cancel(allocation: { goodType: GoodType; qty: number }): void {
-		if (!isAllocationValid(allocation)) return
-		allocationEnded(allocation)
-		invalidateAllocation(allocation)
-		const { goodType, qty } = allocation
-		if (qty > 0) {
-			const curAlloc = this._allocated[goodType] || 0
-			this._allocated[goodType] = Math.max(0, curAlloc - qty)
-		} else if (qty < 0) {
-			const curRes = this._reserved[goodType] || 0
-			this._reserved[goodType] = Math.max(0, curRes + qty)
-		}
+		return new SpecificAllocation(this, goodType, -take, reason)
 	}
 
 	get debugInfo(): Record<string, any> {

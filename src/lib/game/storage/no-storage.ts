@@ -40,12 +40,6 @@ class NoStorage extends Storage<never> {
 			reason,
 		)
 	}
-	fulfill(_allocation: never): void {
-		/* noop - allocations are never created for NoStorage */
-	}
-	cancel(_allocation: never): void {
-		/* noop - allocations are never created for NoStorage */
-	}
 
 	renderGoods(_game: any, _size: number) {
 		return new Container()

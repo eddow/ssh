@@ -56,7 +56,7 @@ export function withScripted<T extends new (...args: any[]) => TickedGameObject>
 		}
 
 		update(dt: number) {
-			let remaining: number | undefined = dt * 5
+			let remaining: number | undefined = dt
 			let uselessStepExecutor: string | false = false
 			while (remaining !== undefined && this.stepExecutor) {
 				const newRemaining = this.stepExecutor.tick(remaining)
@@ -66,7 +66,7 @@ export function withScripted<T extends new (...args: any[]) => TickedGameObject>
 				if (remaining !== undefined) {
 					this.stepExecutor = undefined
 					this.nextStep()
-					const newType = this.stepExecutor?.type
+					const newType = this.stepExecutor!?.type
 					if (uselessStepExecutor === newType) throw new Error(`Useless step executor: ${newType}`)
 				}
 			}

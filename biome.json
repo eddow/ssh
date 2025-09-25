@@ -22,6 +22,7 @@
 			"quoteStyle": "single"
 		}
 	},
+
 	"linter": {
 		"rules": {
 			"style": {
@@ -37,7 +38,9 @@
 			"suspicious": {
 				"noExplicitAny": "off",
 				"noDebugger": "off",
-				"noConsole": "off"
+				"noConsole": "off",
+				"noConfusingVoidType": "off",
+				"noExtraNonNullAssertion": "off"
 			},
 			"performance": {
 				"noAccumulatingSpread": "off"

@@ -1,10 +1,14 @@
 import { ReactiveBase } from 'mutts'
-import type { ContainerChild } from 'pixi.js'
 import type { GoodType } from '$lib/arktype'
+import type { RenderedGoodSlots } from './goods-renderer'
 
 export type Goods = { [k in GoodType]?: number }
 
-export abstract class Storage<Allocation> extends ReactiveBase {
+export interface AllocationBase {
+	cancel(): void
+	fulfill(): void
+}
+export abstract class Storage<Allocation extends AllocationBase> extends ReactiveBase {
 	/**
 	 * Check how much of a good can be stored
 	 * @param goodType - The type of good to check
@@ -45,14 +49,6 @@ export abstract class Storage<Allocation> extends ReactiveBase {
 	 * @throws Error if reservation fails (insufficient goods)
 	 */
 	abstract reserve(goodType: GoodType, qty: number, reason: any): Allocation
-	/**
-	 * Fulfill an allocation: convert allocation into present goods
-	 */
-	abstract fulfill(allocation: Allocation): void
-	/**
-	 * Free an allocation without adding goods
-	 */
-	abstract cancel(allocation: Allocation): void
 
 	/**
 	 * Get all goods currently stored (stock totals, includes reserved)
@@ -65,16 +61,19 @@ export abstract class Storage<Allocation> extends ReactiveBase {
 	abstract available(goodType: GoodType): number
 
 	/** Render a visualization of stored goods */
-	abstract renderGoods(game: any, size: number): ContainerChild
+	abstract renderedGoods(): RenderedGoodSlots
 }
 
 /**
  * Mixin that adds Storage forwarding functionality to a base class.
  * The resulting class will forward all Storage interface methods to a provided Storage instance.
  */
-export function withStorageForwarder<Allocation, TBase extends new (...args: any[]) => any>(
-	Base: TBase,
-) {
+export function withStorageForwarder<
+	Allocation extends AllocationBase,
+	TBase extends new (
+		...args: any[]
+	) => any,
+>(Base: TBase) {
 	return class extends Base implements Storage<Allocation> {
 		constructor(...args: any[]) {
 			const [storage, ...rest] = args
@@ -108,14 +107,6 @@ export function withStorageForwarder<Allocation, TBase extends new (...args: any
 			return this.storage.reserve(goodType, qty, reason)
 		}
 
-		fulfill(allocation: Allocation): void {
-			this.storage.fulfill(allocation)
-		}
-
-		cancel(allocation: Allocation): void {
-			this.storage.cancel(allocation)
-		}
-
 		get stock() {
 			return this.storage.stock
 		}
@@ -124,8 +115,8 @@ export function withStorageForwarder<Allocation, TBase extends new (...args: any
 			return this.storage.available(goodType)
 		}
 
-		renderGoods(game: any, size: number) {
-			return this.storage.renderGoods(game, size)
+		renderedGoods() {
+			return this.storage.renderedGoods()
 		}
 	}
 }

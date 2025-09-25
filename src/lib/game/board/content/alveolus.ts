@@ -1,20 +1,27 @@
 import { type } from 'arktype'
-import { computed } from 'mutts'
+import { computed, unreactive } from 'mutts'
 import { Container, type ContainerChild, Sprite } from 'pixi.js'
 import type { GoodType } from '$lib/arktype'
 import type { Game } from '$lib/game/game'
+import type { MovingGood } from '$lib/game/hive/hive'
 import { Hive } from '$lib/game/hive/hive'
 import type { Job } from '$lib/game/job'
 import { gameIsaTypes } from '$lib/game/npcs/utils'
 import type { Character } from '$lib/game/population/character'
-import { tileSize } from '$lib/utils'
-import { type Storage, withStorageForwarder } from '../../storage'
+import { toAxialCoord } from '$lib/game/position'
+import { axial, type AxialCoord } from '$lib/hex'
+import { epsilon, tileSize } from '$lib/utils'
+import { renderTileGoods, type Storage, withStorageForwarder } from '../../storage'
 import { AlveolusGate } from '../border/alveolus-gate'
 import type { Tile } from '../tile'
 import type { TileContent } from './content'
 import { UnBuiltLand } from './unbuilt-land'
 import { GcClassed } from './utils'
 
+interface LocalMovingGood extends MovingGood {
+	from: AxialCoord
+}
+@unreactive
 export abstract class Alveolus
 	extends withStorageForwarder(GcClassed<Ssh.AlveolusDefinition>())
 	implements TileContent
@@ -33,15 +40,20 @@ export abstract class Alveolus
 		super(storage)
 		const hive = Hive.for(tile)
 		hive.attach(this)
-		for (const surrounding of this.tile.surroundings)
-			surrounding.border.content = new AlveolusGate(surrounding.border)
+		// Only create gates between two alveoli
+		for (const surrounding of this.tile.surroundings) {
+			// Check if the neighboring tile also contains an alveolus
+			if (surrounding.tile instanceof Alveolus) {
+				// Create gate only if one doesn't already exist
+				if (!(surrounding.border.content instanceof AlveolusGate)) {
+					surrounding.border.content = new AlveolusGate(surrounding.border)
+				}
+			}
+		}
 	}
 
 	get debugInfo() {
-		return {
-			outputs: this.output,
-			storage: (this.storage as any).debugInfo,
-		}
+		return {}
 	}
 	get walkTime() {
 		return this.walkway ? 1 : Number.POSITIVE_INFINITY
@@ -76,7 +88,7 @@ export abstract class Alveolus
 			sprite.anchor.set(0.5)
 			root.addChild(sprite)
 		}
-		root.addChild(this.renderGoods(game, size))
+		root.addChild(renderTileGoods(game, size, () => this.renderedGoods()))
 
 		return root
 	}
@@ -88,7 +100,8 @@ export abstract class Alveolus
 	alveolusSpecificJob?(): Job | undefined
 
 	getJob(): Job | undefined {
-		// perhaps carry/...
+		const carry = this.conveyJob()
+		if (carry) return carry
 		return this.alveolusSpecificJob?.()
 	}
 
@@ -99,6 +112,49 @@ export abstract class Alveolus
 		// Add time-based fatigue (if alveolus has time configuration)
 		// For now, just return base fatigue
 		return baseFatigue
+	}
+
+	/**
+	 * Goods movements visible at this alveolus:
+	 * - from/to includes tile or its borders
+	 * - next hop has room for the good
+	 */
+	@computed
+	get goodMovements(): LocalMovingGood[] {
+		const hive = this.hive
+		const here = toAxialCoord(this.tile.position)
+		const results: LocalMovingGood[] = []
+
+		function canAdvance(mg: MovingGood) {
+			return hive.storageAt(mg.path[0])?.hasRoom(mg.goodType) ||
+				mg.path.length === 1
+		}
+		// Special case: include all movements at the tile itself
+		const atHere = hive.movingGoods.get(here)
+		if (atHere) for (const mg of atHere) 
+			if (canAdvance(mg))
+				results.push(Object.setPrototypeOf({ from: here }, mg))
+
+		// Only browse surroundings (borders)
+		for (const { border } of this.tile.surroundings) {
+			const from = toAxialCoord(border.position)
+			const arr = hive.movingGoods.get(from)
+			if (!arr) continue
+			for (const mg of arr) {
+				if (
+					axial.distance(mg.path[0], here) < .5+epsilon &&
+					canAdvance(mg)
+				) results.push(Object.setPrototypeOf({ from }, mg))
+			}
+		}
+		return results
+	}
+
+	private conveyJob(): Job | undefined {
+		// Provide a convey job only when there are pass-through movements via borders
+		return this.goodMovements.length > 0
+			? ({ type: 'convey', fatigue: this.getFatigueCost(), urgency: 2 } as Job)
+			: undefined
 	}
 
 	deconstruct() {
@@ -113,14 +169,8 @@ export abstract class Alveolus
 			.map((neighbor) => neighbor?.content)
 			.filter((c): c is Alveolus => c instanceof Alveolus)
 	}
-
-	pull(goodType: GoodType, target: Alveolus): any {
-		return goodType in this.output && this.storage.available(goodType) > 0
-			? this.storage.reserve(goodType, 1, {
-					type: 'pull',
-					target,
-				})
-			: 0
+	poke() {
+		this.hive.pokeAlveolus(this)
 	}
 }
 gameIsaTypes.alveolus = (value: any) => {

@@ -3,7 +3,7 @@ import { goods as goodsCatalog } from '$assets/game-content'
 import type { GoodType } from '$lib/arktype'
 import { assert } from '$lib/debug'
 import { casing } from '$lib/utils'
-import type { Character } from '../population/population'
+import type { Character } from '../population'
 import type { Position, Positioned } from '../position'
 import { Finalized } from './scripts'
 import { lerp } from './utils'
@@ -55,13 +55,15 @@ export abstract class ALerpStep<T extends number | Positioned> extends AEvolutio
 //#endregion
 //#region Commons
 export class MoveToStep extends ALerpStep<Positioned> {
-	get type() {
-		return 'walk' as const
+	get description(): string | false {
+		return this.givenDescription ?? super.description
 	}
 	constructor(
 		duration: number,
 		readonly who: { position: Position },
 		to: Positioned,
+		readonly type: Ssh.ActivityType = 'walk',
+		readonly givenDescription?: string,
 	) {
 		super(duration, who.position, to)
 	}

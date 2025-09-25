@@ -81,16 +81,6 @@ export class Tile extends withInteractive(withGenerator(GameObject)) {
 			border: TileBorder
 			tile: TileContent
 		}[]
-		/*
-		const { q, r } = toAxialCoord(this.position)
-		return [
-			this.board.getBorder({ q: q + 0.5, r }),
-			this.board.getBorder({ q: q - 0.5, r }),
-			this.board.getBorder({ q, r: r + 0.5 }),
-			this.board.getBorder({ q, r: r - 0.5 }),
-			this.board.getBorder({ q: q - 0.5, r: r + 0.5 }),
-			this.board.getBorder({ q: q + 0.5, r: r - 0.5 }),
-		]*/
 	}
 
 	borderWith(positioned: Positioned): TileBorder | undefined {
@@ -144,6 +134,10 @@ export class Tile extends withInteractive(withGenerator(GameObject)) {
 				fg.position.set(x, y)
 				game.objectLayer.addChild(fg)
 				fg.addChild(content.render(game))
+				return () => {
+					fg.destroy()
+					game.objectLayer.removeChild(fg)
+				}
 			},
 			{ immediate: true },
 		)

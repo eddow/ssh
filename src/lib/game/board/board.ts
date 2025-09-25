@@ -21,6 +21,7 @@ import type { Character } from '../population/character'
 import { TileBorder, type TileBorderContent } from './border/border'
 import { Alveolus } from './content/alveolus'
 import type { TileContent } from './content/content'
+import { FreeGoods } from './freeGoods'
 import { Tile } from './tile'
 
 export function isTileCoord(coord: AxialCoord): boolean {
@@ -28,8 +29,11 @@ export function isTileCoord(coord: AxialCoord): boolean {
 }
 
 export class HexBoard extends withContainer(withHittable(GameObject)) {
-	private contents: AxialKeyMap<TileContent | TileBorderContent>
-	private occupied: AxialKeyMap<Character>
+	private readonly contents = new AxialKeyMap<TileContent | TileBorderContent>()
+	private readonly occupied = new AxialKeyMap<Character>()
+	// Will contain goods when perhaps destroying a building (war-like destruction), killing a character,
+	// stopping (or making) a transit, etc.
+	readonly freeGoods: FreeGoods
 
 	axial2world(coord: AxialRef): WorldCoord {
 		return cartesian(coord, tileSize)
@@ -44,8 +48,7 @@ export class HexBoard extends withContainer(withHittable(GameObject)) {
 		public readonly boardSize: number = 12,
 	) {
 		super(game)
-		this.contents = new AxialKeyMap()
-		this.occupied = new AxialKeyMap()
+		this.freeGoods = new FreeGoods(game)
 		this.zIndex = -1
 	}
 
@@ -75,14 +78,14 @@ export class HexBoard extends withContainer(withHittable(GameObject)) {
 	getTileContent(ref: AxialRef): TileContent | undefined {
 		const coord = axial.access(ref)
 		assert(isTileCoord(coord), 'coord must be a tile coordinate')
-		return this.contents.get({ q: coord.q << 1, r: coord.r << 1 }) as TileContent | undefined
+		return this.contents.get({ q: coord.q, r: coord.r }) as TileContent | undefined
 	}
 
 	setTileContent(ref: AxialRef, content: TileContent | undefined) {
 		const coord = axial.access(ref)
 		assert(isTileCoord(coord), 'coord must be a tile coordinate')
-		if (!content) this.contents.delete({ q: coord.q << 1, r: coord.r << 1 })
-		else this.contents.set({ q: coord.q << 1, r: coord.r << 1 }, content)
+		if (!content) this.contents.delete({ q: coord.q, r: coord.r })
+		else this.contents.set({ q: coord.q, r: coord.r }, content)
 		// If a tile content is set programmatically post-generation, mark tile dirty
 		const tile = content?.tile ?? this.getTile(coord)
 		if (tile) tile.asGenerated = false
@@ -91,31 +94,27 @@ export class HexBoard extends withContainer(withHittable(GameObject)) {
 	getTile(ref: AxialRef): Tile | undefined {
 		const coord = axial.access(ref)
 		if (!(isInteger(coord.q) && isInteger(coord.r)) || !this.inBound(coord)) return undefined
-		const content = this.contents.get({ q: coord.q << 1, r: coord.r << 1 }) as
-			| TileContent
-			| undefined
+		const content = this.contents.get({ q: coord.q, r: coord.r }) as TileContent | undefined
 		return content?.tile ?? new Tile(this, coord)
 	}
 
 	getBorderContent(ref: AxialRef): TileBorderContent | undefined {
 		const coord = axial.access(ref)
 		assert(!isTileCoord(coord), 'coord must be a border coordinate')
-		return this.contents.get({ q: coord.q * 2, r: coord.r * 2 }) as TileBorderContent | undefined
+		return this.contents.get({ q: coord.q, r: coord.r }) as TileBorderContent | undefined
 	}
 	setBorderContent(ref: AxialRef, content?: TileBorderContent) {
 		const coord = axial.access(ref)
-		if (!content) this.contents.delete({ q: coord.q * 2, r: coord.r * 2 })
-		else this.contents.set({ q: coord.q * 2, r: coord.r * 2 }, content)
+		if (!content) this.contents.delete({ q: coord.q, r: coord.r })
+		else this.contents.set({ q: coord.q, r: coord.r }, content)
 	}
 
 	getBorder(ref: AxialRef): TileBorder | undefined {
 		const coord = axial.access(ref)
 		assert(!isTileCoord(coord), 'coord must be a border coordinate')
 		if (!this.inBound(coord)) return undefined
-		const content = this.contents.get({ q: coord.q * 2, r: coord.r * 2 }) as
-			| TileBorderContent
-			| undefined
-		return content?.border ?? new TileBorder(this, ref)
+		const content = this.contents.get({ q: coord.q, r: coord.r }) as TileBorderContent | undefined
+		return content?.border ?? new TileBorder(this.game, ref)
 	}
 
 	// Occupancy management (regular coordinates, not */2)
