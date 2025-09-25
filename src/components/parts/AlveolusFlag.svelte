@@ -1,20 +1,20 @@
 <script lang="ts">
-	import Icon from '@iconify/svelte'
+import Icon from '@iconify/svelte'
 
-	let {
-		checked = $bindable(),
-		icon,
-		name,
-		tooltip
-	}: {
-		checked: boolean
-		icon: string
-		name: string
-		tooltip: string
-	} = $props()
-	function toggle() {
-		checked = !checked
-	}
+let {
+	checked = $bindable(),
+	icon,
+	name,
+	tooltip,
+}: {
+	checked: boolean
+	icon: string
+	name: string
+	tooltip: string
+} = $props()
+function toggle() {
+	checked = !checked
+}
 </script>
 
 <button

@@ -1,131 +1,131 @@
 <script lang="ts">
-	import {
-		games,
-		interactionMode,
-		selectionState,
-		registerObjectInfoPanel,
-		unregisterObjectInfoPanel
-	} from '$lib/globals.svelte'
-	import Icon from '@iconify/svelte'
-	import { type InteractiveGameObject } from '$lib/game'
-	import { Character } from '$lib/game/population/character'
-	import { Tile } from '$lib/game/board/tile'
-	import { mrg } from '$lib/globals.svelte'
-	import { p2s } from '$lib/mutts.svelte'
-	import { watch } from 'mutts'
-	import TileProperties from '$components/properties/TileProperties.svelte'
-	import CharacterProperties from '$components/properties/CharacterProperties.svelte'
-	import { toWorldCoord } from '$lib/game/position'
-	import type { Writable } from 'svelte/store'
-	import { T } from '$lib/i18n'
-	import { TabContent } from 'dockview-svelte/src'
-	import type { DockviewPanelApi } from 'dockview-core'
-	import { onDestroy } from 'svelte'
+import Icon from '@iconify/svelte'
+import type { DockviewPanelApi } from 'dockview-core'
+import { TabContent } from 'dockview-svelte/src'
+import { watch } from 'mutts'
+import { onDestroy } from 'svelte'
+import type { Writable } from 'svelte/store'
+import CharacterProperties from '$components/properties/CharacterProperties.svelte'
+import TileProperties from '$components/properties/TileProperties.svelte'
+import { type InteractiveGameObject } from '$lib/game'
+import { Tile } from '$lib/game/board/tile'
+import { Character } from '$lib/game/population/character'
+import { toWorldCoord } from '$lib/game/position'
+import {
+	games,
+	interactionMode,
+	mrg,
+	registerObjectInfoPanel,
+	selectionState,
+	unregisterObjectInfoPanel,
+} from '$lib/globals.svelte'
+import { T } from '$lib/i18n'
+import { p2s } from '$lib/mutts.svelte'
 
-	let {
-		uid,
-		title,
-		tabContent,
-		panelApi
-	}: {
-		uid?: string
-		title: Writable<string>
-		tabContent: Writable<HTMLElement | null>
-		panelApi: DockviewPanelApi
-	} = $props()
-	let object: InteractiveGameObject | undefined = $state(undefined)
+let {
+	uid,
+	title,
+	tabContent,
+	panelApi,
+}: {
+	uid?: string
+	title: Writable<string>
+	tabContent: Writable<HTMLElement | null>
+	panelApi: DockviewPanelApi
+} = $props()
+let object: InteractiveGameObject | undefined = $state(undefined)
 
-	let logLastLine = $state(true) // Flag to track if we should auto-scroll to last line
-	let logsContainer: HTMLDivElement | undefined = $state(undefined)
-	const game = games.game('GameX')
+let logLastLine = $state(true) // Flag to track if we should auto-scroll to last line
+let logsContainer: HTMLDivElement | undefined = $state(undefined)
+const game = games.game('GameX')
 
-	// Auto-scroll to bottom when new logs are added and logLastLine is true
-	$effect(() => {
-		// For object-info panels, use the object from the parameters; otherwise use global selected object
-		if (uid) {
-			// Object-info panel: use the specific UID from parameters
-			object = game.getObject(uid)
-		} else {
-			// Selection-info panel: use the global selected object UID
-			object = selectionState.selectedUid ? game.getObject(selectionState.selectedUid) : undefined
-		}
-
-		if (object)
-			return watch(object.logs, () => {
-				if (object && logLastLine && logsContainer) {
-					// Use a small delay to ensure the DOM has updated
-					setTimeout(() => {
-						logsContainer?.scrollTo({
-							top: logsContainer.scrollHeight,
-							behavior: 'smooth'
-						})
-					}, 10)
-				}
-			})
-	})
-	$effect(() => {
-		if (uid) {
-			title.set(object?.title ?? $T.game.noSelection)
-		} else {
-			title.set(object?.title ?? $T.game.unknownObject({ uid: uid || 'unknown' }))
-		}
-	})
-
-	// Manage panel registration
-	$effect(() => {
-		if (uid) {
-			// Register this panel as an object-info panel
-			registerObjectInfoPanel(uid, panelApi.id)
-		} else {
-			// Register this panel as the selection-info panel
-			selectionState.panelId = panelApi.id
-		}
-	})
-	onDestroy(() => {
-		if (uid) {
-			unregisterObjectInfoPanel(uid)
-		} else {
-			selectionState.panelId = undefined
-		}
-	})
-
-	function handleLogScroll() {
-		if (!logsContainer) return
-
-		const { scrollTop, scrollHeight, clientHeight } = logsContainer
-		const isAtBottom = scrollTop + clientHeight >= scrollHeight - 5 // 5px tolerance
-		logLastLine = isAtBottom
+// Auto-scroll to bottom when new logs are added and logLastLine is true
+$effect(() => {
+	// For object-info panels, use the object from the parameters; otherwise use global selected object
+	if (uid) {
+		// Object-info panel: use the specific UID from parameters
+		object = game.getObject(uid)
+	} else {
+		// Selection-info panel: use the global selected object UID
+		object = selectionState.selectedUid ? game.getObject(selectionState.selectedUid) : undefined
 	}
 
-	function goTo() {
-		const { x, y } = toWorldCoord(object!.position)
-		game.gameView?.stage.position.set(-x, -y)
-	}
-	function mouseIn() {
-		mrg.hoveredObject = object
-	}
-	function mouseOut() {
-		if (mrg.hoveredObject === object) mrg.hoveredObject = undefined
-	}
-	function act() {
-		if (!object) return
-		if (interactionMode.selectedAction) {
-			game.simulateObjectClick(object)
-		}
-	}
-
-	function pinToObjectInfo() {
-		if (!object) return
-
-		// Update the panel parameters to switch it to object-info mode
-		panelApi.updateParameters({
-			uid: object.uid
+	if (object)
+		return watch(object.logs, () => {
+			if (object && logLastLine && logsContainer) {
+				// Use a small delay to ensure the DOM has updated
+				setTimeout(() => {
+					logsContainer?.scrollTo({
+						top: logsContainer.scrollHeight,
+						behavior: 'smooth',
+					})
+				}, 10)
+			}
 		})
-		// Clear global selected object and panel ID
-		selectionState.selectedUid = undefined
+})
+$effect(() => {
+	if (uid) {
+		title.set(object?.title ?? $T.game.noSelection)
+	} else {
+		title.set(object?.title ?? $T.game.unknownObject({ uid: uid || 'unknown' }))
+	}
+})
+
+// Manage panel registration
+$effect(() => {
+	if (uid) {
+		// Register this panel as an object-info panel
+		registerObjectInfoPanel(uid, panelApi.id)
+	} else {
+		// Register this panel as the selection-info panel
+		selectionState.panelId = panelApi.id
+	}
+})
+onDestroy(() => {
+	if (uid) {
+		unregisterObjectInfoPanel(uid)
+	} else {
 		selectionState.panelId = undefined
 	}
-	let logs = $derived.by(p2s(() => object?.logs))
+})
+
+function handleLogScroll() {
+	if (!logsContainer) return
+
+	const { scrollTop, scrollHeight, clientHeight } = logsContainer
+	const isAtBottom = scrollTop + clientHeight >= scrollHeight - 5 // 5px tolerance
+	logLastLine = isAtBottom
+}
+
+function goTo() {
+	const { x, y } = toWorldCoord(object!.position)
+	game.gameView?.stage.position.set(-x, -y)
+}
+function mouseIn() {
+	mrg.hoveredObject = object
+}
+function mouseOut() {
+	if (mrg.hoveredObject === object) mrg.hoveredObject = undefined
+}
+function act() {
+	if (!object) return
+	if (interactionMode.selectedAction) {
+		game.simulateObjectClick(object)
+	}
+}
+
+function pinToObjectInfo() {
+	if (!object) return
+
+	// Update the panel parameters to switch it to object-info mode
+	panelApi.updateParameters({
+		uid: object.uid,
+	})
+	// Clear global selected object and panel ID
+	selectionState.selectedUid = undefined
+	selectionState.panelId = undefined
+}
+let logs = $derived.by(p2s(() => object?.logs))
 </script>
 
 <TabContent {panelApi} bind:el={$tabContent}>

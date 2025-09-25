@@ -1,5 +1,5 @@
 <script lang="ts">
-	let { class: className = '', children }: { class?: string; children: any } = $props()
+let { class: className = '', children }: { class?: string; children: any } = $props()
 </script>
 
 <div class="property-grid-container {className}">

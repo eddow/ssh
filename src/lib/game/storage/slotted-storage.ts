@@ -247,7 +247,7 @@ export class SlottedStorage extends Storage<number[]> {
 		const slotsNeeded = Object.values(remaining)
 			.map((q) => Math.ceil(q / this.maxQuantityPerSlot))
 			.reduce((acc, q) => acc + q, 0)
-		return slotsNeeded <= this.maxSlots
+		return slotsNeeded <= emptySlots
 	}
 
 	// presentAmount replaced by available()

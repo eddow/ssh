@@ -1,31 +1,29 @@
 <script lang="ts">
-	let {
-		value,
-		levels,
-		label,
-		showValue = true
-	}: {
-		value: number
-		levels: {
-			critical: number
-			high: number
-			satisfied: number
-		}
-		label: string
-		showValue?: boolean
-	} = $props()
+let {
+	value,
+	levels,
+	label,
+	showValue = true,
+}: {
+	value: number
+	levels: {
+		critical: number
+		high: number
+		satisfied: number
+	}
+	label: string
+	showValue?: boolean
+} = $props()
 
-	// Calculate percentage for progress bar
-	const percentage = $derived(
-		Math.min(100, Math.max(0, Math.floor((100 * value) / levels.critical)))
-	)
-	// Calculate color based on percentage (green to red)
-	const colorClass = $derived.by(() => {
-		if (value < levels.satisfied) return 'bg-green-500'
-		if (value < levels.high) return 'bg-yellow-500'
-		if (value < levels.critical) return 'bg-orange-500'
-		return 'bg-red-500'
-	})
+// Calculate percentage for progress bar
+const percentage = $derived(Math.min(100, Math.max(0, Math.floor((100 * value) / levels.critical))))
+// Calculate color based on percentage (green to red)
+const colorClass = $derived.by(() => {
+	if (value < levels.satisfied) return 'bg-green-500'
+	if (value < levels.high) return 'bg-yellow-500'
+	if (value < levels.critical) return 'bg-orange-500'
+	return 'bg-red-500'
+})
 </script>
 
 <div class="stat-progress-bar">

@@ -1,26 +1,26 @@
 <script lang="ts">
-	import type { UnBuiltLand } from '$lib/game/board/content/unbuilt-land'
-	import { T } from '$lib/i18n'
-	import EntityBadge from '$components/parts/EntityBadge.svelte'
-	import PropertyGridRow from '$components/parts/PropertyGridRow.svelte'
-	import { p2s } from '$lib/mutts.svelte'
+import EntityBadge from '$components/parts/EntityBadge.svelte'
+import PropertyGridRow from '$components/parts/PropertyGridRow.svelte'
+import type { UnBuiltLand } from '$lib/game/board/content/unbuilt-land'
+import { T } from '$lib/i18n'
+import { p2s } from '$lib/mutts.svelte'
 
-	let { content }: { content: UnBuiltLand } = $props()
-	const game = content.tile.board.game
-	const deposit = $derived.by(
-		p2s(
-			() =>
-				content.deposit && {
-					sprites: content.deposit.sprites,
-					name: content.deposit.name,
-					amount: content.deposit.amount
-				}
-		)
-	)
-	//TODO:
-	// - Badge does not refresh
-	// - Badge takes all line
-	// - When killing the deposit, doesn't go to drop afterward
+let { content }: { content: UnBuiltLand } = $props()
+const game = content.tile.board.game
+const deposit = $derived.by(
+	p2s(
+		() =>
+			content.deposit && {
+				sprites: content.deposit.sprites,
+				name: content.deposit.name,
+				amount: content.deposit.amount,
+			},
+	),
+)
+//TODO:
+// - Badge does not refresh
+// - Badge takes all line
+// - When killing the deposit, doesn't go to drop afterward
 </script>
 
 {#if deposit}

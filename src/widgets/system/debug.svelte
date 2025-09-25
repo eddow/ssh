@@ -1,51 +1,52 @@
 <script lang="ts">
-	import { p2s } from '$lib/mutts.svelte'
-	import {
-		Button,
-		Table,
-		TableBody,
-		TableBodyCell,
-		TableBodyRow,
-		TableHeadCell
-	} from 'flowbite-svelte'
-	import { debugInfo, mrg } from '$lib/globals.svelte'
-	import { T } from '$lib/i18n'
-	import type { Writable } from 'svelte/store'
-	function ownEntries(value: any) {
-		return Object.entries(Object.getOwnPropertyDescriptors(value))
-			.filter(([_, v]) => v.enumerable)
-			.map(([k, v]) => [k, v.value])
-	}
-	let { title }: { title: Writable<string> } = $props()
-	$effect(() => {
-		title.set($T.ui.debugInfo)
-	})
-	function debugged(value: any, already = new Set<any>()) {
-		if (already.has(value)) return '[Circular]'
-		already.add(value)
-		try {
-			if (typeof value === 'number') return value.toFixed(2)
-			if (typeof value !== 'object') return value
-			if (!value) return '' + value
-			return ownEntries(value)
-				.map(([k, v]): string => `${k}: ${debugged(v, already)}`)
-				.join(' | ')
-		} finally {
-			already.delete(value)
-		}
-	}
-	const dDebugInfo = $derived(Object.entries(debugInfo))
-	function resetLayout() {
-		localStorage.removeItem('layout')
-		location.reload()
-	}
-	function displayed(content: any) {
-		if (typeof content !== 'object') return content
-		return ownEntries(content)
-			.map(([k, v]) => [k, debugged(v)])
+import {
+	Button,
+	Table,
+	TableBody,
+	TableBodyCell,
+	TableBodyRow,
+	TableHeadCell,
+} from 'flowbite-svelte'
+import type { Writable } from 'svelte/store'
+import { debugInfo, mrg } from '$lib/globals.svelte'
+import { T } from '$lib/i18n'
+import { p2s } from '$lib/mutts.svelte'
+
+function ownEntries(value: any) {
+	return Object.entries(Object.getOwnPropertyDescriptors(value))
+		.filter(([_, v]) => v.enumerable)
+		.map(([k, v]) => [k, v.value])
+}
+let { title }: { title: Writable<string> } = $props()
+$effect(() => {
+	title.set($T.ui.debugInfo)
+})
+function debugged(value: any, already = new Set<any>()) {
+	if (already.has(value)) return '[Circular]'
+	already.add(value)
+	try {
+		if (typeof value === 'number') return value.toFixed(2)
+		if (typeof value !== 'object') return value
+		if (!value) return `${value}`
+		return ownEntries(value)
+			.map(([k, v]): string => `${k}: ${debugged(v, already)}`)
 			.join(' | ')
+	} finally {
+		already.delete(value)
 	}
-	let mrgHoveredObject = $derived.by(p2s(() => mrg.hoveredObject))
+}
+const dDebugInfo = $derived(Object.entries(debugInfo))
+function resetLayout() {
+	localStorage.removeItem('layout')
+	location.reload()
+}
+function displayed(content: any) {
+	if (typeof content !== 'object') return content
+	return ownEntries(content)
+		.map(([k, v]) => [k, debugged(v)])
+		.join(' | ')
+}
+let mrgHoveredObject = $derived.by(p2s(() => mrg.hoveredObject))
 </script>
 
 <Button class="w-full" onclick={resetLayout}>{$T.ui.resetLayout}</Button>

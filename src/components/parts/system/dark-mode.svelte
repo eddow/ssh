@@ -1,12 +1,10 @@
 <script lang="ts">
-	import { Button } from 'flowbite-svelte'
-	import Icon from '@iconify/svelte'
-	import { T } from '$lib/i18n'
+import Icon from '@iconify/svelte'
+import { Button } from 'flowbite-svelte'
+import { T } from '$lib/i18n'
 
-	let {
-		darkMode = $bindable(false),
-		class: className = ''
-	}: { darkMode?: boolean; class?: string } = $props()
+let { darkMode = $bindable(false), class: className = '' }: { darkMode?: boolean; class?: string } =
+	$props()
 </script>
 
 <Button

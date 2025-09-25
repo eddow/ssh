@@ -1,30 +1,30 @@
 <script lang="ts">
-	import { locale, setLocale } from '$lib/i18n'
-	import type { Locale } from 'omni18n/ts/s-a'
+import type { Locale } from 'omni18n/ts/s-a'
+import { locale, setLocale } from '$lib/i18n'
 
-	const languageOptions = [
-		{ value: 'en', flag: '🇺🇸', label: 'English' },
-		{ value: 'fr', flag: '🇫🇷', label: 'Français' }
-	] as const
+const languageOptions = [
+	{ value: 'en', flag: '🇺🇸', label: 'English' },
+	{ value: 'fr', flag: '🇫🇷', label: 'Français' },
+] as const
 
-	let showMenu = $state(false)
+let showMenu = $state(false)
 
-	function handleLanguageChange(newLocale: Locale) {
-		setLocale(newLocale)
+function handleLanguageChange(newLocale: Locale) {
+	setLocale(newLocale)
+	showMenu = false
+}
+
+function toggleMenu() {
+	showMenu = !showMenu
+}
+
+// Close menu when clicking outside
+function handleClickOutside(event: MouseEvent) {
+	const target = event.target as HTMLElement
+	if (!target.closest('.language-selector')) {
 		showMenu = false
 	}
-
-	function toggleMenu() {
-		showMenu = !showMenu
-	}
-
-	// Close menu when clicking outside
-	function handleClickOutside(event: MouseEvent) {
-		const target = event.target as HTMLElement
-		if (!target.closest('.language-selector')) {
-			showMenu = false
-		}
-	}
+}
 </script>
 
 <svelte:window on:click={handleClickOutside} />

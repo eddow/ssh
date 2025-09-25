@@ -1,20 +1,20 @@
 <script lang="ts">
-	import ResourceImage from '$components/parts/resourceImage.svelte'
-	import { type Game } from '$lib/game'
+import ResourceImage from '$components/parts/resourceImage.svelte'
+import { type Game } from '$lib/game'
 
-	let {
-		game,
-		sprite,
-		text,
-		qty,
-		height = 20
-	} = $props<{
-		game: Game
-		sprite: string
-		text: string
-		qty?: number
-		height?: number
-	}>()
+let {
+	game,
+	sprite,
+	text,
+	qty,
+	height = 20,
+} = $props<{
+	game: Game
+	sprite: string
+	text: string
+	qty?: number
+	height?: number
+}>()
 </script>
 
 <div

@@ -1,21 +1,21 @@
 <script lang="ts">
-	import type { Tile } from '$lib/game/board/tile'
-	import { UnBuiltLand } from '$lib/game/board/content/unbuilt-land'
-	import { Alveolus } from '$lib/game/board/content/alveolus'
-	import { Badge } from 'flowbite-svelte'
-	import UnBuiltProperties from '$components/properties/UnBuiltProperties.svelte'
-	import AlveolusProperties from '$components/properties/AlveolusProperties.svelte'
-	import { p2s } from '$lib/mutts.svelte'
-	import { T } from '$lib/i18n'
-	import GoodsList from '$components/parts/GoodsList.svelte'
-	import PropertyGridRow from '$components/parts/PropertyGridRow.svelte'
-	import PropertyGrid from '$components/parts/PropertyGrid.svelte'
+import { Badge } from 'flowbite-svelte'
+import GoodsList from '$components/parts/GoodsList.svelte'
+import PropertyGrid from '$components/parts/PropertyGrid.svelte'
+import PropertyGridRow from '$components/parts/PropertyGridRow.svelte'
+import AlveolusProperties from '$components/properties/AlveolusProperties.svelte'
+import UnBuiltProperties from '$components/properties/UnBuiltProperties.svelte'
+import { Alveolus } from '$lib/game/board/content/alveolus'
+import { UnBuiltLand } from '$lib/game/board/content/unbuilt-land'
+import type { Tile } from '$lib/game/board/tile'
+import { T } from '$lib/i18n'
+import { p2s } from '$lib/mutts.svelte'
 
-	let { tile }: { tile: Tile } = $props()
-	let tileContent = $derived.by(p2s(() => tile.content))
-	// TODO: we still have reactivity issues: it works without $goods, but tilecontent ms has to be deep
-	// and the performances crashes
-	/*let stock = $derived(
+let { tile }: { tile: Tile } = $props()
+let tileContent = $derived.by(p2s(() => tile.content))
+// TODO: we still have reactivity issues: it works without $goods, but tilecontent ms has to be deep
+// and the performances crashes
+/*let stock = $derived(
 		ms(
 			(
 				(tile) => () =>
@@ -23,8 +23,8 @@
 			)(tile)
 		)
 	)*/
-	let stock = $derived.by(p2s(() => tile.content!.stock))
-	// TODO: terrain type as background color
+let stock = $derived.by(p2s(() => tile.content!.stock))
+// TODO: terrain type as background color
 </script>
 
 {#if tileContent}

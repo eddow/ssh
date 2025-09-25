@@ -1,22 +1,22 @@
 <script lang="ts">
-	import type { GoodType } from '$lib/arktype'
-	import { type Game } from '$lib/game'
-	import { goods as goodsCatalog } from '$assets/game-content'
-	import { T } from '$lib/i18n'
-	import EntityBadge from '$components/parts/EntityBadge.svelte'
+import { goods as goodsCatalog } from '$assets/game-content'
+import EntityBadge from '$components/parts/EntityBadge.svelte'
+import type { GoodType } from '$lib/arktype'
+import { type Game } from '$lib/game'
+import { T } from '$lib/i18n'
 
-	let {
-		goods,
-		game,
-		itemSize = 20,
-		className = ''
-	} = $props<{
-		goods: { [k in GoodType]?: number }
-		game: Game
-		itemSize?: number
-		className?: string
-	}>()
-	const entries = $derived(Object.entries(goods) as [GoodType, number][])
+let {
+	goods,
+	game,
+	itemSize = 20,
+	className = '',
+} = $props<{
+	goods: { [k in GoodType]?: number }
+	game: Game
+	itemSize?: number
+	className?: string
+}>()
+const entries = $derived(Object.entries(goods) as [GoodType, number][])
 </script>
 
 {#if entries.length > 0}

@@ -1,9 +1,9 @@
 <script lang="ts">
-	let {
-		label,
-		class: className = '',
-		children
-	}: { label: string; class?: string; children: any } = $props()
+let {
+	label,
+	class: className = '',
+	children,
+}: { label: string; class?: string; children: any } = $props()
 </script>
 
 <tr class="property-grid-row">

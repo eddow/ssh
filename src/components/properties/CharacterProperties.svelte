@@ -1,63 +1,64 @@
 <script lang="ts">
-	import type { Character } from '$lib/game/population/character'
-	import { Badge } from 'flowbite-svelte'
-	import StatProgressBar from '$components/parts/StatProgressBar.svelte'
-	import { p2s } from '$lib/mutts.svelte'
-	import { T } from '$lib/i18n'
-	import GoodsList from '$components/parts/GoodsList.svelte'
-	import { AEvolutionStep, ALerpStep } from '$lib/game/npcs/steps'
-	let { character }: { character: Character } = $props()
-	const actions = $derived.by(p2s(() => character.actionDescription))
-	const state = $derived.by(
-		p2s(() => ({
-			hunger: character.hunger,
-			Tiredness: character.tiredness,
-			fatigue: character.fatigue,
-			triggerLevels: character.triggerLevels,
-			stepType: character.stepExecutor?.type as Ssh.ActivityType | undefined,
-			stepDescription: (character.stepExecutor?.description || undefined) as string | undefined,
-			step: character.stepExecutor instanceof AEvolutionStep ? character.stepExecutor : undefined,
-			goods: character.vehicle.stock
-		}))
-	)
+import { Badge } from 'flowbite-svelte'
+import GoodsList from '$components/parts/GoodsList.svelte'
+import StatProgressBar from '$components/parts/StatProgressBar.svelte'
+import { AEvolutionStep, ALerpStep } from '$lib/game/npcs/steps'
+import type { Character } from '$lib/game/population/character'
+import { T } from '$lib/i18n'
+import { p2s } from '$lib/mutts.svelte'
 
-	const stepEvolution = $derived(
-		state?.step && !(state.step instanceof ALerpStep)
-			? Math.max(0, Math.min(1, state.step.evolution))
-			: 0
-	)
+let { character }: { character: Character } = $props()
+const actions = $derived.by(p2s(() => character.actionDescription))
+const state = $derived.by(
+	p2s(() => ({
+		hunger: character.hunger,
+		Tiredness: character.tiredness,
+		fatigue: character.fatigue,
+		triggerLevels: character.triggerLevels,
+		stepType: character.stepExecutor?.type as Ssh.ActivityType | undefined,
+		stepDescription: (character.stepExecutor?.description || undefined) as string | undefined,
+		step: character.stepExecutor instanceof AEvolutionStep ? character.stepExecutor : undefined,
+		goods: character.vehicle.stock,
+	})),
+)
 
-	type FlowbiteBadgeColor =
-		| 'primary'
-		| 'secondary'
-		| 'gray'
-		| 'red'
-		| 'orange'
-		| 'amber'
-		| 'yellow'
-		| 'lime'
-		| 'green'
-		| 'emerald'
-		| 'teal'
-		| 'cyan'
-		| 'sky'
-		| 'blue'
-		| 'indigo'
-		| 'violet'
-		| 'purple'
-		| 'fuchsia'
-		| 'pink'
-		| 'rose'
+const stepEvolution = $derived(
+	state?.step && !(state.step instanceof ALerpStep)
+		? Math.max(0, Math.min(1, state.step.evolution))
+		: 0,
+)
 
-	const activityBadgeColors: Record<Ssh.ActivityType, FlowbiteBadgeColor> = {
-		walk: 'yellow',
-		work: 'red',
-		eat: 'green',
-		sleep: 'purple',
-		rest: 'indigo',
-		convey: 'blue',
-		idle: 'gray'
-	}
+type FlowbiteBadgeColor =
+	| 'primary'
+	| 'secondary'
+	| 'gray'
+	| 'red'
+	| 'orange'
+	| 'amber'
+	| 'yellow'
+	| 'lime'
+	| 'green'
+	| 'emerald'
+	| 'teal'
+	| 'cyan'
+	| 'sky'
+	| 'blue'
+	| 'indigo'
+	| 'violet'
+	| 'purple'
+	| 'fuchsia'
+	| 'pink'
+	| 'rose'
+
+const activityBadgeColors: Record<Ssh.ActivityType, FlowbiteBadgeColor> = {
+	walk: 'yellow',
+	work: 'red',
+	eat: 'green',
+	sleep: 'purple',
+	rest: 'indigo',
+	convey: 'blue',
+	idle: 'gray',
+}
 </script>
 
 <div class="character-properties">

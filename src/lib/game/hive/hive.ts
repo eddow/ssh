@@ -111,7 +111,7 @@ export class Hive extends ReactiveBase {
 	}
 	demand(goodType: GoodType, alveolus: Alveolus) {
 		// First, find the nearest alveolus that can provide this good
-		const pullPath = findNearest(
+		const _pullPath = findNearest(
 			(c) => this.getNeighborsForGood(c, goodType).map((n) => toAxialCoord(n)),
 			alveolus.position,
 			(c) => this.storageAt(c)!.available(goodType) > 0,

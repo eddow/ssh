@@ -4,6 +4,7 @@
 		"includes": [
 			"src/**/*.ts",
 			"src/**/*.js",
+			"src/**/*.svelte",
 			"*.js",
 			"*.ts",
 			".vscode/*.json",
@@ -60,7 +61,7 @@
 	},
 	"overrides": [
 		{
-			"includes": ["**/*.svelte", "**/*.astro", "**/*.vue"],
+			"includes": ["**/*.svelte"],
 			"linter": {
 				"rules": {
 					"style": {
