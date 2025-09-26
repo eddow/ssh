@@ -1,4 +1,5 @@
 import { type } from 'arktype'
+import { immutables } from 'mutts'
 import {
 	type AxialCoord,
 	AxialKey,
@@ -20,10 +21,7 @@ export type Position = typeof Position.infer
 export const Positioned = type.or(Position, { position: Position })
 export type Positioned = typeof Positioned.infer
 
-// Type guards
-export function isPosition(value: any): value is Positioned {
-	return Positioned.allows(value)
-}
+immutables.add((x) => Positioned.allows(x))
 
 export function isWorldCoord(value: any): value is WorldCoord {
 	return typeof value === 'object' && value !== null && 'x' in value && 'y' in value
@@ -94,7 +92,7 @@ export function positionRoughlyEquals(a: Positioned, b: Positioned): boolean {
 	}
 	const aAxial = toAxialCoord(a)
 	const bAxial = toAxialCoord(b)
-	return aAxial.q === bAxial.q && aAxial.r === bAxial.r
+	return Math.abs(aAxial.q - bAxial.q) + Math.abs(aAxial.r - bAxial.r) < epsilon
 }
 
 export function positionEquals(a: Positioned, b: Positioned): boolean {

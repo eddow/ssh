@@ -4,6 +4,7 @@ function goWork(alveolus, job, path)
 		walk.until path
 	while tile != alveolus.tile
 		path = find.path(alveolus.tile, false)
+		if not path then error "No path found to alveolus"
 	loop
 	walk.enter
 	work.prepare
@@ -41,4 +42,10 @@ function harvest(alveolus)
 	loop
 end function
 
-return { goWork, harvest }
+function transform(alveolus)
+	do while I.keepWorking
+		work.transformStep
+	loop
+end function
+
+return { goWork, harvest, transform }

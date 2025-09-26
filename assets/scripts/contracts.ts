@@ -21,6 +21,7 @@ export const CharacterContract = {
 		goWork: [AlveolusArkType, 'string', Position.array()],
 		harvest: [AlveolusArkType],
 		convey: [AlveolusArkType],
+		transform: [AlveolusArkType],
 	},
 } as const
 

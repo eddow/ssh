@@ -1,6 +1,7 @@
 import type { GoodType } from '$lib/arktype'
 import type { Job } from '$lib/game/job'
 import { SpecificStorage } from '$lib/game/storage'
+import { computed } from 'mutts'
 import {
 	Alveolus,
 	inputBufferSize,
@@ -24,19 +25,30 @@ export class TransformAlveolus extends Alveolus {
 			}),
 		)
 	}
+	@computed
+	get canWork(): boolean {
+		return (
+			// If we have all the inputs required
+			Object.entries(this.action.inputs || {}).every(([goodType, required]) => {
+				return this.storage.available(goodType as GoodType) >= (required as number)
+			}) &&
+			// If we have all the room for the outputs
+			Object.entries(this.action.output || {}).every(([goodType, required]) => {
+				return this.storage.hasRoom(goodType as GoodType) >= (required as number)
+			})
+		)
+	}
 	alveolusSpecificJob(): Job | undefined {
-		// For transformers, check if we have required inputs
-		const hasInputs = Object.entries(this.action.inputs || {}).every(([goodType, required]) => {
-			return this.available(goodType as GoodType) >= (required as number)
-		})
-
-		if (hasInputs) {
+		if (this.canWork) {
 			return {
-				type: this.action.type,
+				type: 'transform',
 				fatigue: this.getFatigueCost(),
 				urgency: 1,
 			}
 		}
+	}
+	get keepWorking(): boolean {
+		return this.canWork
 	}
 	available(goodType: GoodType): number {
 		return goodType in this.action.inputs ? 0 : this.storage.available(goodType)

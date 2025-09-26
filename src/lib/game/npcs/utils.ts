@@ -11,7 +11,6 @@ import {
 import { axial } from '$lib/hex'
 import { epsilon } from '$lib/utils'
 import {
-	isPosition,
 	Position,
 	Positioned,
 	positionLerp,
@@ -80,7 +79,7 @@ export function lerp<T extends number | Positioned>(a: T, b: T, t: number): T {
 	if (typeof a === 'number' && typeof b === 'number') {
 		return (a + (b - a) * t) as T
 	}
-	if (isPosition(a) && isPosition(b)) {
+	if (Positioned.allows(a) && Positioned.allows(b)) {
 		return positionLerp(a, b, t) as T
 	}
 	throw new Error(`Invalid lerp types: ${typeof a} and ${typeof b}`)

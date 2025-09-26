@@ -15,6 +15,8 @@ import { Positioned, positionRoughlyEquals, toAxialCoord } from '../position'
 import { InteractiveContext, loadNpcScripts, protoCtx, subject } from './scripts'
 import { EatStep, MoveToStep, PonderingStep, WaitStep } from './steps'
 import { AlveolusArkType } from '../board'
+import type { TransformAlveolus } from '../hive/transform'
+import type { AllocationBase } from '../storage'
 
 export interface Action<T = any> {
 	readonly description: 'grab' | 'drop'
@@ -334,7 +336,7 @@ class WorkFunctions {
 		const character = this[subject]
 		const alveolus = character.assignedAlveolus!
 		assert(
-			alveolus.tile === character.tile,
+			alveolus === character.tile.content,
 			'Character must be assigned to the alveolus on the same tile',
 		)
 		// Pick one movement that passes through this alveolus
@@ -354,7 +356,7 @@ class WorkFunctions {
 		const moving = character.game.hex.freeGoods.add(alveolus.tile, mg.goodType, mg.from)
 		const time = character.vehicle.transferTime * axial.distance(mg.from, hop)
 
-		return new MoveToStep(time, moving, hop, 'convey')
+		return new MoveToStep(time, moving, hop, 'work', `convey.${mg.goodType}`)
 			.canceled(() => {
 				hopAlloc?.cancel()
 				mg.allocations.demander.cancel()
@@ -403,6 +405,30 @@ class WorkFunctions {
 				this[subject].vehicle.addGood(goodType as GoodType, qty)
 			})
 		})
+	}
+	@contract(AlveolusArkType.optional())
+	transformStep() {
+		const alveolus = this[subject].assignedAlveolus as TransformAlveolus
+		assert(alveolus, 'assignedAlveolus must be set')
+		assert(alveolus.action.type === 'transform', 'assignedAlveolus.action must be a transform')
+		const action = alveolus.action
+		const allocations: AllocationBase[] = []
+		for (const [goodType, qty] of Object.entries(action.inputs)) {
+			const allocation = alveolus.storage.reserve(goodType as GoodType, qty, { type: 'transform.input', alveolus })
+			allocations.push(allocation)
+		}
+		for (const [goodType, qty] of Object.entries(action.output)) {
+			const allocation = alveolus.storage.allocate(goodType as GoodType, qty, { type: 'transform.output', alveolus })
+			allocations.push(allocation)
+		}
+		return new WaitStep(alveolus.workTime, 'work', `transform.${alveolus.name}`)
+			.finished(() => {
+				for (const allocation of allocations) allocation.fulfill()
+				alveolus.poke()
+			})
+			.canceled(() => {
+				for (const allocation of allocations) allocation.cancel()
+			})
 	}
 }
 

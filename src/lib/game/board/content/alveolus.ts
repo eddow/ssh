@@ -100,6 +100,7 @@ export abstract class Alveolus
 	alveolusSpecificJob?(): Job | undefined
 
 	getJob(): Job | undefined {
+		if(this.assignedWorker) return undefined
 		const carry = this.conveyJob()
 		if (carry) return carry
 		return this.alveolusSpecificJob?.()

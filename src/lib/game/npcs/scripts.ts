@@ -18,7 +18,7 @@ import {
 } from '$lib/arktype'
 import { epsilon, objectMap } from '$lib/utils'
 import type { GameObject, InteractiveGameObject } from '../object'
-import { isPosition, Positioned, positionRoughly, toAxialCoord } from '../position'
+import { Positioned, positionRoughly, toAxialCoord } from '../position'
 import { gameIsaTypes, gameOperators, lerp } from './utils'
 
 type XOrDictX<X> = X | { [k: string]: XOrDictX<X> }
@@ -26,6 +26,10 @@ type XOrDictX<X> = X | { [k: string]: XOrDictX<X> }
 @unreactive
 export class GlobalContext {
 	@contract('unknown')
+	info(value: any) {
+		console.log(value)
+	}
+	@contract('unknown?')
 	debugger(value: any) {
 		console.dir(value, { depth: null })
 		debugger
@@ -71,7 +75,7 @@ export class GlobalContext {
 		if (typeof a === 'number') {
 			return Math.round(a) as T
 		}
-		if (isPosition(a)) {
+		if (Positioned.allows(a)) {
 			const axial = toAxialCoord(a)
 			return { q: Math.round(axial.q), r: Math.round(axial.r) } as T
 		}
@@ -82,7 +86,7 @@ export class GlobalContext {
 		if (typeof a === 'number') {
 			return (Math.round(a / usedEpsilon) * usedEpsilon) as T
 		}
-		if (isPosition(a)) {
+		if (Positioned.allows(a)) {
 			return positionRoughly(a) as T
 		}
 		throw new Error(`Invalid roughly type: ${typeof a}`)

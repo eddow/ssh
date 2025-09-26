@@ -26,7 +26,7 @@ class Games extends Eventful<GamedEvents> {
 				{
 					boardSize: 12,
 					terrainSeed: 12345,
-					characterCount: 1,
+					characterCount: 3,
 					characterRadius: 5,
 				},
 				patches,

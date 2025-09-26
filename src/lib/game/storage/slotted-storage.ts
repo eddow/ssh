@@ -77,7 +77,6 @@ export interface Slot {
 	reserved: number
 }
 
-@reactive
 export class SlottedStorage extends Storage<SlottedAllocation> {
 	public slots: (Slot | undefined)[]
 

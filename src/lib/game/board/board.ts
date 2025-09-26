@@ -1,3 +1,4 @@
+import { reactive } from 'mutts'
 import type { Sprite } from 'pixi.js'
 import { assert } from '$lib/debug'
 import { GameObject, withContainer, withHittable } from '$lib/game/object'
@@ -19,7 +20,6 @@ import { isInteger, tileSize } from '$lib/utils'
 import type { Game } from '../game'
 import type { Character } from '../population/character'
 import { TileBorder, type TileBorderContent } from './border/border'
-import { Alveolus } from './content/alveolus'
 import type { TileContent } from './content/content'
 import { FreeGoods } from './freeGoods'
 import { Tile } from './tile'
@@ -29,8 +29,8 @@ export function isTileCoord(coord: AxialCoord): boolean {
 }
 
 export class HexBoard extends withContainer(withHittable(GameObject)) {
-	private readonly contents = new AxialKeyMap<TileContent | TileBorderContent>()
-	private readonly occupied = new AxialKeyMap<Character>()
+	private readonly contents = reactive(new AxialKeyMap<TileContent | TileBorderContent>())
+	private readonly occupied = reactive(new AxialKeyMap<Character>())
 	// Will contain goods when perhaps destroying a building (war-like destruction), killing a character,
 	// stopping (or making) a transit, etc.
 	readonly freeGoods: FreeGoods
@@ -155,7 +155,10 @@ export class HexBoard extends withContainer(withHittable(GameObject)) {
 			.filter((neighbor): neighbor is NeighborInfo => neighbor !== null)
 	}
 
-	getNeighborsForCharacter(coord: AxialRef, character: Character): NeighborInfo[] {
+	getNeighborsForCharacter(coord: AxialRef, _character: Character): NeighborInfo[] {
+		const tile = this.getTile(coord)
+		if (!tile) return []
+		return tile.walkNeighbors /*
 		const neighbors = axial.neighbors(coord)
 		return neighbors
 			.map((neighbor: AxialRef) => {
@@ -163,7 +166,7 @@ export class HexBoard extends withContainer(withHittable(GameObject)) {
 				if (
 					!tile ||
 					// If character is carrying items and tile has a alveolus, make it unwalkable
-					(character.aCarriedGood && tile.content instanceof Alveolus) ||
+					//(character.aCarriedGood && tile.content instanceof Alveolus) ||
 					// If tile is occupied by another character, make it unwalkable
 					// TODO: remove this for character path finding, manage queues somehow
 					this.isOccupied(neighbor)
@@ -175,7 +178,7 @@ export class HexBoard extends withContainer(withHittable(GameObject)) {
 					walkTime: tile.content!.walkTime,
 				}
 			})
-			.filter((neighbor): neighbor is NeighborInfo => neighbor !== null)
+			.filter((neighbor): neighbor is NeighborInfo => neighbor !== null)*/
 	}
 
 	findPathForCharacter(

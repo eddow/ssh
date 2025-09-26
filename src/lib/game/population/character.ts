@@ -1,5 +1,5 @@
 import { type } from 'arktype'
-import { effect, reactive, type ScopedCallback } from 'mutts'
+import { computed, effect, reactive, type ScopedCallback } from 'mutts'
 import { ColorMatrixFilter, Sprite } from 'pixi.js'
 import { characterEvolutionRates, characterTriggerLevels, maxWalkTime } from '$assets/constants'
 import { goods as goodsCatalog } from '$assets/game-content'
@@ -129,7 +129,7 @@ export class Character extends withInteractive(
 				(this.vehicle.available(goodType) > 0 && goodsCatalog[goodType].feedingValue) || undefined,
 		)?.[0]
 	}
-
+	@computed
 	get aCarriedGood(): GoodType | undefined {
 		return Object.entries(this.vehicle.stock).find(
 			([goodType]) => this.vehicle.available(goodType as GoodType) > 0,

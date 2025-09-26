@@ -41,7 +41,8 @@
 		"harvest": {
 			"tree_chopper": "Chop tree",
 			"stonecutter": "Cut stone"
-		}
+		},
+		"convey": "Convey"
 	},
 	"alveolus": {
 		"alveolus": "Alveolus",

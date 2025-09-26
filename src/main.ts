@@ -2,8 +2,10 @@ import { mount } from 'svelte'
 import './app.css'
 import App from './App.svelte'
 import './lib/hmr-pixi' // Initialize HMR utilities for PixiJS
+import { profileInfo } from 'mutts'
 import { initTranslator } from './lib/i18n'
 
+;(window as any)['mutts:profile'] = profileInfo
 // Wait for translations to load before mounting the app
 async function initApp() {
 	await initTranslator()

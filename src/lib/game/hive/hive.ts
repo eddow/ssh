@@ -119,7 +119,7 @@ export class Hive {
 	}
 	//#region Needy / events
 	needs: Partial<Record<GoodType, Set<Alveolus>>> = {}
-	movingGoods = new AxialKeyMap<MovingGood[]>()
+	movingGoods = reactive(new AxialKeyMap<MovingGood[]>())
 	storageAt(coord: AxialRef) {
 		if (isTileCoord(axial.access(coord))) {
 			const content = this.board.getTileContent(coord) as Alveolus
@@ -130,12 +130,6 @@ export class Hive {
 	}
 	private getQueue(goodType: GoodType) {
 		return this.queues.get(goodType)
-	}
-
-	private clearQueueIfEmpty(goodType: GoodType) {
-		const q = this.queues.get(goodType)
-		if (q && 'demanders' in q && q.demanders.length === 0) this.queues.delete(goodType)
-		if (q && 'providers' in q && q.providers.length === 0) this.queues.delete(goodType)
 	}
 
 	private createMovement(goodType: GoodType, provider: Alveolus, demander: Alveolus) {
@@ -202,13 +196,12 @@ export class Hive {
 			if (!q.providers.includes(provider)) q.providers.push(provider)
 			return
 		}
-		// q.kind === 'demand' -> match fifo
 		const demander = q.demanders.shift()
 		if (demander) {
 			this.createMovement(goodType, provider, demander)
 			this.pokeAlveolus(demander)
 		}
-		this.clearQueueIfEmpty(goodType)
+		if (q.demanders.length === 0) this.queues.delete(goodType)
 	}
 
 	need(goodType: GoodType, demander: Alveolus) {
@@ -220,13 +213,12 @@ export class Hive {
 			if (!q.demanders.includes(demander)) q.demanders.push(demander)
 			return
 		}
-		// q.kind === 'provide' -> match fifo
 		const provider = q.providers.shift()
 		if (provider) {
 			this.createMovement(goodType, provider, demander)
 			this.pokeAlveolus(provider)
 		}
-		this.clearQueueIfEmpty(goodType)
+		if (q.providers.length === 0) this.queues.delete(goodType)
 	}
 
 	public pokeAlveolus(alveolus: Alveolus) {

@@ -1,10 +1,10 @@
 import { type } from 'arktype'
-import { computed, effect, reactive, watch } from 'mutts'
+import { computed, effect, watch } from 'mutts'
 import { ColorMatrixFilter, Container, Graphics, Point, TilingSprite } from 'pixi.js'
 
 import type { AlveolusType } from '$lib/arktype'
 import { mrg } from '$lib/globals.svelte'
-import { type AxialCoord, axial } from '$lib/hex'
+import { type AxialCoord, type AxialRef, axial, type NeighborInfo } from '$lib/hex'
 import { tileSize } from '$lib/utils'
 import { alveolusClass } from '../hive'
 import { gameIsaTypes } from '../npcs/utils'
@@ -20,10 +20,10 @@ import type { HexBoard } from './board'
 import type { TileBorder } from './border/border'
 import type { TileContent } from './content/content'
 
-@reactive
 export class Tile extends withInteractive(withGenerator(GameObject)) {
 	// True when the tile is exactly as produced by generation
 	public asGenerated: boolean = false
+	@computed
 	get content(): TileContent | undefined {
 		return this.board.getTileContent(toAxialCoord(this.position))
 	}
@@ -157,6 +157,22 @@ export class Tile extends withInteractive(withGenerator(GameObject)) {
 			tileContainer.destroy({ children: false })
 			this.game.backgroundLayer.removeChild(tileContainer)
 		}
+	}
+	@computed
+	get walkNeighbors(): NeighborInfo[] {
+		const coord = toAxialCoord(this.position)
+		const neighbors = axial.neighbors(coord)
+		return neighbors
+			.map((neighbor: AxialRef) => {
+				const tile = this.board.getTile(neighbor)
+				return tile
+					? {
+							coord: axial.coord(neighbor),
+							walkTime: tile.content!.walkTime,
+						}
+					: null
+			})
+			.filter((neighbor): neighbor is NeighborInfo => neighbor !== null)
 	}
 }
 

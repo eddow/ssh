@@ -1,4 +1,3 @@
-import { ReactiveBase } from 'mutts'
 import type { GoodType } from '$lib/arktype'
 import type { RenderedGoodSlots } from './goods-renderer'
 
@@ -8,7 +7,7 @@ export interface AllocationBase {
 	cancel(): void
 	fulfill(): void
 }
-export abstract class Storage<Allocation extends AllocationBase> extends ReactiveBase {
+export abstract class Storage<Allocation extends AllocationBase> {
 	/**
 	 * Check how much of a good can be stored
 	 * @param goodType - The type of good to check
