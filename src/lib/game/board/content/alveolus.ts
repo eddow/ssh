@@ -9,7 +9,7 @@ import type { Job } from '$lib/game/job'
 import { gameIsaTypes } from '$lib/game/npcs/utils'
 import type { Character } from '$lib/game/population/character'
 import { toAxialCoord } from '$lib/game/position'
-import { axial, type AxialCoord } from '$lib/hex'
+import { type AxialCoord, axial } from '$lib/hex'
 import { epsilon, tileSize } from '$lib/utils'
 import { renderTileGoods, type Storage, withStorageForwarder } from '../../storage'
 import { AlveolusGate } from '../border/alveolus-gate'
@@ -100,7 +100,7 @@ export abstract class Alveolus
 	alveolusSpecificJob?(): Job | undefined
 
 	getJob(): Job | undefined {
-		if(this.assignedWorker) return undefined
+		if (this.assignedWorker) return undefined
 		const carry = this.conveyJob()
 		if (carry) return carry
 		return this.alveolusSpecificJob?.()
@@ -127,14 +127,13 @@ export abstract class Alveolus
 		const results: LocalMovingGood[] = []
 
 		function canAdvance(mg: MovingGood) {
-			return hive.storageAt(mg.path[0])?.hasRoom(mg.goodType) ||
-				mg.path.length === 1
+			return hive.storageAt(mg.path[0])?.hasRoom(mg.goodType) || mg.path.length === 1
 		}
 		// Special case: include all movements at the tile itself
 		const atHere = hive.movingGoods.get(here)
-		if (atHere) for (const mg of atHere) 
-			if (canAdvance(mg))
-				results.push(Object.setPrototypeOf({ from: here }, mg))
+		if (atHere)
+			for (const mg of atHere)
+				if (canAdvance(mg)) results.push(Object.setPrototypeOf({ from: here }, mg))
 
 		// Only browse surroundings (borders)
 		for (const { border } of this.tile.surroundings) {
@@ -142,10 +141,8 @@ export abstract class Alveolus
 			const arr = hive.movingGoods.get(from)
 			if (!arr) continue
 			for (const mg of arr) {
-				if (
-					axial.distance(mg.path[0], here) < .5+epsilon &&
-					canAdvance(mg)
-				) results.push(Object.setPrototypeOf({ from }, mg))
+				if (axial.distance(mg.path[0], here) < 0.5 + epsilon && canAdvance(mg))
+					results.push(Object.setPrototypeOf({ from }, mg))
 			}
 		}
 		return results

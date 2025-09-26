@@ -1,5 +1,4 @@
 declare namespace Ssh {
-	// TODO: kill all the `name`
 	type SpriteDefinition = string
 	type Sprite = string
 	interface DepositDefinition {

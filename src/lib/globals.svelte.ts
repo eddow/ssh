@@ -33,11 +33,6 @@ class Games extends Eventful<GamedEvents> {
 			)
 			// Load game here
 			this.games.set(name, game)
-			/*game.hook(
-				<Event extends keyof GameEvents>(event: Event, ...args: Parameters<GameEvents[Event]>) => {
-					this.emit(event, ...([game, ...args] as Parameters<GamedEvents[Event]>))
-				},
-			)*/
 			return game
 		}
 		return game

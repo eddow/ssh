@@ -7,16 +7,16 @@ import { contract, DepositType, GoodType } from '$lib/arktype'
 import { assert } from '$lib/debug'
 import { type AxialCoord, type AxialRef, axial } from '$lib/hex'
 import { objectMap } from '$lib/utils'
+import { AlveolusArkType } from '../board'
 import { type TileBorder, TileBorderArkType } from '../board/border/border'
 import { UnBuiltLand } from '../board/content/unbuilt-land'
 import { type Tile, TileArkType } from '../board/tile'
+import type { TransformAlveolus } from '../hive/transform'
 import type { Character } from '../population/character'
 import { Positioned, positionRoughlyEquals, toAxialCoord } from '../position'
+import type { AllocationBase } from '../storage'
 import { InteractiveContext, loadNpcScripts, protoCtx, subject } from './scripts'
 import { EatStep, MoveToStep, PonderingStep, WaitStep } from './steps'
-import { AlveolusArkType } from '../board'
-import type { TransformAlveolus } from '../hive/transform'
-import type { AllocationBase } from '../storage'
 
 export interface Action<T = any> {
 	readonly description: 'grab' | 'drop'
@@ -45,8 +45,8 @@ class FindFunctions {
 			if (!tile) return null
 			const goodsMap = tile.content!.stock
 			let best: { type: GoodType; fv: number } | null = null
-			for (const [good, count] of Object.entries(goodsMap) as [GoodType, number][]) {
-				if (!count) continue
+			for (const [good] of Object.entries(goodsMap) as [GoodType, number][]) {
+				if (!tile.content!.available(good)) continue
 				const def = goodsCatalog[good]
 				if (!def) continue
 				const fv = def.feedingValue ?? 0
@@ -349,9 +349,9 @@ class WorkFunctions {
 		const hop = mg.hop()!
 		// If moving from tile -> border, allocate on border and fulfill provider reservation
 		const nextStorage = hive.storageAt(hop)
-		const hopAlloc = mg.path.length ?
-			nextStorage!.allocate(mg.goodType, 1, { type: 'convey.hop', movement: mg }) :
-			undefined
+		const hopAlloc = mg.path.length
+			? nextStorage!.allocate(mg.goodType, 1, { type: 'convey.hop', movement: mg })
+			: undefined
 		mg.allocations.provider.fulfill()
 		const moving = character.game.hex.freeGoods.add(alveolus.tile, mg.goodType, mg.from)
 		const time = character.vehicle.transferTime * axial.distance(mg.from, hop)
@@ -362,13 +362,17 @@ class WorkFunctions {
 				mg.allocations.demander.cancel()
 				mg.demander.poke()
 				mg.finish()
-			}).finished(() => {
+			})
+			.finished(() => {
 				moving.remove()
-				if(!mg.path.length) {
+				if (!mg.path.length) {
 					mg.allocations.demander.fulfill()
 				} else {
 					hopAlloc!.fulfill()
-					mg.allocations.provider = nextStorage!.reserve(mg.goodType, 1, { type: 'convey.path', movement: mg })
+					mg.allocations.provider = nextStorage!.reserve(mg.goodType, 1, {
+						type: 'convey.path',
+						movement: mg,
+					})
 				}
 			})
 	}
@@ -414,11 +418,17 @@ class WorkFunctions {
 		const action = alveolus.action
 		const allocations: AllocationBase[] = []
 		for (const [goodType, qty] of Object.entries(action.inputs)) {
-			const allocation = alveolus.storage.reserve(goodType as GoodType, qty, { type: 'transform.input', alveolus })
+			const allocation = alveolus.storage.reserve(goodType as GoodType, qty, {
+				type: 'transform.input',
+				alveolus,
+			})
 			allocations.push(allocation)
 		}
 		for (const [goodType, qty] of Object.entries(action.output)) {
-			const allocation = alveolus.storage.allocate(goodType as GoodType, qty, { type: 'transform.output', alveolus })
+			const allocation = alveolus.storage.allocate(goodType as GoodType, qty, {
+				type: 'transform.output',
+				alveolus,
+			})
 			allocations.push(allocation)
 		}
 		return new WaitStep(alveolus.workTime, 'work', `transform.${alveolus.name}`)

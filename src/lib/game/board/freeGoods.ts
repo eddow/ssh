@@ -1,9 +1,17 @@
 import { effect, reactive, type ScopedCallback } from 'mutts'
 import { Container, Sprite } from 'pixi.js'
 import type { GoodType } from '$lib/arktype'
+import { assert } from '$lib/debug'
 import { AxialKeyMap } from '$lib/mem'
+import { epsilon } from '$lib/utils'
 import { GameObject, withGenerator } from '../object'
-import { type Position, type Positioned, toAxialCoord, toWorldCoord } from '../position'
+import {
+	axialDistance,
+	type Position,
+	type Positioned,
+	toAxialCoord,
+	toWorldCoord,
+} from '../position'
 
 export interface FreeGood {
 	goodType: GoodType
@@ -22,7 +30,10 @@ export class FreeGoods extends withGenerator(GameObject) {
 		}
 	}
 	add(pos: Positioned, goodType: GoodType, exactly?: Position) {
-		// TODO: check exactly is in pos +- (1+epsilon)
+		assert(
+			exactly === undefined || axialDistance(exactly, pos) < 0.5 + epsilon,
+			'`exactly` must be roughly the same as pos.position',
+		)
 		const coord = toAxialCoord(pos)
 		const good: FreeGood = reactive({
 			goodType,

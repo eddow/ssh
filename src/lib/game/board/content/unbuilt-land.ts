@@ -3,12 +3,12 @@ import { Container, type ContainerChild, Sprite } from 'pixi.js'
 import { deposits } from '$assets/game-content'
 import type { TerrainType } from '$lib/arktype'
 import type { Game } from '$lib/game/game'
+import { renderTileGoods } from '$lib/game/storage'
 import { tileSize } from '$lib/utils'
 import { SlottedStorage } from '../../storage/slotted-storage'
 import type { Tile } from '../tile'
 import type { TileContent } from './content'
 import { GcClassed, GcClasses } from './utils'
-import { renderTileGoods } from '$lib/game/storage'
 
 export class Deposit extends GcClassed<Ssh.DepositDefinition>() {
 	static class = GcClasses(() => Deposit, deposits)

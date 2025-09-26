@@ -1,4 +1,4 @@
-import { computed, ReactiveBase, reactive } from 'mutts'
+import { computed, reactive } from 'mutts'
 import type { GoodType } from '$lib/arktype'
 import { type AxialCoord, type AxialRef, axial, findPath } from '$lib/hex'
 import { AxialKeyMap } from '$lib/mem'
@@ -146,7 +146,7 @@ export class Hive {
 			true,
 		)
 		if (!path || path.length < 1) return false
-		path.shift()	// remove the start as we know it
+		path.shift() // remove the start as we know it
 		const reason = {
 			type: 'hive-transfer',
 			goodType,
@@ -158,7 +158,7 @@ export class Hive {
 		let list = this.movingGoods.get(from) ?? []
 		function removeFromList(good: MovingGood) {
 			list.splice(list.indexOf(good), 1)
-			if(list.length === 0) movingGoods.delete(from)
+			if (list.length === 0) movingGoods.delete(from)
 		}
 		const movingGood: MovingGood = {
 			goodType,
@@ -172,9 +172,9 @@ export class Hive {
 			hop() {
 				const rv = path.shift()!
 				removeFromList(movingGood)
-				if(movingGood.path.length) {
+				if (movingGood.path.length) {
 					from = rv
-					if(!movingGoods.get(rv)) movingGoods.set(rv, [])
+					if (!movingGoods.get(rv)) movingGoods.set(rv, [])
 					list = movingGoods.get(rv)!
 					list.push(movingGood)
 				}
@@ -182,7 +182,7 @@ export class Hive {
 			},
 			finish() {
 				removeFromList(movingGood)
-			}
+			},
 		}
 		list.push(movingGood)
 		movingGoods.set(from, list)

@@ -1,3 +1,4 @@
+import { effect } from 'mutts'
 import { activityDurations, ponderingFatigueRecovery } from '$assets/constants'
 import { goods as goodsCatalog } from '$assets/game-content'
 import type { GoodType } from '$lib/arktype'
@@ -5,6 +6,7 @@ import { assert } from '$lib/debug'
 import { casing } from '$lib/utils'
 import type { Character } from '../population'
 import type { Position, Positioned } from '../position'
+import type { ScriptedObject } from './object'
 import { Finalized } from './scripts'
 import { lerp } from './utils'
 
@@ -20,6 +22,33 @@ export abstract class ASingleStep extends Finalized {
 
 	abstract tick(dt: number): number | undefined
 	abstract readonly type: Ssh.ActivityType
+}
+
+export class QueueStep<Entity extends ScriptedObject> extends ASingleStep {
+	get type() {
+		return 'idle' as const
+	}
+	// TODO: detect rank & circular waitings
+	// TODO: marche à droite
+	passed = false
+	constructor(waiter: Entity, queue: Entity[]) {
+		super()
+		queue.push(waiter)
+		const waiting = effect(() => {
+			if (queue[0] === waiter) {
+				this.finish()
+				this.passed = true
+				waiting()
+			}
+		})
+	}
+	pass() {
+		this.passed = true
+		this.finish()
+	}
+	tick(dt: number): number | undefined {
+		return this.passed ? dt : undefined
+	}
 }
 
 export abstract class AEvolutionStep extends ASingleStep {

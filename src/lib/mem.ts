@@ -10,73 +10,13 @@ export interface AxialKeyDictionary<T> {
 	values(): Iterable<T>
 }
 
-class AxialFixedKeyIndex {
-	protected array: AxialKey[]
-	constructor(keys: Iterable<AxialRef>) {
-		const ordered = Array.from(keys).map((k) => axial.key(k))
-		ordered.sort()
-		this.array = ordered
-	}
-
-	index(key: AxialRef): number | undefined {
-		let low = 0
-		let high = this.array.length - 1
-		const target = axial.key(key)
-
-		while (low <= high) {
-			const mid = Math.floor((low + high) / 2)
-			const midValue = this.array[mid]
-
-			if (midValue === target) return mid
-			if (midValue < target) low = mid + 1
-			else high = mid - 1
-		}
-		return undefined
-	}
-	*keys(): Iterable<AxialKey> {
-		for (const key of this.array) yield key
-	}
-}
-
-export class FixedAxialKeyMap<T> extends AxialFixedKeyIndex implements AxialKeyDictionary<T> {
-	private data: T[]
-	constructor(init: [AxialRef, T][] = []) {
-		super(init.map(([k]) => k))
-		this.data = new Array(init.length)
-		for (const [k, v] of init) this.data[this.index(k)!] = v
-	}
-
-	get(key: AxialRef): T | undefined {
-		const index = this.index(axial.key(key))
-		return index !== undefined ? this.data[index] : undefined
-	}
-
-	set(key: AxialRef, value: T) {
-		const index = this.index(axial.key(key))
-		if (index === undefined) throw new Error('Key not found while setting a fixed-map')
-		this.data[index] = value
-		return true
-	}
-
-	has(key: AxialRef): boolean {
-		return this.index(axial.key(key)) !== undefined
-	}
-
-	entries(): Iterable<[AxialKey, T]> {
-		const { data, array } = this
-		return (function* () {
-			for (let i = 0; i < data.length; i++) yield [array[i], data[i]]
-		})()
-	}
-	values(): Iterable<T, any, any> {
-		return this.data
-	}
-}
-
 export class AxialKeyMap<T> implements AxialKeyDictionary<T>, Iterable<[AxialKey, T]> {
 	private map: Map<AxialKey, T>
 
-	constructor(init: Iterable<[AxialRef, T]> = []) {
+	constructor(
+		init: Iterable<[AxialRef, T]> = [],
+		private readonly defaultValue?: () => T,
+	) {
 		this.map = new Map(
 			(function* () {
 				for (const [k, v] of init) yield [axial.key(k), v]
@@ -87,7 +27,10 @@ export class AxialKeyMap<T> implements AxialKeyDictionary<T>, Iterable<[AxialKey
 		return this.map[Symbol.iterator]()
 	}
 	get(key: AxialRef): T | undefined {
-		return this.map.get(axial.key(key))
+		if (!this.defaultValue || this.map.has(axial.key(key))) return this.map.get(axial.key(key))!
+		const value = this.defaultValue()
+		this.map.set(axial.key(key), value)
+		return value
 	}
 
 	set(key: AxialRef, value: T): void {
@@ -284,35 +227,5 @@ export class HeapMin<Indexed, Comparable extends number | string> extends Heap<
 > {
 	protected compare(a: Comparable, b: Comparable): boolean {
 		return a < b
-	}
-}
-
-export class IndexedCollection<Indexed> {
-	private indexMap: Map<Indexed, number> = new Map()
-	constructor(public readonly data: Indexed[] = []) {
-		for (const [i, obj] of data.entries()) this.indexMap.set(obj, i)
-	}
-	/** Add a new object at the next available index */
-	add(obj: Indexed): number {
-		const index = this.data.length
-		this.indexMap.set(obj, this.data.length)
-		this.data.push(obj)
-		return index
-	}
-
-	/** Remove an object by index (swap with last) */
-	remove(obj: Indexed): Indexed | undefined {
-		const index = this.indexMap.get(obj)
-		if (index === undefined) return undefined
-		const moved = this.data.pop()
-		if (moved === obj) return undefined
-		this.data[index] = moved!
-		this.indexMap.set(moved!, index)
-		this.indexMap.delete(obj)
-		return moved
-	}
-
-	indexOf(obj: Indexed): number | undefined {
-		return this.indexMap.get(obj)
 	}
 }

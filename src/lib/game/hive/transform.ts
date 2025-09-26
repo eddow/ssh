@@ -1,7 +1,7 @@
+import { computed } from 'mutts'
 import type { GoodType } from '$lib/arktype'
 import type { Job } from '$lib/game/job'
 import { SpecificStorage } from '$lib/game/storage'
-import { computed } from 'mutts'
 import {
 	Alveolus,
 	inputBufferSize,

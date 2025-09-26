@@ -4,8 +4,6 @@ import type { TileBorder, TileBorderContent } from './border'
 
 // A storage gate placed on a border between two tiles/alveoli.
 export class AlveolusGate extends SlottedStorage implements TileBorderContent {
-	// TODO: It seems gates appear now only between alveoli, so testing contents might not be needed
-	// Or, indeed, we have to decide one way to do
 	get alveolusA() {
 		return this.border.tile.a.content as Alveolus
 	}

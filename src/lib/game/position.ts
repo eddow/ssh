@@ -14,7 +14,6 @@ import { epsilon, tileSize } from '$lib/utils'
 function roughly(x: number) {
 	return Math.round(x / epsilon) * epsilon
 }
-// TODO: mutts idea: un-reactivity callback -> test for q,r or x,y
 // Position concept - can be any coordinate representation
 export const Position = type.or({ q: 'number', r: 'number' }, { x: 'number', y: 'number' })
 export type Position = typeof Position.infer

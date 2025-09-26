@@ -1,7 +1,12 @@
+import { computed } from 'mutts'
+import type { GoodType } from '$lib/arktype'
 import type { Job } from '$lib/game/job'
 import { SpecificStorage } from '$lib/game/storage'
+import type { AxialRef } from '$lib/hex'
+import { Deposit } from '../board'
 import { Alveolus, multiplyGoodsQty, outputBufferSize } from '../board/content/alveolus'
 import type { Tile } from '../board/tile'
+import { axialDistance, toAxialCoord } from '../position'
 export class HarvestAlveolus extends Alveolus {
 	declare action: Ssh.HarvestingAction
 	constructor(tile: Tile) {
@@ -16,27 +21,47 @@ export class HarvestAlveolus extends Alveolus {
 			}),
 		)
 	}
+
+	@computed
+	get canStoreInHarvester() {
+		return this.canStoreAll(this.action.output)
+	}
+	@computed
+	get hiveHasCollector() {
+		return this.hive.byActionType.transit?.length
+	}
+	@computed
+	get alveoliNeedingGood() {
+		return Object.keys(this.action.output).reduce(
+			(acc, goodType) => acc + (this.hive.needs[goodType as GoodType]?.size || 0),
+			0,
+		)
+	}
+
 	/**
 	 * Used by the NPCS to determine whether to gather or let the goods outside
 	 * @returns true if the alveolus can gather resources
 	 */
 	get gather(): boolean {
-		// TODO: indeed, make a priority thingy
-		return (
-			this.canStoreAll(this.action.output) &&
-			!((this.hive.byActionType.transit?.length && true) /* hive.canStoreAll */)
-		)
+		return this.canStoreInHarvester && !this.hiveHasCollector
 	}
 	alveolusSpecificJob(): Job | undefined {
-		// For harvesters, check if there are resources to harvest
-		// For now, assume there are always resources available
-		// TODO: check there is a deposit available in the working zone
-		// (for now: around the alveolus to a certain distance, 6?))
-		// Use that information to calculate the fatigue
+		const nearestDeposit = this.tile.game.hex.findNearest(
+			toAxialCoord(this.tile.position),
+			(coord: AxialRef) => {
+				const tile = this.game.hex.getTile(coord)
+				return (
+					tile?.content instanceof Deposit && tile.content.deposit?.name === this.action.deposit
+				)
+			},
+			6,
+		)
+		if (!nearestDeposit) return undefined
+		const nearestDepositCoord = nearestDeposit[nearestDeposit.length - 1]
 		return {
 			type: this.action.type,
-			fatigue: this.getFatigueCost(),
-			urgency: 1,
+			fatigue: this.getFatigueCost() + axialDistance(this.tile.position, nearestDepositCoord) * 2,
+			urgency: (this.alveoliNeedingGood ? 0.5 : 0) + 0.25,
 		}
 	}
 }

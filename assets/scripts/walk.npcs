@@ -3,7 +3,7 @@ function walkTo(path)
 		if tile.position != step then
 			midPoint = lerp(tile.position, step, 1/2)
 			walk.moveTo midPoint
-			if not walk.stepOn(tileAt(step)) then return false
+			walk.stepOn tileAt(step)
 		end if
 	end for
 	return true

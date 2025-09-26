@@ -18,6 +18,7 @@ import {
 import { AxialKeyMap } from '$lib/mem'
 import { isInteger, tileSize } from '$lib/utils'
 import type { Game } from '../game'
+import { QueueStep } from '../npcs/steps'
 import type { Character } from '../population/character'
 import { TileBorder, type TileBorderContent } from './border/border'
 import type { TileContent } from './content/content'
@@ -30,7 +31,7 @@ export function isTileCoord(coord: AxialCoord): boolean {
 
 export class HexBoard extends withContainer(withHittable(GameObject)) {
 	private readonly contents = reactive(new AxialKeyMap<TileContent | TileBorderContent>())
-	private readonly occupied = reactive(new AxialKeyMap<Character>())
+	private readonly occupied = reactive(new AxialKeyMap<Character[]>([], () => []))
 	// Will contain goods when perhaps destroying a building (war-like destruction), killing a character,
 	// stopping (or making) a transit, etc.
 	readonly freeGoods: FreeGoods
@@ -117,68 +118,46 @@ export class HexBoard extends withContainer(withHittable(GameObject)) {
 		return content?.border ?? new TileBorder(this.game, ref)
 	}
 
-	// Occupancy management (regular coordinates, not */2)
-	getCharacterAt(ref: AxialRef): Character | undefined {
-		return this.occupied.get(axial.access(ref))
-	}
-
-	isOccupied(ref: AxialRef): boolean {
-		return this.occupied.has(axial.access(ref))
-	}
-
 	/** Attempts to move a character onto a coordinate. Returns true if successful. */
-	moveCharacter(character: Character, to: AxialRef, from?: AxialRef): boolean {
+	moveCharacter(
+		character: Character,
+		to: AxialRef,
+		from?: AxialRef,
+	): QueueStep<Character> | undefined {
+		if (from) {
+			const fromCoord = axial.access(from)
+			const occupation = this.occupied.get(fromCoord)!
+			const occupant = occupation.shift()
+			assert(occupant === character, 'Character is not the occupant of the from coordinate')
+			if (occupation[0]) {
+				assert(occupation[0].stepExecutor instanceof QueueStep, 'Occupant is queuing')
+				occupation[0].stepExecutor.pass()
+			} else {
+				this.occupied.delete(fromCoord)
+			}
+		}
 		const toCoord = axial.access(to)
-		// TODO: if occupied by idle character, ask him to move away - if possible, still step on
-		if (this.isOccupied(toCoord)) return false
-		// allocate new position
-		this.occupied.set(toCoord, character)
-		// deallocate old position if provided and still pointing to this character
-		if (from && this.getCharacterAt(from) === character) this.occupied.delete(from)
-		return true
+		const occupied = this.occupied.get(toCoord)! /*
+		console.trace(character, toCoord.q, toCoord.r)
+		if (occupied[0] === character) debugger*/
+		if (!occupied.length) {
+			occupied.push(character)
+			return undefined
+		} else {
+			return new QueueStep(character, occupied)
+		}
 	}
 
 	getNeighbors(coord: AxialRef): NeighborInfo[] {
-		const neighbors = axial.neighbors(coord)
-		return neighbors
-			.map((neighbor: AxialRef) => {
-				const tile = this.getTile(neighbor)
-				return tile
-					? {
-							coord: axial.coord(neighbor),
-							walkTime: this.isOccupied(neighbor)
-								? Number.POSITIVE_INFINITY
-								: tile.content!.walkTime,
-						}
-					: null
-			})
-			.filter((neighbor): neighbor is NeighborInfo => neighbor !== null)
+		const tile = this.getTile(coord)
+		if (!tile) return []
+		return tile.walkNeighbors
 	}
 
 	getNeighborsForCharacter(coord: AxialRef, _character: Character): NeighborInfo[] {
 		const tile = this.getTile(coord)
 		if (!tile) return []
-		return tile.walkNeighbors /*
-		const neighbors = axial.neighbors(coord)
-		return neighbors
-			.map((neighbor: AxialRef) => {
-				const tile = this.getTile(neighbor)
-				if (
-					!tile ||
-					// If character is carrying items and tile has a alveolus, make it unwalkable
-					//(character.aCarriedGood && tile.content instanceof Alveolus) ||
-					// If tile is occupied by another character, make it unwalkable
-					// TODO: remove this for character path finding, manage queues somehow
-					this.isOccupied(neighbor)
-				)
-					return null
-
-				return {
-					coord: axial.coord(neighbor),
-					walkTime: tile.content!.walkTime,
-				}
-			})
-			.filter((neighbor): neighbor is NeighborInfo => neighbor !== null)*/
+		return tile.walkNeighbors
 	}
 
 	findPathForCharacter(

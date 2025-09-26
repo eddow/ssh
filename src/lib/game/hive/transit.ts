@@ -1,7 +1,7 @@
 import { noStorage } from '$lib/game/storage'
 import { Alveolus } from '../board/content/alveolus'
 import type { Tile } from '../board/tile'
-
+//TODO => collector
 export class TransitAlveolus extends Alveolus {
 	declare action: Ssh.TransitAction
 	constructor(tile: Tile) {

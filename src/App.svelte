@@ -81,7 +81,7 @@ function addGame() {
 		},
 	)
 }
-// todo: dockview template #toolbar -> injected API ?
+// TODO: dockview template #toolbar -> injected API ?
 </script>
 
 <!-- Prevent default navigation behaviors associated to buttons 3 & 4 -->

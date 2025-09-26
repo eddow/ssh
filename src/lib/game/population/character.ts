@@ -4,6 +4,7 @@ import { ColorMatrixFilter, Sprite } from 'pixi.js'
 import { characterEvolutionRates, characterTriggerLevels, maxWalkTime } from '$assets/constants'
 import { goods as goodsCatalog } from '$assets/game-content'
 import type { GoodType } from '$lib/arktype'
+import { assert } from '$lib/debug'
 import { mrg } from '$lib/globals.svelte'
 import { type AxialCoord, type AxialRef, axial } from '$lib/hex'
 import { maxBy } from '$lib/utils'
@@ -11,7 +12,7 @@ import { Alveolus } from '../board/content/alveolus'
 import type { Tile } from '../board/tile'
 import type { Game } from '../game'
 import { bestPossibleJobScore, calculateJobScore, type Job } from '../job'
-import aCharacterContext from '../npcs/character'
+import aCharacterContext from '../npcs/characterContext'
 import { withScripted } from '../npcs/object'
 // biome-ignore lint/correctness/noUnusedImports: We need `subject` for mixins tranquility: all propertyKeys are known
 import { type ScriptExecution, subject } from '../npcs/scripts'
@@ -51,21 +52,25 @@ export class Character extends withInteractive(
 		super(game, uid)
 		this._tile = game.hex.getTile(toAxialCoord(this.position))!
 		// Allocate initial occupancy on the board
-		this.game.hex.moveCharacter(this, toAxialCoord(this._tile.position))
+		const queueStep = this.game.hex.moveCharacter(this, toAxialCoord(this._tile.position))
+		assert(!queueStep, 'Character must not be queuing on creation')
+		if (queueStep) this.stepExecutor = queueStep
 
 		// Create vehicle (by hands for now) - direct instantiation like Tile->TileContent
 		this.vehicle = new ByHands(this)
 	}
 
 	/** Attempt to step onto a tile, managing board occupancy. */
-	stepOn(tile: Tile): boolean {
+	stepOn(tile: Tile) {
 		if (axialDistance(this.position, tile.position) > 1.1) return false
 		const to = toAxialCoord(tile.position)
 		const from = toAxialCoord(this._tile.position)
-		// TODO: Here if the tile is occupied, queue?
-		if (!this.game.hex.moveCharacter(this, to, from)) return false
+		const queue = this.game.hex.moveCharacter(this, to, from)
+		if (queue)
+			return queue.finished(() => {
+				this._tile = tile
+			})
 		this._tile = tile
-		return true
 	}
 
 	get title(): string {
