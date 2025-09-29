@@ -1,5 +1,5 @@
 import { type } from 'arktype'
-import { unreactive } from 'mutts'
+import { unreactive } from 'mutts/src'
 import {
 	type ExecutionContext,
 	ExecutionError,

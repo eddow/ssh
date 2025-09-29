@@ -1,5 +1,5 @@
 import { type } from 'arktype'
-import { computed, unreactive } from 'mutts'
+import { computed, unreactive } from 'mutts/src'
 import { Container, type ContainerChild, Sprite } from 'pixi.js'
 import type { GoodType } from '$lib/arktype'
 import type { Game } from '$lib/game/game'
@@ -27,17 +27,15 @@ export abstract class Alveolus
 	implements TileContent
 {
 	public assignedWorker: Character | undefined
-
+	public tile: Tile
 	public declare hive: Hive
 	// Configurable properties
 	public walkway: boolean = true
 	public conveyor: boolean = true
 
-	constructor(
-		public tile: Tile,
-		storage: Storage<any>,
-	) {
+	constructor(tile: Tile, storage: Storage<any>) {
 		super(storage)
+		this.tile = tile
 		const hive = Hive.for(tile)
 		hive.attach(this)
 		// Only create gates between two alveoli
@@ -174,9 +172,6 @@ export abstract class Alveolus
 gameIsaTypes.alveolus = (value: any) => {
 	return value instanceof Alveolus
 }
-
-export const inputBufferSize = 3
-export const outputBufferSize = 2
 export function multiplyGoodsQty(record: Partial<Record<GoodType, number>>, multiplier: number) {
 	return Object.fromEntries(
 		Object.entries(record).map(([goodType, quantity]) => [goodType, quantity * multiplier]),

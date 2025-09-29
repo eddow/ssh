@@ -1,4 +1,4 @@
-function walkTo(path)
+function until(path)
 	for step in path
 		if tile.position != step then
 			midPoint = lerp(tile.position, step, 1/2)
@@ -6,18 +6,14 @@ function walkTo(path)
 			walk.stepOn tileAt(step)
 		end if
 	end for
-	return true
 end function
 
 function into(path)
 	target = path[path.length-1]
-	if walkTo(path) and tile == tileAt(target) then
+	walk.until path
+	if tile == tileAt(target) then
 		walk.moveTo target
 	end if
-end function
-
-function until(path)
-	walkTo(path)
 end function
 
 return { into, until }

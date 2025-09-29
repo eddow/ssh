@@ -1,4 +1,4 @@
-import { watch } from 'mutts'
+import { watch } from 'mutts/src'
 import { untrack } from 'svelte'
 /**
  * Converts a Mutts reactive object/array to a Svelte reactive object/array.
@@ -35,3 +35,4 @@ export function p2s<T extends object | any[] | undefined>(getter: () => T): () =
 
 	return () => (initialized ? value : getter())
 }
+// TODO: proxy -> $state(sub)?

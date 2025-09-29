@@ -1,4 +1,4 @@
-import { Eventful, reactive, unreactive, zip } from 'mutts'
+import { Eventful, reactive, unreactive, zip } from 'mutts/src'
 import { Application, Assets, Container, Point, Spritesheet, Texture } from 'pixi.js'
 import * as gameContent from '$assets/game-content'
 import { prefix, resources } from '$assets/resources'
@@ -323,7 +323,7 @@ export class Game extends Eventful<GameEvents> {
 	 */
 	transformTime(seconds: number) {
 		if (seconds > 1) return 0
-		return seconds * 5
+		return seconds
 	}
 }
 

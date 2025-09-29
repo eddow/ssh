@@ -1,5 +1,5 @@
 import { type } from 'arktype'
-import { computed, effect, reactive, type ScopedCallback } from 'mutts'
+import { computed, effect, reactive, type ScopedCallback } from 'mutts/src'
 import { ColorMatrixFilter, Sprite } from 'pixi.js'
 import { characterEvolutionRates, characterTriggerLevels, maxWalkTime } from '$assets/constants'
 import { goods as goodsCatalog } from '$assets/game-content'
@@ -109,6 +109,7 @@ export class Character extends withInteractive(
 		const jobProvider = targetTile.content as Alveolus
 		const job = jobProvider.getJob() as Job
 		this.log('character.beginJob', job.type)
+		// TODO: convey -> `.assignedConveyor` ?
 		jobProvider.assignedWorker = this
 		this.assignedAlveolus = jobProvider
 		return this.scriptsContext.work.goWork(jobProvider, job.type, path).final(() => {

@@ -1,4 +1,4 @@
-import { reactive } from 'mutts'
+import { reactive } from 'mutts/src'
 import { activityDurations } from '$assets/constants'
 import { SlottedStorage } from '../../storage/slotted-storage'
 import type { Vehicle } from './vehicle'

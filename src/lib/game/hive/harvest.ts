@@ -1,10 +1,11 @@
-import { computed } from 'mutts'
+import { computed } from 'mutts/src'
+import { outputBufferSize } from '$assets/constants'
 import type { GoodType } from '$lib/arktype'
 import type { Job } from '$lib/game/job'
 import { SpecificStorage } from '$lib/game/storage'
 import type { AxialRef } from '$lib/hex'
-import { Deposit } from '../board'
-import { Alveolus, multiplyGoodsQty, outputBufferSize } from '../board/content/alveolus'
+import { UnBuiltLand } from '../board'
+import { Alveolus, multiplyGoodsQty } from '../board/content/alveolus'
 import type { Tile } from '../board/tile'
 import { axialDistance, toAxialCoord } from '../position'
 export class HarvestAlveolus extends Alveolus {
@@ -49,9 +50,9 @@ export class HarvestAlveolus extends Alveolus {
 		const nearestDeposit = this.tile.game.hex.findNearest(
 			toAxialCoord(this.tile.position),
 			(coord: AxialRef) => {
-				const tile = this.game.hex.getTile(coord)
+				const tile = this.tile.game.hex.getTile(coord)
 				return (
-					tile?.content instanceof Deposit && tile.content.deposit?.name === this.action.deposit
+					tile?.content instanceof UnBuiltLand && tile.content.deposit?.name === this.action.deposit
 				)
 			},
 			6,

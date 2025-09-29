@@ -1,4 +1,4 @@
-import { effect } from 'mutts'
+import { effect } from 'mutts/src'
 import { activityDurations, ponderingFatigueRecovery } from '$assets/constants'
 import { goods as goodsCatalog } from '$assets/game-content'
 import type { GoodType } from '$lib/arktype'
@@ -16,10 +16,15 @@ export abstract class ASingleStep extends Finalized {
 	get description(): string | false {
 		return casing(this.constructor.name).transform((terms) => {
 			const lastTerm = terms.pop()
-			assert(lastTerm === 'Step', 'Last term of step constructor name is not Step')
+			assert(lastTerm === 'Step', `${this.constructor.name} does not end with "Step"`)
 		}).kebab
 	}
 
+	/**
+	 * Called each frame to update the step
+	 * @param dt Time since last frame
+	 * @returns Time remaining after finishing the step, or undefined if the step is not yet finished
+	 */
 	abstract tick(dt: number): number | undefined
 	abstract readonly type: Ssh.ActivityType
 }

@@ -1,5 +1,5 @@
 import { type } from 'arktype'
-import { computed, effect, watch } from 'mutts'
+import { computed, effect, unreactive, watch } from 'mutts/src'
 import { ColorMatrixFilter, Container, Graphics, Point, TilingSprite } from 'pixi.js'
 
 import type { AlveolusType } from '$lib/arktype'
@@ -20,6 +20,7 @@ import type { HexBoard } from './board'
 import type { TileBorder } from './border/border'
 import type { TileContent } from './content/content'
 
+@unreactive
 export class Tile extends withInteractive(withGenerator(GameObject)) {
 	// True when the tile is exactly as produced by generation
 	public asGenerated: boolean = false
@@ -70,6 +71,7 @@ export class Tile extends withInteractive(withGenerator(GameObject)) {
 		if (!AlveolusClass) return false
 		const newAlveolus = new AlveolusClass(this)
 		this.content = newAlveolus
+		newAlveolus.poke()
 		return true
 	}
 

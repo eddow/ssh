@@ -1,4 +1,4 @@
-import { computed } from 'mutts'
+import { computed } from 'mutts/src'
 import type { ExecutionContext } from 'npc-script/src'
 import type { Game } from '../game'
 import type { GameObject, TickedGameObject, withTicked } from '../object'

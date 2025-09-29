@@ -1,4 +1,4 @@
-import { reactive } from 'mutts'
+import { reactive } from 'mutts/src'
 import type { Sprite } from 'pixi.js'
 import { assert } from '$lib/debug'
 import { GameObject, withContainer, withHittable } from '$lib/game/object'

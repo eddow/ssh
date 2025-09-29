@@ -1,6 +1,8 @@
 <script lang="ts">
 import { Badge } from 'flowbite-svelte'
 import GoodsList from '$components/parts/GoodsList.svelte'
+import PropertyGrid from '$components/parts/PropertyGrid.svelte'
+import PropertyGridRow from '$components/parts/PropertyGridRow.svelte'
 import StatProgressBar from '$components/parts/StatProgressBar.svelte'
 import { AEvolutionStep, ALerpStep } from '$lib/game/npcs/steps'
 import type { Character } from '$lib/game/population/character'
@@ -27,7 +29,7 @@ const stepEvolution = $derived(
 		? Math.max(0, Math.min(1, state.step.evolution))
 		: 0,
 )
-
+// TODO: This is generic stuff, move it to a common place ?
 type FlowbiteBadgeColor =
 	| 'primary'
 	| 'secondary'
@@ -84,14 +86,13 @@ const activityBadgeColors: Record<Ssh.ActivityType, FlowbiteBadgeColor> = {
 				</div>
 			</div>
 		{/if}
-		<div class="mt-2">
-			<GoodsList goods={state.goods} game={character.game} />
-		</div>
-		{#if actions}
-			<div class="mt-4">
-				<div class="space-y-2">
+		<PropertyGrid>
+			<PropertyGridRow label={$T.goods}>
+				<GoodsList goods={state.goods} game={character.game} />
+			</PropertyGridRow>
+			{#if actions}
+				<PropertyGridRow label={$T.character.currentActivity}>
 					<div class="flex items-center gap-2">
-						<span class="font-medium">{$T.character.currentActivity}:</span>
 						<Badge color={activityBadgeColors[state.stepType ?? 'idle']}>
 							{#if state.stepDescription}
 								{$T.step[state.stepDescription]}
@@ -108,30 +109,29 @@ const activityBadgeColors: Record<Ssh.ActivityType, FlowbiteBadgeColor> = {
 							</div>
 						{/if}
 					</div>
+				</PropertyGridRow>
 
-					<div class="flex flex-col gap-1">
-						<span class="font-medium">{$T.character.activityDescriptions}:</span>
-						{#if actions.length > 0}
-							<ul
-								class="text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 p-2 rounded border border-gray-200 dark:border-gray-700 space-y-1"
-							>
-								{#each actions as description}
-									<li class="flex items-center gap-2">
-										<span>{description}</span>
-									</li>
-								{/each}
-							</ul>
-						{:else}
-							<div
-								class="text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 p-2 rounded border border-gray-200 dark:border-gray-700 italic"
-							>
-								{$T.character.noActivity}
-							</div>
-						{/if}
-					</div>
-				</div>
-			</div>
-		{/if}
+				<PropertyGridRow>
+					{#if actions.length > 0}
+						<ul
+							class="text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 p-2 rounded border border-gray-200 dark:border-gray-700 space-y-1"
+						>
+							{#each actions as description}
+								<li class="flex items-center gap-2">
+									<span>{description}</span>
+								</li>
+							{/each}
+						</ul>
+					{:else}
+						<div
+							class="text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 p-2 rounded border border-gray-200 dark:border-gray-700 italic"
+						>
+							{$T.character.noActivity}
+						</div>
+					{/if}
+				</PropertyGridRow>
+			{/if}
+		</PropertyGrid>
 	{/if}
 </div>
 

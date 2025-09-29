@@ -1,5 +1,5 @@
 import { match } from 'arktype'
-import { unreactive } from 'mutts'
+import { unreactive } from 'mutts/src'
 import {
 	type IsaTypes,
 	jsIsaTypes,

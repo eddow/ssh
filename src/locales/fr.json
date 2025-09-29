@@ -42,7 +42,11 @@
 			"tree_chopper": "Coupe un arbre",
 			"stonecutter": "Taille une pierre"
 		},
-		"convey": "Convoie"
+		"transform": {
+			"sawmill": "Scie du bois"
+		},
+		"convey": "Convoie",
+		"queue": "Fait la queue"
 	},
 	"alveolus": {
 		"alveolus": "Alvéole",

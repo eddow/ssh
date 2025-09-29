@@ -1,6 +1,6 @@
 // Library used by Pixi
 import EventEmitter from 'eventemitter3'
-import { effect, ReactiveBase, type ScopedCallback, unreactive } from 'mutts'
+import { effect, ReactiveBase, type ScopedCallback, unreactive } from 'mutts/src'
 import { Ticker } from 'pixi.js'
 import type { Tile } from './board/tile'
 import type { Game } from './game'

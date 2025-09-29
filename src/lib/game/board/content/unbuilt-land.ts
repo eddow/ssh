@@ -1,4 +1,4 @@
-import { effect } from 'mutts'
+import { effect, unreactive } from 'mutts/src'
 import { Container, type ContainerChild, Sprite } from 'pixi.js'
 import { deposits } from '$assets/game-content'
 import type { TerrainType } from '$lib/arktype'
@@ -17,17 +17,21 @@ export class Deposit extends GcClassed<Ssh.DepositDefinition>() {
 	}
 }
 
+@unreactive('tile')
 export class UnBuiltLand extends SlottedStorage implements TileContent {
 	get name() {
 		return this.terrain
 	}
+
+	public tile: Tile
 	constructor(
-		public tile: Tile,
+		tile: Tile,
 		goodsSlots: number = 3,
 		public terrain: TerrainType,
 		public deposit?: Deposit,
 	) {
 		super(goodsSlots, 1) // goodsSlots slots, 1 good per slot
+		this.tile = tile
 	}
 	get debugInfo() {
 		return {

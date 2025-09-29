@@ -2,7 +2,7 @@ import { mount } from 'svelte'
 import './app.css'
 import App from './App.svelte'
 import './lib/hmr-pixi' // Initialize HMR utilities for PixiJS
-import { profileInfo } from 'mutts'
+import { profileInfo } from 'mutts/src'
 import { initTranslator } from './lib/i18n'
 
 ;(window as any)['mutts:profile'] = profileInfo

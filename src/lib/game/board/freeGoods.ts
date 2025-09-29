@@ -1,4 +1,4 @@
-import { effect, reactive, type ScopedCallback } from 'mutts'
+import { effect, reactive, type ScopedCallback } from 'mutts/src'
 import { Container, Sprite } from 'pixi.js'
 import type { GoodType } from '$lib/arktype'
 import { assert } from '$lib/debug'

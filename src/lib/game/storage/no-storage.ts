@@ -1,6 +1,6 @@
-import { computed } from 'mutts'
-import { Container } from 'pixi.js'
+import { computed } from 'mutts/src'
 import type { GoodType } from '$lib/arktype'
+import type { RenderedGoodSlots } from './goods-renderer'
 import { AllocationError } from './guard'
 import type { Goods } from './index'
 import { Storage } from './storage'
@@ -41,8 +41,8 @@ class NoStorage extends Storage<never> {
 		)
 	}
 
-	renderGoods(_game: any, _size: number) {
-		return new Container()
+	renderedGoods(): RenderedGoodSlots {
+		return { slots: [] }
 	}
 
 	get debugInfo(): Record<string, any> {

@@ -1,4 +1,4 @@
-import { computed, reactive } from 'mutts'
+import { computed, reactive, unreactive } from 'mutts/src'
 import type { GoodType } from '$lib/arktype'
 import { assert } from '$lib/debug'
 import type { RenderedGoodSlot, RenderedGoodSlots } from './goods-renderer'
@@ -12,6 +12,7 @@ import {
 import type { Goods } from './index'
 import { type AllocationBase, Storage } from './storage'
 
+@unreactive
 class SlottedAllocation implements AllocationBase {
 	constructor(
 		private storage: SlottedStorage,

@@ -144,7 +144,7 @@ function addGame() {
 		{/snippet}
 	</Toolbar>
 	<DockView
-		singleTabMode="fullwidth"
+		singleTabMode="default"
 		class="content"
 		theme={configuration.darkMode ? 'dracula' : 'light'}
 		bind:api

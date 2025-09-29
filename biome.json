@@ -3,6 +3,7 @@
 	"files": {
 		"includes": [
 			"src/**/*.ts",
+			"assets/**/*.ts",
 			"src/**/*.js",
 			"src/**/*.svelte",
 			"*.js",

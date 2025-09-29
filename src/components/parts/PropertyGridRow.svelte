@@ -3,14 +3,16 @@ let {
 	label,
 	class: className = '',
 	children,
-}: { label: string; class?: string; children: any } = $props()
+}: { label?: string; class?: string; children: any } = $props()
 </script>
 
 <tr class="property-grid-row">
-	<td class="property-label">
-		<span class="font-medium text-gray-700 dark:text-gray-300">{label}</span>
-	</td>
-	<td class="property-value {className}">
+	{#if label}
+		<th class="property-label">
+			<span class="font-medium text-gray-700 dark:text-gray-300">{label}</span>
+		</th>
+	{/if}
+	<td class="property-value {className}" colspan={label ? 1 : 2}>
 		{@render children()}
 	</td>
 </tr>

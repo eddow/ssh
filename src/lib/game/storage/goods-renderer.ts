@@ -1,4 +1,4 @@
-import { effect } from 'mutts'
+import { effect } from 'mutts/src'
 import { ColorMatrixFilter, Container, Graphics, Sprite } from 'pixi.js'
 import { goods as goodsCatalog } from '$assets/game-content'
 import type { GoodType } from '$lib/arktype'

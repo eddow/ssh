@@ -1,13 +1,9 @@
-import { computed } from 'mutts'
+import { computed } from 'mutts/src'
+import { inputBufferSize, outputBufferSize } from '$assets/constants'
 import type { GoodType } from '$lib/arktype'
 import type { Job } from '$lib/game/job'
 import { SpecificStorage } from '$lib/game/storage'
-import {
-	Alveolus,
-	inputBufferSize,
-	multiplyGoodsQty,
-	outputBufferSize,
-} from '../board/content/alveolus'
+import { Alveolus, multiplyGoodsQty } from '../board/content/alveolus'
 import type { Tile } from '../board/tile'
 
 export class TransformAlveolus extends Alveolus {

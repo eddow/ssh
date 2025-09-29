@@ -29,22 +29,41 @@ export const terrain = {
 export const deposits = {
 	berry_bush: {
 		maxAmount: 18,
-		regenerate: .01,
-		sprites: ["bushes/bush1"],
+		regenerate: 0.01,
+		sprites: ['bushes/bush1'],
 		generation: {
 			goods: { berries: 0.05 },
 		},
 	},
 	rock: {
 		maxAmount: 18,
-		sprites: ["rocks/rock1", "rocks/rock2", "rocks/rock3", "rocks/rock4", "rocks/rock5", "rocks/rock6"],
+		sprites: [
+			'rocks/rock1',
+			'rocks/rock2',
+			'rocks/rock3',
+			'rocks/rock4',
+			'rocks/rock5',
+			'rocks/rock6',
+		],
 		generation: {
 			goods: { stone: 0.6 },
 		},
 	},
 	tree: {
 		maxAmount: 12,
-		sprites: ["trees/tree1", "trees/tree2", "trees/tree3", "trees/tree4", "trees/tree5", "trees/tree6", "trees/tree7", "trees/tree8", "trees/tree9", "trees/tree10", "trees/tree11"],
+		sprites: [
+			'trees/tree1',
+			'trees/tree2',
+			'trees/tree3',
+			'trees/tree4',
+			'trees/tree5',
+			'trees/tree6',
+			'trees/tree7',
+			'trees/tree8',
+			'trees/tree9',
+			'trees/tree10',
+			'trees/tree11',
+		],
 		regenerate: 0.01,
 		generation: {
 			goods: { wood: 0.5 },
@@ -55,58 +74,58 @@ export const deposits = {
 export const alveoli = {
 	tree_chopper: {
 		preparationTime: 2,
-		action: { type: "harvest", deposit: "tree", output: { wood: 1 } },
+		action: { type: 'harvest', deposit: 'tree', output: { wood: 1 } },
 		workTime: 3,
-		sprites: ["chopper"],
-		icon: "chopper",
+		sprites: ['chopper'],
+		icon: 'chopper',
 	},
 	stonecutter: {
 		preparationTime: 3,
-		action: { type: "harvest", deposit: "rock", output: { stone: 1 } },
+		action: { type: 'harvest', deposit: 'rock', output: { stone: 1 } },
 		workTime: 4,
-		sprites: ["cutter"],
-		icon: "cutter",
+		sprites: ['cutter'],
+		icon: 'cutter',
 	},
 	sawmill: {
 		preparationTime: 1,
-		action: { type: "transform", inputs: { wood: 1 }, output: { planks: 1 } },
+		action: { type: 'transform', inputs: { wood: 1 }, output: { planks: 1 } },
 		workTime: 2,
-		sprites: ["sawmill"],
-		icon: "sawmill",
+		sprites: ['sawmill'],
+		icon: 'sawmill',
 	},
 	transit: {
 		preparationTime: 1,
-		action: { type: "transit", individual: true },
+		action: { type: 'transit', individual: true },
 		workTime: 2,
-		sprites: ["transit"],
-		icon: "transit",
+		sprites: ['transit'],
+		icon: 'transit',
 	},
 } as const satisfies Record<string, Ssh.AlveolusDefinition>
 
 export const goods = {
 	berries: {
 		feedingValue: 72,
-		sprites: ["berries"],
-		icon: "berries",
+		sprites: ['berries'],
+		icon: 'berries',
 	},
 	mushrooms: {
 		feedingValue: 160,
-		sprites: ["mushrooms"],
-		icon: "mushrooms",
+		sprites: ['mushrooms'],
+		icon: 'mushrooms',
 	},
 	planks: {
 		feedingValue: 0,
-		sprites: ["planks"],
-		icon: "planks",
+		sprites: ['planks'],
+		icon: 'planks',
 	},
 	stone: {
 		feedingValue: 0,
-		sprites: ["stone"],
-		icon: "stone",
+		sprites: ['stone'],
+		icon: 'stone',
 	},
 	wood: {
 		feedingValue: 0,
-		sprites: ["wood"],
-		icon: "wood",
+		sprites: ['wood'],
+		icon: 'wood',
 	},
 } as const satisfies Record<string, Ssh.GoodsDefinition>

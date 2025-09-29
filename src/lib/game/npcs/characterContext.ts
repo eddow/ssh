@@ -345,6 +345,7 @@ class WorkFunctions {
 		const mg = movements[0]
 		const hive = alveolus.hive
 
+		mg.allocations.provider.fulfill()
 		// Advance one hop along the path
 		const hop = mg.hop()!
 		// If moving from tile -> border, allocate on border and fulfill provider reservation
@@ -352,7 +353,6 @@ class WorkFunctions {
 		const hopAlloc = mg.path.length
 			? nextStorage!.allocate(mg.goodType, 1, { type: 'convey.hop', movement: mg })
 			: undefined
-		mg.allocations.provider.fulfill()
 		const moving = character.game.hex.freeGoods.add(alveolus.tile, mg.goodType, mg.from)
 		const time = character.vehicle.transferTime * axial.distance(mg.from, hop)
 

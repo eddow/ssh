@@ -1,6 +1,6 @@
-import { GoodType, type ContractType } from '$lib/arktype'
-import { TileArkType } from '$lib/game/board/tile'
+import { type ContractType, GoodType } from '$lib/arktype'
 import { AlveolusArkType } from '$lib/game/board/content/alveolus'
+import { TileArkType } from '$lib/game/board/tile'
 import { Position } from '$lib/game/position'
 export const CharacterContract = {
 	walk: {

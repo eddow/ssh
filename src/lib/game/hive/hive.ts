@@ -1,4 +1,4 @@
-import { computed, reactive } from 'mutts'
+import { computed, reactive } from 'mutts/src'
 import type { GoodType } from '$lib/arktype'
 import { type AxialCoord, type AxialRef, axial, findPath } from '$lib/hex'
 import { AxialKeyMap } from '$lib/mem'
@@ -55,7 +55,6 @@ export class Hive {
 	public attach(alveolus: Alveolus) {
 		this.alveoli.add(alveolus)
 		alveolus.hive = this
-		this.onAddAlveolus(alveolus)
 		this.pokeAlveolus(alveolus)
 	}
 	/**
@@ -232,5 +231,4 @@ export class Hive {
 				if (alveolus.available(gt as GoodType) > 0) this.provide(gt as GoodType, alveolus)
 	}
 	//#endregion
-	onAddAlveolus(_alveolus: Alveolus) {}
 }

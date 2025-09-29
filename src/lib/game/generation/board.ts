@@ -3,7 +3,7 @@
  * Extracted from board/index.ts for better organization
  */
 
-import { terrain as terrainDetails } from '$assets/game-content'
+import { deposits, terrain as terrainDetails } from '$assets/game-content'
 import type { DepositType, TerrainType } from '$lib/arktype'
 import type { AxialCoord } from '$lib/hex'
 import { axial } from '$lib/hex'
@@ -24,7 +24,7 @@ export interface GeneratedTileData {
 }
 
 export interface GeneratedDepositData {
-	type: string
+	type: DepositType
 	amount: number
 }
 
@@ -70,6 +70,12 @@ export class BoardGenerator {
 		const details: Ssh.TerrainDefinition = terrainDetails[terrain]
 
 		if (deposit) {
+			const generation = deposits[deposit.type].generation?.goods ?? {}
+			for (const [good, chance] of Object.entries(generation)) {
+				if (rnd() < (chance as number)) {
+					goods[good] = (goods[good] || 0) + 1
+				}
+			}
 			// For now, we'll skip deposit-based goods generation since we don't have the full deposit object
 			// This would need to be refactored to work with the deposit data structure
 		}
@@ -98,7 +104,7 @@ export class BoardGenerator {
 				const Kind = Deposit.class[depKey as DepositType]
 				const amount = Math.floor(((1 + rnd() * 2) * Kind.prototype.maxAmount) / 3)
 				return {
-					type: depKey,
+					type: depKey as DepositType,
 					amount,
 				}
 			}

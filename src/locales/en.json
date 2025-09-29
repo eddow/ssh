@@ -42,7 +42,11 @@
 			"tree_chopper": "Chop tree",
 			"stonecutter": "Cut stone"
 		},
-		"convey": "Convey"
+		"transform": {
+			"sawmill": "Saw wood"
+		},
+		"convey": "Convey",
+		"queue": "Queue"
 	},
 	"alveolus": {
 		"alveolus": "Alveolus",

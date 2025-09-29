@@ -1,4 +1,4 @@
-import { Eventful, reactive } from 'mutts'
+import { Eventful, reactive } from 'mutts/src'
 import { Game, type GameEvents, type InteractiveGameObject } from './game'
 import { chopSaw as patches } from './game/exampleGames'
 

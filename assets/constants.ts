@@ -1,7 +1,9 @@
 // Gameplay mechanics constants
 // These control character behavior, survival mechanics, and game balance
 
-export const characterEvolutionRates: {[k in Ssh.NeedType]: Partial<Record<Ssh.ActivityType, number>> & { '*': number }} = {
+export const characterEvolutionRates: {
+	[k in Ssh.NeedType]: Partial<Record<Ssh.ActivityType, number>> & { '*': number }
+} = {
 	// Need evolution per activity, with '*' as default fallback
 	hunger: {
 		'*': 2,
@@ -41,15 +43,18 @@ export const characterTriggerLevels = {
 } as const
 
 export const activityDurations = {
-	handTransfer: 1,      // Time to grab/drop items by hand
-	footWalkTime: 1,      // Time to walk by foot
-	eating: 2,            // Time to eat food
+	handTransfer: 1, // Time to grab/drop items by hand
+	footWalkTime: 1, // Time to walk by foot
+	eating: 2, // Time to eat food
 	restMin: 3,
 	restMax: 6,
 } as const
 
-export const ponderingFatigueRecovery = 60  // Fatigue recovery rate while resting
-export const maxWalkTime = 24	// Maximum walking time accepted to choose a tile for an action
+export const ponderingFatigueRecovery = 60 // Fatigue recovery rate while resting
+export const maxWalkTime = 24 // Maximum walking time accepted to choose a tile for an action
 
 // Storage and building constants
-export const transformAlveolusStorageMultiplier = 3  // Transform alveoli can store input goods * this multiplier
+export const transformAlveolusStorageMultiplier = 3 // Transform alveoli can store input goods * this multiplier
+// Storage buffer sizes for transform/harvest
+export const inputBufferSize = 2
+export const outputBufferSize = 6

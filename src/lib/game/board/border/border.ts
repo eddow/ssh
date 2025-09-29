@@ -1,5 +1,5 @@
 import { type } from 'arktype'
-import { watch } from 'mutts'
+import { watch } from 'mutts/src'
 import { Container } from 'pixi.js'
 import type { Game } from '$lib/game/game'
 import { GameObject, withGenerator } from '$lib/game/object'

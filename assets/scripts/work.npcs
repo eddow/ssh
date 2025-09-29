@@ -35,6 +35,7 @@ function harvest(alveolus)
 				inventory.drop good
 			loop
 			pokeAlveolus	// We just did add resources in the hive, tell this alveolus to perhaps signal it
+			// work.convey should call work.conveyStep while there is something to convey
 			work.convey
 		else
 			inventory.dropAll
