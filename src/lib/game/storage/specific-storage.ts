@@ -71,6 +71,10 @@ export class SpecificStorage extends Storage<SpecificAllocation> {
 		this.maxAmounts = { ...maxAmounts }
 	}
 
+	get allocatedSlots(): boolean {
+		return Object.values(this._allocated).some((qty) => qty > 0)
+	}
+
 	canStoreAll(goods: Goods): boolean {
 		return Object.entries(goods).every(
 			([goodType, qty]) => this.hasRoom(goodType as GoodType) >= qty,

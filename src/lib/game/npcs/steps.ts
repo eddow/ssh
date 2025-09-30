@@ -106,7 +106,7 @@ export class MoveToStep extends ALerpStep<Positioned> {
 	}
 }
 
-export class WaitStep extends AEvolutionStep {
+export class DurationStep extends AEvolutionStep {
 	get description(): string | false {
 		return this.givenDescription
 	}
@@ -116,6 +116,32 @@ export class WaitStep extends AEvolutionStep {
 		readonly givenDescription: string,
 	) {
 		super(duration)
+	}
+}
+
+export class WaitForPredicateStep extends ASingleStep {
+	get type() {
+		return 'idle' as const
+	}
+	private passed = false
+	constructor(
+		readonly descriptionText: string,
+		predicate: () => boolean,
+	) {
+		super()
+		const stop = effect(() => {
+			if (predicate()) {
+				this.passed = true
+				this.finish()
+				stop()
+			}
+		})
+	}
+	get description(): string | false {
+		return this.descriptionText
+	}
+	tick(dt: number): number | undefined {
+		return this.passed ? dt : undefined
 	}
 }
 

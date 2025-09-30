@@ -323,7 +323,7 @@ export class Game extends Eventful<GameEvents> {
 	 */
 	transformTime(seconds: number) {
 		if (seconds > 1) return 0
-		return seconds
+		return seconds * 5
 	}
 }
 

@@ -38,6 +38,7 @@ declare namespace Ssh {
 		feedingValue: number
 		icon: Sprite
 		sprites: Sprite[]
+		halfLife: number
 	}
 	interface TerrainDefinition {
 		generation?: {

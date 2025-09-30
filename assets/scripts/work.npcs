@@ -12,7 +12,7 @@ function goWork(alveolus, job, path)
 end function
 
 function harvest(alveolus)
-	do while I.keepWorking
+	do while I.keepWorking and alveolus.keepWorking
 		do while not tile.content.deposit or tile.content.deposit.name != alveolus.action.deposit
 			where = find.deposit(alveolus.action.deposit)
 			if not where then return false
@@ -35,8 +35,6 @@ function harvest(alveolus)
 				inventory.drop good
 			loop
 			pokeAlveolus	// We just did add resources in the hive, tell this alveolus to perhaps signal it
-			// work.convey should call work.conveyStep while there is something to convey
-			work.convey
 		else
 			inventory.dropAll
 		end if
@@ -44,9 +42,16 @@ function harvest(alveolus)
 end function
 
 function transform(alveolus)
-	do while I.keepWorking
+	do while I.keepWorking and alveolus.keepWorking
 		work.transformStep
 	loop
 end function
 
-return { goWork, harvest, transform }
+function convey(alveolus)
+	do while I.keepWorking and alveolus.goodMovements.length
+		work.conveyStep
+		if alveolus.incomingGoods then waitForIncomingGoods
+	loop
+end function
+
+return { goWork, harvest, transform, convey }

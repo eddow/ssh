@@ -16,7 +16,7 @@ import type { Character } from '../population/character'
 import { Positioned, positionRoughlyEquals, toAxialCoord } from '../position'
 import type { AllocationBase } from '../storage'
 import { InteractiveContext, loadNpcScripts, protoCtx, subject } from './scripts'
-import { EatStep, MoveToStep, PonderingStep, WaitStep } from './steps'
+import { DurationStep, EatStep, MoveToStep, PonderingStep, WaitForPredicateStep } from './steps'
 
 export interface Action<T = any> {
 	readonly description: 'grab' | 'drop'
@@ -166,7 +166,7 @@ class InventoryFunctions {
 		if (amount <= 0) throw new Error('No goods to grab')
 		const vehicleTransfer = vehicle.allocate(goodType, amount, `grab.${goodType}`)
 		const tileTransfer = content.reserve(goodType, amount, `grab.${goodType}`)
-		return new WaitStep(amount * vehicle.transferTime, 'convey', `grab.${goodType}`)
+		return new DurationStep(amount * vehicle.transferTime, 'convey', `grab.${goodType}`)
 			.finished(() => {
 				vehicleTransfer.fulfill()
 				tileTransfer.fulfill()
@@ -192,7 +192,7 @@ class InventoryFunctions {
 		if (amount <= 0) throw new Error('No goods to drop')
 		const tileTransfer = content.allocate(goodType, amount, `drop.${goodType}`)
 		const vehicleTransfer = vehicle.reserve(goodType, amount, `drop.${goodType}`)
-		return new WaitStep(amount * vehicle.transferTime, 'convey', `drop.${goodType}`)
+		return new DurationStep(amount * vehicle.transferTime, 'convey', `drop.${goodType}`)
 			.finished(() => {
 				tileTransfer.fulfill()
 				vehicleTransfer.fulfill()
@@ -263,7 +263,7 @@ class InventoryFunctions {
 		assert(content, 'tile.content must be set')
 		assert(vehicle, 'tile.vehicle must be set')
 
-		return new WaitStep(amount * vehicle.transferTime, 'convey', description)
+		return new DurationStep(amount * vehicle.transferTime, 'convey', description)
 			.finished(() => {
 				tileAllocation.fulfill()
 				vehicleAllocation.fulfill()
@@ -325,14 +325,21 @@ class WorkFunctions {
 	declare [subject]: Character
 	@contract()
 	prepare() {
-		return new WaitStep(
+		return new DurationStep(
 			this[subject].assignedAlveolus!.preparationTime,
 			'work',
 			`prepare.${this[subject].assignedAlveolus!.name}`,
 		)
 	}
+	@contract()
+	waitForIncomingGoods() {
+		return new WaitForPredicateStep(
+			'wait for incoming goods',
+			() => this[subject].assignedAlveolus!.incomingGoods,
+		)
+	}
 	@contract(AlveolusArkType.optional())
-	convey() {
+	conveyStep() {
 		const character = this[subject]
 		const alveolus = character.assignedAlveolus!
 		assert(
@@ -399,7 +406,7 @@ class WorkFunctions {
 		if (deposit.amount <= 0) {
 			unbuiltLand.deposit = undefined
 		}
-		return new WaitStep(
+		return new DurationStep(
 			this[subject].assignedAlveolus!.workTime,
 			'work',
 			`harvest.${this[subject].assignedAlveolus!.name}`,
@@ -431,7 +438,7 @@ class WorkFunctions {
 			})
 			allocations.push(allocation)
 		}
-		return new WaitStep(alveolus.workTime, 'work', `transform.${alveolus.name}`)
+		return new DurationStep(alveolus.workTime, 'work', `transform.${alveolus.name}`)
 			.finished(() => {
 				for (const allocation of allocations) allocation.fulfill()
 				alveolus.poke()

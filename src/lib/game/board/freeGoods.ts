@@ -1,10 +1,11 @@
 import { effect, reactive, type ScopedCallback } from 'mutts/src'
 import { Container, Sprite } from 'pixi.js'
+import { goods } from '$assets/game-content'
 import type { GoodType } from '$lib/arktype'
 import { assert } from '$lib/debug'
 import { AxialKeyMap } from '$lib/mem'
 import { epsilon } from '$lib/utils'
-import { GameObject, withGenerator } from '../object'
+import { GameObject, withGenerator, withTicked } from '../object'
 import {
 	axialDistance,
 	type Position,
@@ -19,7 +20,7 @@ export interface FreeGood {
 	remove(): void
 }
 
-export class FreeGoods extends withGenerator(GameObject) {
+export class FreeGoods extends withTicked(withGenerator(GameObject)) {
 	private readonly goods = new AxialKeyMap<FreeGood[]>()
 	private readonly display = new Map<FreeGood, { sprite: Sprite; cleanup: ScopedCallback }>()
 	private readonly fgContainer: Container = new Container()
@@ -64,6 +65,34 @@ export class FreeGoods extends withGenerator(GameObject) {
 			display.cleanup()
 			display.sprite.destroy()
 			this.display.delete(good)
+		}
+	}
+
+	update(deltaTime: number): void {
+		// Convert deltaTime from milliseconds to seconds
+		const deltaSeconds = deltaTime / 1000
+
+		// Process each coordinate's goods
+		for (const [, goodsList] of this.goods.entries()) {
+			const goodsToRemove: FreeGood[] = []
+
+			for (const good of goodsList) {
+				const goodDef = goods[good.goodType]
+				const halfLife = goodDef.halfLife // in seconds
+
+				// Calculate decay probability using the formula: P = 1 - 2^(-deltaTime/halfLife)
+				const decayProbability = 1 - 2 ** (-deltaSeconds / halfLife)
+
+				// Random chance to decay
+				if (Math.random() < decayProbability) {
+					goodsToRemove.push(good)
+				}
+			}
+
+			// Remove decayed goods
+			for (const good of goodsToRemove) {
+				this.remove({ position: good.position }, good)
+			}
 		}
 	}
 }

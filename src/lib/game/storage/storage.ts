@@ -61,6 +61,7 @@ export abstract class Storage<Allocation extends AllocationBase> {
 
 	/** Render a visualization of stored goods */
 	abstract renderedGoods(): RenderedGoodSlots
+	abstract get allocatedSlots(): boolean
 }
 
 /**
@@ -116,6 +117,10 @@ export function withStorageForwarder<
 
 		renderedGoods() {
 			return this.storage.renderedGoods()
+		}
+
+		get allocatedSlots() {
+			return this.storage.allocatedSlots
 		}
 	}
 }

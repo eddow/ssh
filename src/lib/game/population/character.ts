@@ -123,8 +123,7 @@ export class Character extends withInteractive(
 		return (
 			this.hunger < this.triggerLevels.hunger.high &&
 			this.fatigue < this.triggerLevels.fatigue.high &&
-			this.tiredness < this.triggerLevels.tiredness.high &&
-			this.assignedAlveolus!.keepWorking
+			this.tiredness < this.triggerLevels.tiredness.high
 		)
 	}
 

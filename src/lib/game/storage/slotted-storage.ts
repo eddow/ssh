@@ -89,6 +89,10 @@ export class SlottedStorage extends Storage<SlottedAllocation> {
 		this.slots = reactive(Array(maxSlots).fill(undefined))
 	}
 
+	get allocatedSlots(): boolean {
+		return this.slots.some((slot) => slot?.allocated)
+	}
+
 	hasRoom(goodType?: GoodType): number {
 		let totalCapacity = 0
 		for (const slot of this.slots) {

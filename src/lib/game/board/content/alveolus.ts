@@ -145,6 +145,13 @@ export abstract class Alveolus
 		}
 		return results
 	}
+	@computed
+	get incomingGoods(): boolean {
+		// Note: because borders have 2 neighbors, if a good is incoming, it's for you (you're in one of the neighbors)
+		return this.tile.surroundings.some(
+			(s) => s.border.content instanceof AlveolusGate && s.border.content.allocatedSlots,
+		)
+	}
 
 	private conveyJob(): Job | undefined {
 		// Provide a convey job only when there are pass-through movements via borders

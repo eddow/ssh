@@ -10,6 +10,10 @@ class NoStorage extends Storage<never> {
 		return 0
 	}
 
+	get allocatedSlots(): boolean {
+		return false
+	}
+
 	addGood(_goodType: GoodType, _qty: number): number {
 		return 0
 	}
