@@ -60,6 +60,7 @@ export function withScripted<T extends new (...args: any[]) => TickedGameObject>
 			let uselessStepExecutor: string | false = false
 			while (remaining !== undefined && this.stepExecutor) {
 				const newRemaining = this.stepExecutor.tick(remaining)
+				if (typeof newRemaining === 'number' && !Number.isFinite(newRemaining)) debugger
 				if (newRemaining === remaining && this.stepExecutor)
 					uselessStepExecutor = this.stepExecutor.type
 				remaining = newRemaining

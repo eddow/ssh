@@ -175,6 +175,22 @@ export abstract class Alveolus
 	poke() {
 		this.hive.pokeAlveolus(this)
 	}
+
+	/**
+	 * Check if this alveolus has a specific good in stock
+	 * Default implementation delegates to storage
+	 */
+	canGive(_goodType: GoodType): number {
+		return 0
+	}
+
+	/**
+	 * Check if this alveolus can store a specific good
+	 * Default implementation delegates to storage
+	 */
+	canTake(_goodType: GoodType): number {
+		return 0
+	}
 }
 gameIsaTypes.alveolus = (value: any) => {
 	return value instanceof Alveolus

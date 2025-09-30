@@ -8,7 +8,8 @@
 		"tree_chopper": "Bûcheron",
 		"stonecutter": "Tailleur de Pierre",
 		"sawmill": "Scierie",
-		"transit": "Zone de Transbordement"
+		"transit": "Zone de Transbordement",
+		"storage": "Magasin"
 	},
 	"goods": {
 		"berries": "Baies",

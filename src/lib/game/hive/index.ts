@@ -4,6 +4,7 @@ import type { Alveolus } from '../board/content/alveolus'
 import { GcClasses } from '../board/content/utils'
 import type { Tile } from '../board/tile'
 import { HarvestAlveolus } from './harvest'
+import { StorageAlveolus } from './storage'
 import { TransformAlveolus } from './transform'
 import { TransitAlveolus } from './transit'
 
@@ -13,6 +14,7 @@ export const alveolusClass = GcClasses(
 			harvest: HarvestAlveolus,
 			transform: TransformAlveolus,
 			transit: TransitAlveolus,
+			storage: StorageAlveolus,
 		})[def.action.type],
 	alveoli,
 ) as Record<AlveolusType, new (tile: Tile) => Alveolus>

@@ -17,6 +17,7 @@ export const resources: Record<string, string> = {
 	cutter: 'buildings/cutter.png',
 	sawmill: 'buildings/sawmill.png',
 	transit: 'buildings/load.png',
+	store: 'buildings/shop.png',
 	berries: 'goods/berries.png',
 	mushrooms: 'goods/mushrooms.png',
 	planks: 'goods/planks.png',

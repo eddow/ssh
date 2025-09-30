@@ -93,6 +93,13 @@ export const alveoli = {
 		sprites: ['sawmill'],
 		icon: 'sawmill',
 	},
+	storage: {
+		preparationTime: 1,
+		action: { type: 'storage', capacity: 3, slots: 6 },
+		workTime: 0,
+		sprites: ['store'],
+		icon: 'store',
+	},
 	transit: {
 		preparationTime: 1,
 		action: { type: 'transit', individual: true },

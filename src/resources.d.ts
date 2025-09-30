@@ -25,7 +25,21 @@ declare namespace Ssh {
 		type: 'transit'
 		individual: boolean
 	}
-	type Action = HarvestingAction | TransformationAction | TransitAction
+	interface SlottedStorageAction {
+		type: 'storage'
+		capacity: number
+		slots: number
+	}
+	interface SpecificStorageAction {
+		type: 'storage'
+		[goodType: string]: number
+	}
+	type Action =
+		| HarvestingAction
+		| TransformationAction
+		| TransitAction
+		| SlottedStorageAction
+		| SpecificStorageAction
 
 	interface AlveolusDefinition<ActionType extends Action = Action> {
 		preparationTime: number

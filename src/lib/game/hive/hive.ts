@@ -1,5 +1,6 @@
 import { computed, reactive } from 'mutts/src'
 import type { GoodType } from '$lib/arktype'
+import { assert } from '$lib/debug'
 import { type AxialCoord, type AxialRef, axial, findPath } from '$lib/hex'
 import { AxialKeyMap } from '$lib/mem'
 import { setPop } from '$lib/utils'
@@ -14,18 +15,21 @@ export interface MovingGood {
 	provider: Alveolus
 	demander: Alveolus
 	allocations: {
-		provider: AllocationBase
-		demander: AllocationBase
+		source: AllocationBase
+		target: AllocationBase
 	}
 	hop(): AxialCoord
 	finish(): void
 }
-export type HiveDemanderQueue = { demanders: Alveolus[] }
-export type HiveProviderQueue = { providers: Alveolus[] }
+export type HiveDemanderQueue = { demanders: Set<Alveolus> }
+export type HiveProviderQueue = { providers: Set<Alveolus> }
 export type HiveQueue = HiveDemanderQueue | HiveProviderQueue
 
 export class Hive {
 	private constructor(public readonly board: HexBoard) {}
+	// Path cache for complete paths between alveoli
+	private pathCache = new Map<string, AxialCoord[]>()
+
 	//#region Hives management on tile add/remove
 	static for(tile: Tile) {
 		const hives = new Set<Hive>()
@@ -55,6 +59,7 @@ export class Hive {
 	public attach(alveolus: Alveolus) {
 		this.alveoli.add(alveolus)
 		alveolus.hive = this
+		this.invalidatePathCache()
 		this.pokeAlveolus(alveolus)
 	}
 	/**
@@ -84,6 +89,7 @@ export class Hive {
 	 */
 	removeAlveolus(alveolus: Alveolus) {
 		this.alveoli.delete(alveolus)
+		this.invalidatePathCache()
 		const toPlaceAlveoli = new Set(this.alveoli)
 		const hives: Hive[] = []
 
@@ -103,6 +109,67 @@ export class Hive {
 		for (let i = 0; i < hives.length - 1; i++) hives[i].partOf(this)
 	}
 	//#endregion
+
+	//#region Path caching
+	private invalidatePathCache() {
+		this.pathCache.clear()
+	}
+
+	private getPath(from: Alveolus, to: Alveolus, goodType: GoodType): AxialCoord[] | undefined {
+		const fromCoord = toAxialCoord(from.tile.position)
+		const toCoord = toAxialCoord(to.tile.position)
+		const key = `${fromCoord.q},${fromCoord.r}-${toCoord.q},${toCoord.r}-${goodType}`
+
+		if (this.pathCache.has(key)) {
+			return this.pathCache.get(key)!
+		}
+
+		// Use actual pathfinding to get the complete path
+		const path = findPath(
+			(c) => this.getNeighborsForGood(c, goodType).map((n) => toAxialCoord(n)),
+			fromCoord,
+			toCoord,
+			Number.POSITIVE_INFINITY,
+			true,
+		)
+
+		if (path && path.length > 0) {
+			// Remove the start coordinate as we know it
+			path.shift()
+			this.pathCache.set(key, path)
+			return path
+		}
+
+		return undefined
+	}
+
+	private getPathDistance(from: Alveolus, to: Alveolus, goodType: GoodType): number {
+		const path = this.getPath(from, to, goodType)
+		return path ? path.length : Number.POSITIVE_INFINITY
+	}
+
+	private findNearest<T extends Alveolus>(
+		from: Alveolus,
+		candidates: Set<T>,
+		goodType: GoodType,
+	): T | undefined {
+		if (candidates.size === 0) return undefined
+
+		let nearest: T | undefined
+		let minDistance = Number.POSITIVE_INFINITY
+
+		for (const candidate of candidates) {
+			const distance = this.getPathDistance(from, candidate, goodType)
+			if (distance < minDistance) {
+				minDistance = distance
+				nearest = candidate
+			}
+		}
+
+		return nearest
+	}
+	//#endregion
+
 	getNeighborsForGood(ref: AxialRef, _goodType: GoodType) {
 		const coord = axial.access(ref)
 		if (isTileCoord(coord)) {
@@ -137,15 +204,10 @@ export class Hive {
 			demander: toAxialCoord(demander.tile.position),
 		}
 		const { movingGoods } = this
-		const path = findPath(
-			(c) => this.getNeighborsForGood(c, goodType).map((n) => toAxialCoord(n)),
-			positions.provider,
-			positions.demander,
-			Number.POSITIVE_INFINITY,
-			true,
-		)
+
+		// Use cached path if available, otherwise calculate it
+		const path = [...this.getPath(provider, demander, goodType)!]
 		if (!path || path.length < 1) return false
-		path.shift() // remove the start as we know it
 		const reason = {
 			type: 'hive-transfer',
 			goodType,
@@ -165,15 +227,15 @@ export class Hive {
 			provider,
 			demander,
 			allocations: {
-				provider: providerToken,
-				demander: demanderToken,
+				source: providerToken,
+				target: demanderToken,
 			},
 			hop() {
 				const rv = path.shift()!
 				removeFromList(movingGood)
 				if (movingGood.path.length) {
 					from = rv
-					if (!movingGoods.get(rv)) movingGoods.set(rv, [])
+					if (!movingGoods.has(rv)) movingGoods.set(rv, [])
 					list = movingGoods.get(rv)!
 					list.push(movingGood)
 				}
@@ -190,34 +252,72 @@ export class Hive {
 
 	provide(goodType: GoodType, provider: Alveolus) {
 		const q = this.getQueue(goodType)
-		if (!q) return this.queues.set(goodType, { providers: [provider] })
-		if ('providers' in q) {
-			if (!q.providers.includes(provider)) q.providers.push(provider)
+		if (!q) {
+			// If no demander, choose the nearest storage
+			const storages = new Set<Alveolus>()
+			for (const alveolus of this.alveoli) {
+				if (alveolus.action.type === 'storage' && alveolus.canTake(goodType) > 0) {
+					storages.add(alveolus)
+				}
+			}
+			if (storages.size === 0) {
+				this.queues.set(goodType, { providers: new Set([provider]) })
+				// No storage found, we have no place to put the good
+				// TODO: show the building in "overflowing" flag
+				return
+			}
+			const storage = this.findNearest(provider, storages, goodType)
+			assert(storage !== undefined, 'Storage found but none reachable')
+			this.createMovement(goodType, provider, storage)
+			this.pokeAlveolus(storage)
 			return
 		}
-		const demander = q.demanders.shift()
-		if (demander) {
-			this.createMovement(goodType, provider, demander)
-			this.pokeAlveolus(demander)
+		if ('providers' in q) {
+			q.providers.add(provider)
+			return
 		}
-		if (q.demanders.length === 0) this.queues.delete(goodType)
+		assert('demanders' in q, 'Providers are present but none reachable')
+		// Choose the nearest demander
+		const demander = this.findNearest(provider, q.demanders, goodType)
+		assert(demander !== undefined, 'Demanders are present but none reachable')
+		this.createMovement(goodType, provider, demander)
+		this.pokeAlveolus(demander)
+		q.demanders.delete(demander)
+		if (q.demanders.size === 0) this.queues.delete(goodType)
 	}
 
-	need(goodType: GoodType, demander: Alveolus) {
+	demand(goodType: GoodType, demander: Alveolus) {
 		const q = this.getQueue(goodType)
 		this.needs[goodType] ??= new Set()
 		this.needs[goodType]!.add(demander)
-		if (!q) return this.queues.set(goodType, { demanders: [demander] })
-		if ('demanders' in q) {
-			if (!q.demanders.includes(demander)) q.demanders.push(demander)
+		if (!q) {
+			// Try to satisfy immediately from nearest storage with stock
+			const storages = new Set<Alveolus>()
+			for (const alveolus of this.alveoli) {
+				if (alveolus.action.type === 'storage' && alveolus.canGive(goodType) > 0) {
+					storages.add(alveolus)
+				}
+			}
+			if (storages.size === 0) return this.queues.set(goodType, { demanders: new Set([demander]) })
+			const storage = this.findNearest(demander, storages, goodType)
+			assert(storage !== undefined, 'Storage found but none reachable')
+			this.createMovement(goodType, storage, demander)
+			this.pokeAlveolus(storage)
 			return
 		}
-		const provider = q.providers.shift()
-		if (provider) {
-			this.createMovement(goodType, provider, demander)
-			this.pokeAlveolus(provider)
+		if ('demanders' in q) {
+			q.demanders.add(demander)
+			return
 		}
-		if (q.providers.length === 0) this.queues.delete(goodType)
+
+		// Providers exist: choose nearest and assert reachable
+		assert('providers' in q, 'Demanders are present but none reachable')
+		const provider = this.findNearest(demander, q.providers, goodType)
+		assert(provider !== undefined, 'Providers are present but none reachable')
+		this.createMovement(goodType, provider, demander)
+		this.pokeAlveolus(provider)
+		q.providers.delete(provider)
+		if (q.providers.size === 0) this.queues.delete(goodType)
 	}
 
 	public pokeAlveolus(alveolus: Alveolus) {
@@ -225,7 +325,7 @@ export class Hive {
 		const action = alveolus.action as any
 		if ('inputs' in action)
 			for (const [gt] of Object.entries(action.inputs))
-				if (alveolus.hasRoom(gt as GoodType) > 0) this.need(gt as GoodType, alveolus)
+				if (alveolus.hasRoom(gt as GoodType) > 0) this.demand(gt as GoodType, alveolus)
 		if ('output' in action)
 			for (const [gt] of Object.entries(action.output))
 				if (alveolus.available(gt as GoodType) > 0) this.provide(gt as GoodType, alveolus)

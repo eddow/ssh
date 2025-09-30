@@ -324,7 +324,12 @@ class SelfCareFunctions {
 class WorkFunctions {
 	declare [subject]: Character
 	@contract()
+	// TODO: specific cases for `convey`: preparationTime, assignedConveyor, ... ?
 	prepare() {
+		assert(
+			this[subject].assignedAlveolus?.preparationTime,
+			'assignedAlveolus must be set and have a preparationTime',
+		)
 		return new DurationStep(
 			this[subject].assignedAlveolus!.preparationTime,
 			'work',
@@ -352,10 +357,9 @@ class WorkFunctions {
 		const mg = movements[0]
 		const hive = alveolus.hive
 
-		mg.allocations.provider.fulfill()
+		mg.allocations.source.fulfill()
 		// Advance one hop along the path
 		const hop = mg.hop()!
-		// If moving from tile -> border, allocate on border and fulfill provider reservation
 		const nextStorage = hive.storageAt(hop)
 		const hopAlloc = mg.path.length
 			? nextStorage!.allocate(mg.goodType, 1, { type: 'convey.hop', movement: mg })
@@ -365,18 +369,20 @@ class WorkFunctions {
 
 		return new MoveToStep(time, moving, hop, 'work', `convey.${mg.goodType}`)
 			.canceled(() => {
+				const dbga = alveolus.name
 				hopAlloc?.cancel()
-				mg.allocations.demander.cancel()
+				mg.allocations.target.cancel()
 				mg.demander.poke()
 				mg.finish()
 			})
 			.finished(() => {
+				const dbga = alveolus.name
 				moving.remove()
 				if (!mg.path.length) {
-					mg.allocations.demander.fulfill()
+					mg.allocations.target.fulfill()
 				} else {
 					hopAlloc!.fulfill()
-					mg.allocations.provider = nextStorage!.reserve(mg.goodType, 1, {
+					mg.allocations.source = nextStorage!.reserve(mg.goodType, 1, {
 						type: 'convey.path',
 						movement: mg,
 					})

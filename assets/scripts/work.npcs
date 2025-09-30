@@ -50,7 +50,7 @@ end function
 function convey(alveolus)
 	do while I.keepWorking and alveolus.goodMovements.length
 		work.conveyStep
-		if alveolus.incomingGoods then waitForIncomingGoods
+		//if alveolus.incomingGoods then waitForIncomingGoods
 	loop
 end function
 
