@@ -26,11 +26,11 @@ export class TransformAlveolus extends Alveolus {
 		return (
 			// If we have all the inputs required
 			Object.entries(this.action.inputs || {}).every(([goodType, required]) => {
-				return this.storage.available(goodType as GoodType) >= (required as number)
+				return (this.storage.available(goodType as GoodType) || 0) >= (required as number)
 			}) &&
 			// If we have all the room for the outputs
 			Object.entries(this.action.output || {}).every(([goodType, required]) => {
-				return this.storage.hasRoom(goodType as GoodType) >= (required as number)
+				return (this.storage.hasRoom(goodType as GoodType) || 0) >= (required as number)
 			})
 		)
 	}
@@ -46,7 +46,8 @@ export class TransformAlveolus extends Alveolus {
 	get keepWorking(): boolean {
 		return this.canWork
 	}
+	//TODO: sawmill don't give out wood behaviour: implement
 	available(goodType: GoodType): number {
-		return goodType in this.action.inputs ? 0 : this.storage.available(goodType)
+		return goodType in this.action.inputs ? 0 : this.storage.available(goodType) || 0
 	}
 }

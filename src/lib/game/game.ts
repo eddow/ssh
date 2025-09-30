@@ -1,5 +1,5 @@
 import { Eventful, reactive, unreactive, zip } from 'mutts/src'
-import { Application, Assets, Container, Point, Spritesheet, Texture } from 'pixi.js'
+import { Application, Assets, Container, Point, Spritesheet, Texture, Ticker } from 'pixi.js'
 import * as gameContent from '$assets/game-content'
 import { prefix, resources } from '$assets/resources'
 import type { AlveolusType, DepositType, GoodType } from '$lib/arktype'
@@ -109,9 +109,12 @@ export class Game extends Eventful<GameEvents> {
 	public readonly hittableObjects = new Set<HittableGameObject>()
 	public readonly hex: HexBoard
 	public readonly generator: GameGenerator
+	public readonly ticker: Ticker
+	private tickedObjects = new Set<{ update(deltaTime: number): void }>()
 	public loaded: Promise<void>
 	private async load() {
 		this.resources = await assetsLoading
+		this.ticker.start()
 	}
 
 	getObject(uid: string) {
@@ -134,6 +137,22 @@ export class Game extends Eventful<GameEvents> {
 		object.destroy()
 	}
 
+	registerTickedObject(object: { update(deltaTime: number): void }) {
+		this.tickedObjects.add(object)
+	}
+
+	unregisterTickedObject(object: { update(deltaTime: number): void }) {
+		this.tickedObjects.delete(object)
+	}
+
+	private tickerCallback = (timer: Ticker) => {
+		const deltaTime = (25 * timer.elapsedMS) / 1000
+		if (deltaTime > 1) return // more than 1 second = paused on debugging, skip passing time when debugger paused
+		for (const object of this.tickedObjects) {
+			object.update(deltaTime)
+		}
+	}
+
 	constructor(
 		private readonly generationOptions: GameGenerationOptions = {
 			boardSize: 12,
@@ -144,6 +163,7 @@ export class Game extends Eventful<GameEvents> {
 		private readonly patches: GamePatches = {},
 	) {
 		super()
+		this.ticker = new Ticker()
 		this.loaded = this.load()
 
 		// Create layer structure
@@ -173,6 +193,9 @@ export class Game extends Eventful<GameEvents> {
 
 		this.generate(this.generationOptions, this.patches)
 		this.emit('gameStart')
+
+		// Register the main ticker callback and start the game ticker after everything is built
+		this.ticker.add(this.tickerCallback)
 	}
 
 	public simulateObjectClick(object: InteractiveGameObject) {
@@ -213,19 +236,30 @@ export class Game extends Eventful<GameEvents> {
 				}
 			}
 
-			const land = new UnBuiltLand(tile, tileInfo.walkTime, tileInfo.terrain, deposit)
+			const land = new UnBuiltLand(tile, tileInfo.terrain, deposit)
 			// As generated state
 			tile.asGenerated = true
 
-			// Add goods to the land
-			for (const [good, amount] of Object.entries(tileInfo.goods)) {
-				const numAmount = amount as number
-				for (let i = 0; i < numAmount; i++) {
-					land.addGood(good as any, 1)
+			tile.content = land // Set the UnBuiltLand as tile content
+
+			// Create initial goods at equilibrium levels
+			for (const [goodType, amount] of Object.entries(tileInfo.goods)) {
+				for (let i = 0; i < amount; i++) {
+					// Generate random position within the tile using triangular distribution
+					const u = Math.random()
+					const v = Math.random()
+					const q = (u - v) * 0.5
+					const r = v - 0.5
+
+					const randomPos = {
+						q: tileInfo.coord.q + q,
+						r: tileInfo.coord.r + r,
+					}
+
+					// Add the good to the free goods system
+					this.hex.freeGoods.add(tile, goodType as any, randomPos)
 				}
 			}
-
-			tile.content = land
 		}
 	}
 
@@ -240,7 +274,8 @@ export class Game extends Eventful<GameEvents> {
 					if (DepositClass) content.deposit = new DepositClass(p.deposit.amount)
 				}
 				if (p.goods)
-					for (const [good, qty] of Object.entries(p.goods)) content.addGood(good as GoodType, qty)
+					for (const [good, qty] of Object.entries(p.goods))
+						content.storage?.addGood(good as GoodType, qty)
 				tile.asGenerated = false
 			}
 		}
@@ -257,7 +292,8 @@ export class Game extends Eventful<GameEvents> {
 				assert(alv.hive, 'Alveolus building on load')
 				alv.hive.name = hive.name
 				if (a.goods)
-					for (const [good, qty] of Object.entries(a.goods)) alv.addGood(good as GoodType, qty)
+					for (const [good, qty] of Object.entries(a.goods))
+						alv.storage?.addGood(good as GoodType, qty)
 				tile.content = alv
 				tile.asGenerated = false
 			}
@@ -286,7 +322,7 @@ export class Game extends Eventful<GameEvents> {
 									amount: content.deposit.amount,
 								}
 							: undefined,
-						goods: content.stock,
+						goods: content.storage?.stock || {},
 					})
 				} else if (content instanceof Alveolus) {
 					// Assume alveolus-like content decorated by GcClassed with resourceName accessible via .name
@@ -295,7 +331,7 @@ export class Game extends Eventful<GameEvents> {
 					hives.get(content.hive)!.push({
 						coord: { q, r },
 						alveolus: alveolusName as AlveolusType,
-						goods: content.stock,
+						goods: content.storage?.stock || {},
 					})
 				}
 			}
@@ -315,15 +351,10 @@ export class Game extends Eventful<GameEvents> {
 		}
 	}
 
-	/**
-	 * Transform seconds to game time
-	 * Centralization of time management (speed-up, pause, etc.)
-	 * @param seconds seconds to transform
-	 * @returns
-	 */
-	transformTime(seconds: number) {
-		if (seconds > 1) return 0
-		return seconds * 5
+	public destroy() {
+		// Remove the ticker callback and stop the game ticker
+		this.ticker.remove(this.tickerCallback)
+		this.ticker.stop()
 	}
 }
 

@@ -1,10 +1,9 @@
 // Library used by Pixi
 import EventEmitter from 'eventemitter3'
 import { effect, ReactiveBase, type ScopedCallback, unreactive } from 'mutts/src'
-import { Ticker } from 'pixi.js'
+import type { Position } from '../math/position'
 import type { Tile } from './board/tile'
 import type { Game } from './game'
-import type { Position } from './position'
 
 // All pixi objects extend this `EventEmitter` and should be unreactive
 unreactive(EventEmitter)
@@ -121,21 +120,17 @@ export function withHittable<T extends new (...args: any[]) => GameObject>(Base:
 	return HittableMixin
 }
 
-export function withTicked<T extends new (...args: any[]) => GameObject>(Base: T) {
+export function withTicked<T extends new (...args: any[]) => any>(Base: T) {
 	abstract class TickedMixin extends Base {
 		constructor(...args: any[]) {
 			super(...args)
-			Ticker.shared.add(this.updateCallback)
-		}
-
-		updateCallback = (timer: Ticker) => {
-			this.update(this.game.transformTime(timer.elapsedMS / 1000))
+			this.game.registerTickedObject(this)
 		}
 
 		abstract update(deltaTime: number): void
 
 		destroy(): void {
-			Ticker.shared.remove(this.updateCallback)
+			this.game.unregisterTickedObject(this)
 			super.destroy()
 		}
 	}

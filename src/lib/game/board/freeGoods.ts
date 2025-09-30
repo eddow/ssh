@@ -3,16 +3,17 @@ import { Container, Sprite } from 'pixi.js'
 import { goods } from '$assets/game-content'
 import type { GoodType } from '$lib/arktype'
 import { assert } from '$lib/debug'
-import { AxialKeyMap } from '$lib/mem'
+import type { AxialCoord } from '$lib/math'
+import { AxialKeyMap } from '$lib/math/mem'
 import { epsilon } from '$lib/utils'
-import { GameObject, withGenerator, withTicked } from '../object'
 import {
 	axialDistance,
 	type Position,
 	type Positioned,
 	toAxialCoord,
 	toWorldCoord,
-} from '../position'
+} from '../../math/position'
+import { GameObject, withGenerator, withTicked } from '../object'
 
 export interface FreeGood {
 	goodType: GoodType
@@ -21,7 +22,7 @@ export interface FreeGood {
 }
 
 export class FreeGoods extends withTicked(withGenerator(GameObject)) {
-	private readonly goods = new AxialKeyMap<FreeGood[]>()
+	private readonly goods = new AxialKeyMap<FreeGood[]>([], () => [])
 	private readonly display = new Map<FreeGood, { sprite: Sprite; cleanup: ScopedCallback }>()
 	private readonly fgContainer: Container = new Container()
 	render() {
@@ -42,17 +43,22 @@ export class FreeGoods extends withTicked(withGenerator(GameObject)) {
 			remove: () => this.remove(pos, good),
 		})
 		this.goods.set(coord, [...(this.goods.get(coord) || []), good])
-		const sprite = new Sprite(this.game.getTexture(good.goodType))
 
-		this.fgContainer.addChild(sprite)
-		this.game.hex.resizeSprite(sprite, 0.8)
-		this.display.set(good, {
-			sprite,
-			cleanup: effect(() => {
-				const { x, y } = toWorldCoord(good.position)
-				sprite.position.set(x, y)
-			}),
+		// Create sprite after game is loaded
+		this.game.loaded.then(() => {
+			const sprite = new Sprite(this.game.getTexture(good.goodType))
+			sprite.anchor.set(0.5, 0.5) // Center the sprite anchor
+			this.fgContainer.addChild(sprite)
+			this.game.hex.resizeSprite(sprite, 0.8)
+			this.display.set(good, {
+				sprite,
+				cleanup: effect(() => {
+					const { x, y } = toWorldCoord(good.position)
+					sprite.position.set(x, y)
+				}),
+			})
 		})
+
 		return good
 	}
 	remove(pos: Positioned, good: FreeGood): void {
@@ -60,12 +66,18 @@ export class FreeGoods extends withTicked(withGenerator(GameObject)) {
 		const newList = this.goods.get(coord)!.filter((g) => g !== good)
 		if (newList.length === 0) this.goods.delete(coord)
 		else this.goods.set(coord, newList)
+
+		// Clean up sprite if it exists (might not exist if removed before game loaded)
 		const display = this.display.get(good)
 		if (display) {
 			display.cleanup()
 			display.sprite.destroy()
 			this.display.delete(good)
 		}
+	}
+
+	getGoodsAt(coord: AxialCoord): FreeGood[] {
+		return this.goods.get(coord) || []
 	}
 
 	update(deltaTime: number): void {
@@ -79,6 +91,11 @@ export class FreeGoods extends withTicked(withGenerator(GameObject)) {
 			for (const good of goodsList) {
 				const goodDef = goods[good.goodType]
 				const halfLife = goodDef.halfLife // in seconds
+
+				// Skip decay for goods with infinite half-life
+				if (halfLife === Infinity) {
+					continue
+				}
 
 				// Calculate decay probability using the formula: P = 1 - 2^(-deltaTime/halfLife)
 				const decayProbability = 1 - 2 ** (-deltaSeconds / halfLife)

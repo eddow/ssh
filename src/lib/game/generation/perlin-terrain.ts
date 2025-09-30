@@ -4,7 +4,7 @@
  */
 
 import type { TerrainType } from '$lib/arktype'
-import type { AxialCoord } from '$lib/hex/axial'
+import type { AxialCoord } from '$lib/math/axial'
 
 export interface TerrainConfig {
 	// Noise parameters

@@ -1,4 +1,4 @@
-import type { AxialCoord } from '$lib/hex'
+import type { AxialCoord } from '$lib/math'
 import { type RandGenerator, uuid } from '$lib/numbers'
 import type { Game } from '../game'
 import { GameObject, withContainer, withHittable } from '../object'

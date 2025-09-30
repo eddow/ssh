@@ -17,8 +17,8 @@ import {
 	registerContract,
 } from '$lib/arktype'
 import { epsilon, objectMap } from '$lib/utils'
+import { Positioned, positionRoughly, toAxialCoord } from '../../math/position'
 import type { GameObject, InteractiveGameObject } from '../object'
-import { Positioned, positionRoughly, toAxialCoord } from '../position'
 import { gameIsaTypes, gameOperators, lerp } from './utils'
 
 type XOrDictX<X> = X | { [k: string]: XOrDictX<X> }

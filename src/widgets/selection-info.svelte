@@ -10,7 +10,6 @@
 	import { type InteractiveGameObject } from '$lib/game'
 	import { Tile } from '$lib/game/board/tile'
 	import { Character } from '$lib/game/population/character'
-	import { toWorldCoord } from '$lib/game/position'
 	import {
 		games,
 		interactionMode,
@@ -20,6 +19,7 @@
 		unregisterObjectInfoPanel
 	} from '$lib/globals.svelte'
 	import { T } from '$lib/i18n'
+	import { toWorldCoord } from '$lib/math/position'
 	import { p2s } from '$lib/mutts.svelte'
 
 	let {

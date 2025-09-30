@@ -1,14 +1,14 @@
 import { computed, reactive } from 'mutts/src'
 import type { GoodType } from '$lib/arktype'
 import { assert } from '$lib/debug'
-import { type AxialCoord, type AxialRef, axial, findPath } from '$lib/hex'
-import { AxialKeyMap } from '$lib/mem'
+import { type AxialCoord, type AxialRef, axial, findPath } from '$lib/math'
+import { AxialKeyMap } from '$lib/math/mem'
 import { setPop } from '$lib/utils'
+import { toAxialCoord } from '../../math/position'
 import { type HexBoard, isTileCoord } from '../board/board'
 import { Alveolus } from '../board/content/alveolus'
 import type { Tile } from '../board/tile'
-import { toAxialCoord } from '../position'
-import type { AllocationBase } from '../storage'
+import type { AllocationBase, Storage } from '../storage'
 export interface MovingGood {
 	goodType: GoodType
 	path: AxialCoord[]
@@ -186,10 +186,10 @@ export class Hive {
 	//#region Needy / events
 	needs: Partial<Record<GoodType, Set<Alveolus>>> = {}
 	movingGoods = reactive(new AxialKeyMap<MovingGood[]>())
-	storageAt(coord: AxialRef) {
+	storageAt(coord: AxialRef): Storage<any> | undefined {
 		if (isTileCoord(axial.access(coord))) {
 			const content = this.board.getTileContent(coord) as Alveolus
-			return content
+			return content.storage
 		}
 		const border = this.board.getBorder(coord)!
 		return border.content
@@ -213,8 +213,8 @@ export class Hive {
 			goodType,
 			...positions,
 		}
-		const providerToken = provider.reserve(goodType, 1, reason)
-		const demanderToken = demander.allocate(goodType, 1, reason)
+		const providerToken = provider.storage.reserve(goodType, 1, reason)
+		const demanderToken = demander.storage.allocate(goodType, 1, reason)
 		let from = positions.provider
 		let list = this.movingGoods.get(from) ?? []
 		function removeFromList(good: MovingGood) {
@@ -325,10 +325,12 @@ export class Hive {
 		const action = alveolus.action as any
 		if ('inputs' in action)
 			for (const [gt] of Object.entries(action.inputs))
-				if (alveolus.hasRoom(gt as GoodType) > 0) this.demand(gt as GoodType, alveolus)
+				if ((alveolus.storage?.hasRoom(gt as GoodType) || 0) > 0)
+					this.demand(gt as GoodType, alveolus)
 		if ('output' in action)
 			for (const [gt] of Object.entries(action.output))
-				if (alveolus.available(gt as GoodType) > 0) this.provide(gt as GoodType, alveolus)
+				if ((alveolus.storage?.available(gt as GoodType) || 0) > 0)
+					this.provide(gt as GoodType, alveolus)
 	}
 	//#endregion
 }

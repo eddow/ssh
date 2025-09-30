@@ -3,7 +3,7 @@ import type { Game } from '$lib/game'
 import type { Storage } from '../../storage'
 import type { Tile } from '../tile'
 
-export interface TileContent extends Storage<any> {
+export interface TileContent {
 	readonly tile: Tile
 	// TODO: translate-> name = translation set on load
 	readonly name?: string
@@ -11,6 +11,8 @@ export interface TileContent extends Storage<any> {
 	readonly debugInfo: Record<string, any>
 	readonly walkTime: number
 	readonly background: string
+	// Optional storage - undefined for tiles that don't store goods
+	storage?: Storage<any>
 	/**
 	 * Render the tile content
 	 * @param game - The game instance

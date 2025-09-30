@@ -5,15 +5,15 @@ import { goods as goodsCatalog } from '$assets/game-content'
 import type { CharacterContract } from '$assets/scripts/contracts'
 import { contract, DepositType, GoodType } from '$lib/arktype'
 import { assert } from '$lib/debug'
-import { type AxialCoord, type AxialRef, axial } from '$lib/hex'
+import { type AxialCoord, type AxialRef, axial } from '$lib/math'
 import { objectMap } from '$lib/utils'
+import { Positioned, positionRoughlyEquals, toAxialCoord } from '../../math/position'
 import { AlveolusArkType } from '../board'
 import { type TileBorder, TileBorderArkType } from '../board/border/border'
 import { UnBuiltLand } from '../board/content/unbuilt-land'
 import { type Tile, TileArkType } from '../board/tile'
 import type { TransformAlveolus } from '../hive/transform'
 import type { Character } from '../population/character'
-import { Positioned, positionRoughlyEquals, toAxialCoord } from '../position'
 import type { AllocationBase } from '../storage'
 import { InteractiveContext, loadNpcScripts, protoCtx, subject } from './scripts'
 import { DurationStep, EatStep, MoveToStep, PonderingStep, WaitForPredicateStep } from './steps'
@@ -23,6 +23,8 @@ export interface Action<T = any> {
 	readonly tileAllocation: T
 	readonly vehicleAllocation: T
 	readonly amount: number
+	readonly source?: 'freeGoods' | 'storage'
+	readonly freeGoodsToGrab?: any[] // FreeGood[] - avoiding circular import
 }
 
 class FindFunctions {
@@ -43,15 +45,28 @@ class FindFunctions {
 		function bestFoodOnTile(coord: AxialRef): GoodType | null {
 			const tile = hex.getTile(coord)
 			if (!tile) return null
-			const goodsMap = tile.content!.stock
+
 			let best: { type: GoodType; fv: number } | null = null
+
+			// Check storage goods first (existing behavior)
+			const goodsMap = tile.content!.storage?.stock || {}
 			for (const [good] of Object.entries(goodsMap) as [GoodType, number][]) {
-				if (!tile.content!.available(good)) continue
+				if (!tile.content!.storage?.available(good)) continue
 				const def = goodsCatalog[good]
 				if (!def) continue
-				const fv = def.feedingValue ?? 0
+				const fv = 'feedingValue' in def ? def.feedingValue : 0
 				if (fv > 0 && (!best || fv > best.fv)) best = { type: good, fv }
 			}
+
+			// Check free goods on the ground (new behavior)
+			const freeGoods = hex.freeGoods.getGoodsAt(axial.access(coord))
+			for (const freeGood of freeGoods) {
+				const def = goodsCatalog[freeGood.goodType]
+				if (!def) continue
+				const fv = 'feedingValue' in def ? def.feedingValue : 0
+				if (fv > 0 && (!best || fv > best.fv)) best = { type: freeGood.goodType, fv }
+			}
+
 			return best?.type ?? null
 		}
 		const start = toAxialCoord(this[subject].tile.position)
@@ -96,7 +111,7 @@ class FindFunctions {
 			(coord) => {
 				const tile = hex.getTile(coord)
 				if (!tile) return false
-				qty = tile.content!.hasRoom(goodType)
+				qty = tile.content!.storage?.hasRoom(goodType) || 0
 				return qty > 0
 			},
 			maxWalkTime,
@@ -106,6 +121,26 @@ class FindFunctions {
 		const targetCoord = path[path.length - 1]
 		const targetTile = hex.getTile(targetCoord)!
 		return { tile: targetTile, path, qty }
+	}
+
+	@contract()
+	randomPositionInTile() {
+		const tile = this[subject].tile
+
+		// Generate a random position within the current tile
+		// Using a simple approach: generate random offset from tile center
+		const tileCoord = toAxialCoord(tile.position)
+		// Generate random point using triangular distribution
+		const u = Math.random()
+		const v = Math.random()
+
+		const q = (u - v) * 0.5
+		const r = v - 0.5
+
+		return {
+			q: tileCoord.q + q,
+			r: tileCoord.r + r,
+		}
 	}
 	@contract()
 	wanderingTile() {
@@ -165,7 +200,7 @@ class InventoryFunctions {
 
 		if (amount <= 0) throw new Error('No goods to grab')
 		const vehicleTransfer = vehicle.allocate(goodType, amount, `grab.${goodType}`)
-		const tileTransfer = content.reserve(goodType, amount, `grab.${goodType}`)
+		const tileTransfer = content.storage?.reserve(goodType, amount, `grab.${goodType}`)
 		return new DurationStep(amount * vehicle.transferTime, 'convey', `grab.${goodType}`)
 			.finished(() => {
 				vehicleTransfer.fulfill()
@@ -176,29 +211,24 @@ class InventoryFunctions {
 				tileTransfer.cancel()
 			})
 	}
+
 	@contract(GoodType, 'number?')
-	drop(goodType: GoodType, maxAmount: number = 1) {
+	dropAsFreeGood(goodType: GoodType, maxAmount: number = 1) {
 		const character = this[subject]
-		const {
-			vehicle,
-			tile: { content },
-		} = character
+		const { vehicle } = character
 		assert(vehicle, 'tile.vehicle must be set')
-		assert(content, 'tile.content must be set')
 
 		const available = vehicle.available(goodType) ?? 0
-		const canStore = content.hasRoom(goodType)
-		const amount = Math.min(available, canStore, maxAmount)
+		let amount = Math.min(available, maxAmount)
 		if (amount <= 0) throw new Error('No goods to drop')
-		const tileTransfer = content.allocate(goodType, amount, `drop.${goodType}`)
 		const vehicleTransfer = vehicle.reserve(goodType, amount, `drop.${goodType}`)
 		return new DurationStep(amount * vehicle.transferTime, 'convey', `drop.${goodType}`)
 			.finished(() => {
-				tileTransfer.fulfill()
+				while (amount--)
+					character.game.hex.freeGoods.add(character.tile, goodType, character.position)
 				vehicleTransfer.fulfill()
 			})
 			.canceled(() => {
-				tileTransfer.cancel()
 				vehicleTransfer.cancel()
 			})
 	}
@@ -209,13 +239,14 @@ class InventoryFunctions {
 		const vehicle = character.vehicle
 		assert(vehicle, 'tile.vehicle must be set')
 		assert(content, 'destination.content must be set')
+		assert('storage' in content, 'planDrop only works with TileContent that has storage')
 
 		const available = vehicle.available(goodType) ?? 0
-		const canStore = content.hasRoom(goodType)
+		const canStore = content.storage?.hasRoom(goodType) || 0
 		const amount = Math.min(available, canStore, quantity)
 		if (amount <= 0) throw new Error('No goods to drop')
 
-		const tileAllocation = content.allocate(goodType, amount, `planDrop.${goodType}`)
+		const tileAllocation = content.storage?.allocate(goodType, amount, `planDrop.${goodType}`)
 		const vehicleAllocation = vehicle.reserve(goodType, amount, `planDrop.${goodType}`)
 
 		// Register final callback to cancel allocations when script ends
@@ -236,12 +267,51 @@ class InventoryFunctions {
 		assert(content, 'source.content must be set')
 
 		const canGrab = vehicle.hasRoom(goodType)
-		const available = content.available(goodType) ?? 0
-		const amount = Math.min(canGrab, available, quantity)
-		if (amount <= 0) throw new Error('No goods to grab')
+		if (canGrab <= 0) throw new Error('No room in vehicle to grab goods')
 
-		const vehicleAllocation = vehicle.allocate(goodType, amount, `planGrab.${goodType}`)
-		const tileAllocation = content.reserve(goodType, amount, `planGrab.${goodType}`)
+		// First priority: Check for FreeGoods on the tile
+		const coord = toAxialCoord(source.position)
+		const freeGoods = character.game.hex.freeGoods.getGoodsAt(coord)
+		const matchingFreeGoods = freeGoods.filter((good) => good.goodType === goodType)
+
+		if (matchingFreeGoods.length > 0) {
+			// Plan to grab from FreeGoods
+			const amount = Math.min(canGrab, matchingFreeGoods.length, quantity)
+			if (amount <= 0) throw new Error('No FreeGoods to grab')
+
+			const vehicleAllocation = vehicle.allocate(goodType, amount, `planGrab.freeGoods.${goodType}`)
+
+			// Register final callback to cancel allocations when script ends
+			assert(character.runningScript, 'character.runningScript must be set')
+			character.runningScript.final(() => {
+				vehicleAllocation.cancel()
+			})
+
+			return {
+				description: 'grab' as const,
+				tileAllocation: null, // No tile allocation for FreeGoods
+				vehicleAllocation,
+				amount,
+				source: 'freeGoods',
+				freeGoodsToGrab: matchingFreeGoods.slice(0, amount), // Store which FreeGoods to grab
+			}
+		}
+
+		// Second priority: Check storage (existing behavior)
+		assert(
+			'storage' in content,
+			'planGrab only works with TileContent that has storage when no FreeGoods available',
+		)
+		const available = content.storage?.available(goodType) ?? 0
+		const amount = Math.min(canGrab, available, quantity)
+		if (amount <= 0) throw new Error('No goods to grab from storage')
+
+		const vehicleAllocation = vehicle.allocate(goodType, amount, `planGrab.storage.${goodType}`)
+		const tileAllocation = content.storage?.reserve(
+			goodType,
+			amount,
+			`planGrab.storage.${goodType}`,
+		)
 
 		// Register final callback to cancel allocations when script ends
 		assert(character.runningScript, 'character.runningScript must be set')
@@ -250,7 +320,13 @@ class InventoryFunctions {
 			tileAllocation.cancel()
 		})
 
-		return { description: 'grab' as const, tileAllocation, vehicleAllocation, amount }
+		return {
+			description: 'grab' as const,
+			tileAllocation,
+			vehicleAllocation,
+			amount,
+			source: 'storage',
+		}
 	}
 	@contract('object')
 	effectuate(action: Action) {
@@ -263,13 +339,29 @@ class InventoryFunctions {
 		assert(content, 'tile.content must be set')
 		assert(vehicle, 'tile.vehicle must be set')
 
+		// Check if this is a FreeGoods grab
+		if ('source' in action && action.source === 'freeGoods' && action.freeGoodsToGrab) {
+			return new DurationStep(amount * vehicle.transferTime, 'convey', description)
+				.finished(() => {
+					// Actually remove the FreeGoods from the ground
+					for (const freeGood of action.freeGoodsToGrab!) {
+						freeGood.remove()
+					}
+					vehicleAllocation.fulfill()
+				})
+				.canceled(() => {
+					vehicleAllocation.cancel()
+				})
+		}
+
+		// Original storage-based logic
 		return new DurationStep(amount * vehicle.transferTime, 'convey', description)
 			.finished(() => {
-				tileAllocation.fulfill()
+				tileAllocation?.fulfill()
 				vehicleAllocation.fulfill()
 			})
 			.canceled(() => {
-				tileAllocation.cancel()
+				tileAllocation?.cancel()
 				vehicleAllocation.cancel()
 			})
 	}
@@ -361,31 +453,38 @@ class WorkFunctions {
 		// Advance one hop along the path
 		const hop = mg.hop()!
 		const nextStorage = hive.storageAt(hop)
-		const hopAlloc = mg.path.length
-			? nextStorage!.allocate(mg.goodType, 1, { type: 'convey.hop', movement: mg })
-			: undefined
+		const hopAlloc =
+			mg.path.length && nextStorage
+				? 'storage' in nextStorage
+					? nextStorage.allocate(mg.goodType, 1, { type: 'convey.hop', movement: mg })
+					: nextStorage.allocate(mg.goodType, 1, { type: 'convey.hop', movement: mg })
+				: undefined
 		const moving = character.game.hex.freeGoods.add(alveolus.tile, mg.goodType, mg.from)
 		const time = character.vehicle.transferTime * axial.distance(mg.from, hop)
 
 		return new MoveToStep(time, moving, hop, 'work', `convey.${mg.goodType}`)
 			.canceled(() => {
-				const dbga = alveolus.name
 				hopAlloc?.cancel()
 				mg.allocations.target.cancel()
 				mg.demander.poke()
 				mg.finish()
 			})
 			.finished(() => {
-				const dbga = alveolus.name
 				moving.remove()
 				if (!mg.path.length) {
 					mg.allocations.target.fulfill()
 				} else {
 					hopAlloc!.fulfill()
-					mg.allocations.source = nextStorage!.reserve(mg.goodType, 1, {
-						type: 'convey.path',
-						movement: mg,
-					})
+					mg.allocations.source =
+						'storage' in nextStorage!
+							? nextStorage!.reserve(mg.goodType, 1, {
+									type: 'convey.path',
+									movement: mg,
+								})
+							: nextStorage!.reserve(mg.goodType, 1, {
+									type: 'convey.path',
+									movement: mg,
+								})
 				}
 			})
 	}

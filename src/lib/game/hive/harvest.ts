@@ -3,11 +3,11 @@ import { outputBufferSize } from '$assets/constants'
 import type { GoodType } from '$lib/arktype'
 import type { Job } from '$lib/game/job'
 import { SpecificStorage } from '$lib/game/storage'
-import type { AxialRef } from '$lib/hex'
+import type { AxialRef } from '$lib/math'
+import { axialDistance, toAxialCoord } from '../../math/position'
 import { UnBuiltLand } from '../board'
 import { Alveolus, multiplyGoodsQty } from '../board/content/alveolus'
 import type { Tile } from '../board/tile'
-import { axialDistance, toAxialCoord } from '../position'
 export class HarvestAlveolus extends Alveolus {
 	declare action: Ssh.HarvestingAction
 	constructor(tile: Tile) {
@@ -25,7 +25,7 @@ export class HarvestAlveolus extends Alveolus {
 
 	@computed
 	get canStoreInHarvester() {
-		return this.canStoreAll(this.action.output)
+		return this.storage.canStoreAll(this.action.output)
 	}
 	@computed
 	get hiveHasCollector() {

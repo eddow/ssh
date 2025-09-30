@@ -4,7 +4,7 @@
  */
 
 import type { TerrainType } from '$lib/arktype'
-import type { AxialCoord } from '$lib/hex'
+import type { AxialCoord } from '$lib/math'
 import { PerlinTerrainGenerator } from './perlin-terrain'
 
 export interface TerrainGenerationConfig {

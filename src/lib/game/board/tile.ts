@@ -4,18 +4,18 @@ import { ColorMatrixFilter, Container, Graphics, Point, TilingSprite } from 'pix
 
 import type { AlveolusType } from '$lib/arktype'
 import { mrg } from '$lib/globals.svelte'
-import { type AxialCoord, type AxialRef, axial, type NeighborInfo } from '$lib/hex'
+import { type AxialCoord, type AxialRef, axial, type NeighborInfo } from '$lib/math'
 import { tileSize } from '$lib/utils'
-import { alveolusClass } from '../hive'
-import { gameIsaTypes } from '../npcs/utils'
-import { GameObject, withGenerator, withInteractive } from '../object'
 import {
 	axialDistance,
 	type Position,
 	type Positioned,
 	toAxialCoord,
 	toWorldCoord,
-} from '../position'
+} from '../../math/position'
+import { alveolusClass } from '../hive'
+import { gameIsaTypes } from '../npcs/utils'
+import { GameObject, withGenerator, withInteractive } from '../object'
 import type { HexBoard } from './board'
 import type { TileBorder } from './border/border'
 import type { TileContent } from './content/content'

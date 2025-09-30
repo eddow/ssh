@@ -3,10 +3,10 @@
  * Extracted from board/index.ts for better organization
  */
 
-import { deposits, terrain as terrainDetails } from '$assets/game-content'
+import { deposits, goods as goodsCatalog, terrain as terrainDetails } from '$assets/game-content'
 import type { DepositType, TerrainType } from '$lib/arktype'
-import type { AxialCoord } from '$lib/hex'
-import { axial } from '$lib/hex'
+import type { AxialCoord } from '$lib/math'
+import { axial } from '$lib/math'
 import { Deposit } from '../board/content/unbuilt-land'
 import { TerrainGenerator } from './terrain'
 
@@ -67,23 +67,50 @@ export class BoardGenerator {
 
 		// Create a simple RNG for this generation
 		const rnd = this.createRNG(`goods-${seed}`)
-		const details: Ssh.TerrainDefinition = terrainDetails[terrain]
 
 		if (deposit) {
-			const generation = deposits[deposit.type].generation?.goods ?? {}
-			for (const [good, chance] of Object.entries(generation)) {
-				if (rnd() < (chance as number)) {
-					goods[good] = (goods[good] || 0) + 1
+			// Generate equilibrium goods based on deposit type and amount
+			const depositDef = deposits[deposit.type]
+			if ('generation' in depositDef && depositDef.generation) {
+				for (const [goodType, generationRate] of Object.entries(depositDef.generation)) {
+					// Calculate equilibrium amount based on decay and generation rates
+					const goodDef = goodsCatalog[goodType as keyof typeof goodsCatalog]
+					if (!goodDef) continue
+
+					// Skip goods with infinite half-life (they don't decay, so no equilibrium needed)
+					if (goodDef.halfLife === Infinity) continue
+
+					// Calculate decay rate per second: 1 - 2^(-1/halfLife)
+					const decayRate = 1 - 2 ** (-1 / goodDef.halfLife)
+
+					// Total generation rate for this deposit: generationRate * depositAmount
+					const totalGenerationRate = generationRate * deposit.amount
+
+					// At equilibrium: totalGenerationRate = decayRate * equilibriumAmount
+					// So: equilibriumAmount = totalGenerationRate / decayRate
+					const equilibriumAmount = totalGenerationRate / decayRate
+
+					// Add some randomness (±20%) to make it feel natural
+					const variance = 0.2
+					const randomFactor = 1 + (rnd() - 0.5) * variance
+					const finalAmount = Math.max(0, Math.floor(equilibriumAmount * randomFactor))
+
+					if (finalAmount > 0) {
+						goods[goodType] = finalAmount
+					}
 				}
 			}
-			// For now, we'll skip deposit-based goods generation since we don't have the full deposit object
-			// This would need to be refactored to work with the deposit data structure
 		}
 
-		const ambient = details.generation?.goods ?? {}
-		for (const [good, chance] of Object.entries(ambient)) {
-			if (rnd() < (chance as number)) {
-				goods[good] = (goods[good] || 0) + 1
+		// Also generate ambient goods from terrain (like mushrooms in forest)
+		const terrainDef = terrainDetails[terrain]
+		if ('generation' in terrainDef && terrainDef.generation && 'goods' in terrainDef.generation) {
+			for (const [goodType, _chance] of Object.entries(terrainDef.generation.goods)) {
+				// Generate a small amount of ambient goods
+				const ambientAmount = Math.floor(rnd() * 3) // 0-2 goods
+				if (ambientAmount > 0) {
+					goods[goodType] = (goods[goodType] || 0) + ambientAmount
+				}
 			}
 		}
 

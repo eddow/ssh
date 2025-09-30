@@ -32,7 +32,7 @@ function harvest(alveolus)
 			do
 				good = aCarriedGood
 			while aCarriedGood
-				inventory.drop good
+				inventory.dropAsFreeGood good
 			loop
 			pokeAlveolus	// We just did add resources in the hive, tell this alveolus to perhaps signal it
 		else

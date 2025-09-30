@@ -6,8 +6,9 @@ import { goods as goodsCatalog } from '$assets/game-content'
 import type { GoodType } from '$lib/arktype'
 import { assert } from '$lib/debug'
 import { mrg } from '$lib/globals.svelte'
-import { type AxialCoord, type AxialRef, axial } from '$lib/hex'
+import { type AxialCoord, type AxialRef, axial } from '$lib/math'
 import { maxBy } from '$lib/utils'
+import { axialDistance, type Position, toAxialCoord, toWorldCoord } from '../../math/position'
 import { Alveolus } from '../board/content/alveolus'
 import type { Tile } from '../board/tile'
 import type { Game } from '../game'
@@ -17,7 +18,6 @@ import { withScripted } from '../npcs/object'
 // biome-ignore lint/correctness/noUnusedImports: We need `subject` for mixins tranquility: all propertyKeys are known
 import { type ScriptExecution, subject } from '../npcs/scripts'
 import { GameObject, withGenerator, withInteractive, withTicked } from '../object'
-import { axialDistance, type Position, toAxialCoord, toWorldCoord } from '../position'
 import { ByHands } from './vehicle/by-hands'
 import type { Vehicle } from './vehicle/vehicle'
 
@@ -131,7 +131,10 @@ export class Character extends withInteractive(
 		return maxBy(
 			Object.entries(this.vehicle.stock) as [GoodType, number][],
 			([goodType]) =>
-				(this.vehicle.available(goodType) > 0 && goodsCatalog[goodType].feedingValue) || undefined,
+				(this.vehicle.available(goodType) > 0 &&
+					'feedingValue' in goodsCatalog[goodType] &&
+					(goodsCatalog[goodType].feedingValue as number)) ||
+				undefined,
 		)?.[0]
 	}
 	@computed

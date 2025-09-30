@@ -5,9 +5,7 @@ declare namespace Ssh {
 		maxAmount: number
 		regenerate?: number
 		sprites: Sprite[]
-		generation?: {
-			goods?: Record<string, number>
-		}
+		generation?: Record<string, number>
 	}
 
 	interface HarvestingAction {
@@ -49,7 +47,7 @@ declare namespace Ssh {
 		sprites: Sprite[]
 	}
 	interface GoodsDefinition {
-		feedingValue: number
+		feedingValue?: number
 		icon: Sprite
 		sprites: Sprite[]
 		halfLife: number

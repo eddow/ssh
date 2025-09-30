@@ -5,7 +5,7 @@ import { AllocationError } from './guard'
 import type { Goods } from './index'
 import { Storage } from './storage'
 
-class NoStorage extends Storage<never> {
+export class NoStorage extends Storage<any> {
 	hasRoom(_goodType?: GoodType): number {
 		return 0
 	}

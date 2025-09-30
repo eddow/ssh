@@ -8,7 +8,7 @@ import {
 	NpcScript,
 	type Operators,
 } from 'npc-script/src'
-import { axial } from '$lib/hex'
+import { axial } from '$lib/math'
 import { epsilon } from '$lib/utils'
 import {
 	Position,
@@ -16,7 +16,7 @@ import {
 	positionLerp,
 	positionRoughlyEquals,
 	toAxialCoord,
-} from '../position'
+} from '../../math/position'
 
 const equals = match({})
 	.case([Positioned, Positioned], ([left, right]) => positionRoughlyEquals(left, right))

@@ -57,4 +57,4 @@ export const maxWalkTime = 24 // Maximum walking time accepted to choose a tile 
 export const transformAlveolusStorageMultiplier = 3 // Transform alveoli can store input goods * this multiplier
 // Storage buffer sizes for transform/harvest
 export const inputBufferSize = 2
-export const outputBufferSize = 6
+export const outputBufferSize = 3

@@ -8,7 +8,7 @@ import {
 	cartesian,
 	fromCartesian,
 	type WorldCoord,
-} from '$lib/hex'
+} from '$lib/math'
 import { epsilon, tileSize } from '$lib/utils'
 
 function roughly(x: number) {

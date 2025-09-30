@@ -3,9 +3,10 @@ import { Container, type ContainerChild, Sprite } from 'pixi.js'
 import { deposits } from '$assets/game-content'
 import type { TerrainType } from '$lib/arktype'
 import type { Game } from '$lib/game/game'
-import { renderTileGoods } from '$lib/game/storage'
+import { fastPoissonRandom } from '$lib/math/poisson'
+import { toAxialCoord } from '$lib/math/position'
 import { tileSize } from '$lib/utils'
-import { SlottedStorage } from '../../storage/slotted-storage'
+import { GameObject, withTicked } from '../../object'
 import type { Tile } from '../tile'
 import type { TileContent } from './content'
 import { GcClassed, GcClasses } from './utils'
@@ -18,24 +19,64 @@ export class Deposit extends GcClassed<Ssh.DepositDefinition>() {
 }
 
 @unreactive('tile')
-export class UnBuiltLand extends SlottedStorage implements TileContent {
+export class UnBuiltLand extends withTicked(GameObject) implements TileContent {
 	get name() {
 		return this.terrain
 	}
 
-	public tile: Tile
 	constructor(
-		tile: Tile,
-		goodsSlots: number = 3,
+		public readonly tile: Tile,
 		public terrain: TerrainType,
 		public deposit?: Deposit,
 	) {
-		super(goodsSlots, 1) // goodsSlots slots, 1 good per slot
-		this.tile = tile
+		const tileCoord = toAxialCoord(tile.position)
+		super(tile.board.game, `unbuilt-${tileCoord.q}-${tileCoord.r}`)
 	}
+
+	update(deltaTime: number) {
+		// Generate goods if this tile has a deposit with generation configuration
+		if (!this.deposit) return
+
+		const generation = this.deposit.generation
+		if (!generation) return
+
+		// Generate each good type based on its rate and deposit amount
+		for (const [goodType, rate] of Object.entries(generation)) {
+			const totalRate = (rate as number) * this.deposit.amount
+			const lambda = totalRate * deltaTime
+
+			// Use proper Poisson distribution for bursty generation
+			const goodsToSpawn = fastPoissonRandom(lambda)
+
+			// Spawn the calculated number of goods
+			for (let i = 0; i < goodsToSpawn; i++) {
+				this.generateGoodAtTile(goodType as any)
+			}
+		}
+	}
+
+	private generateGoodAtTile(goodType: string) {
+		const tileCoord = toAxialCoord(this.tile.position)
+
+		// Generate random point using triangular distribution
+		const u = Math.random()
+		const v = Math.random()
+
+		const q = (u - v) * 0.5
+		const r = v - 0.5
+
+		const randomPos = {
+			q: tileCoord.q + q,
+			r: tileCoord.r + r,
+		}
+
+		// Create the free good
+		this.tile.board.freeGoods.add(this.tile, goodType as any, randomPos)
+	}
+
 	get debugInfo() {
 		return {
-			...super.debugInfo,
+			type: 'UnBuiltLand',
 			terrain: this.terrain,
 			deposit: this.deposit?.amount,
 		}
@@ -63,15 +104,21 @@ export class UnBuiltLand extends SlottedStorage implements TileContent {
 			}
 		})
 
-		root.addChild(renderTileGoods(game, size, () => this.renderedGoods()))
-
 		return root
 	}
 
 	canInteract(action: string): boolean {
 		// UnBuiltLand can accept building actions
 		if (action.startsWith('build:')) {
-			return !this.deposit
+			// Can't build if there's a deposit
+			if (this.deposit) return false
+
+			// Can't build if there are FreeGoods on the tile (burdened tile)
+			const coord = toAxialCoord(this.tile.position)
+			const freeGoods = this.tile.board.freeGoods.getGoodsAt(coord)
+			if (freeGoods.length > 0) return false
+
+			return true
 		}
 		// Can also accept other actions if they make sense
 		return false

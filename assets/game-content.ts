@@ -32,7 +32,7 @@ export const deposits = {
 		regenerate: 0.01,
 		sprites: ['bushes/bush1'],
 		generation: {
-			goods: { berries: 0.05 },
+			berries: 0.000214, // Balanced for 1 berry per bush at equilibrium
 		},
 	},
 	rock: {
@@ -45,9 +45,6 @@ export const deposits = {
 			'rocks/rock5',
 			'rocks/rock6',
 		],
-		generation: {
-			goods: { stone: 0.6 },
-		},
 	},
 	tree: {
 		maxAmount: 12,
@@ -66,7 +63,7 @@ export const deposits = {
 		],
 		regenerate: 0.01,
 		generation: {
-			goods: { wood: 0.5 },
+			mushrooms: 0.000097, // Balanced for 1 mushroom per 2 trees at equilibrium
 		},
 	},
 } as const satisfies Record<string, Ssh.DepositDefinition>
@@ -114,28 +111,25 @@ export const goods = {
 		feedingValue: 72,
 		sprites: ['berries'],
 		icon: 'berries',
-		halfLife: 180, // 3 minutes
+		halfLife: 90, // 3 minutes
 	},
 	mushrooms: {
 		feedingValue: 160,
 		sprites: ['mushrooms'],
 		icon: 'mushrooms',
-		halfLife: 300, // 5 minutes
+		halfLife: 180, // 5 minutes
 	},
 	planks: {
-		feedingValue: 0,
 		sprites: ['planks'],
 		icon: 'planks',
 		halfLife: 600, // 10 minutes
 	},
 	stone: {
-		feedingValue: 0,
 		sprites: ['stone'],
 		icon: 'stone',
-		halfLife: 900, // 15 minutes
+		halfLife: Infinity, // infinite half-life
 	},
 	wood: {
-		feedingValue: 0,
 		sprites: ['wood'],
 		icon: 'wood',
 		halfLife: 300, // 5 minutes

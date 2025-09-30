@@ -1,6 +1,6 @@
-import { AxialKeyMap, HeapMin } from '../mem'
 import type { AxialCoord, AxialKey, AxialRef } from './axial'
 import { axial } from './axial'
+import { AxialKeyMap, HeapMin } from './mem'
 
 export type GetNeighbors = (coord: AxialRef) => (NeighborInfo | AxialCoord)[]
 export type Scoring<T> = (coord: AxialRef) => T | false

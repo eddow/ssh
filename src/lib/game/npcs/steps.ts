@@ -4,8 +4,8 @@ import { goods as goodsCatalog } from '$assets/game-content'
 import type { GoodType } from '$lib/arktype'
 import { assert } from '$lib/debug'
 import { casing } from '$lib/utils'
+import type { Position, Positioned } from '../../math/position'
 import type { Character } from '../population'
-import type { Position, Positioned } from '../position'
 import type { ScriptedObject } from './object'
 import { Finalized } from './scripts'
 import { lerp } from './utils'
@@ -157,7 +157,8 @@ export class EatStep extends AEvolutionStep {
 		readonly food: GoodType,
 	) {
 		super(activityDurations.eating)
-		this.feedingValue = goodsCatalog[food].feedingValue
+		assert('feedingValue' in goodsCatalog[food], `Food ${food} has no feeding value`)
+		this.feedingValue = goodsCatalog[food].feedingValue as number
 		assert(this.character.vehicle.removeGood(food, 1) === 1, "Didn't have food he is trying to eat")
 	}
 	evolve(_: number, dt: number): void {

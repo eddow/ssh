@@ -14,8 +14,8 @@ import {
 	type NeighborInfo,
 	type Scoring,
 	type WorldCoord,
-} from '$lib/hex'
-import { AxialKeyMap } from '$lib/mem'
+} from '$lib/math'
+import { AxialKeyMap } from '$lib/math/mem'
 import { isInteger, tileSize } from '$lib/utils'
 import type { Game } from '../game'
 import { QueueStep } from '../npcs/steps'

@@ -1,7 +1,7 @@
 import { type ContractType, GoodType } from '$lib/arktype'
 import { AlveolusArkType } from '$lib/game/board/content/alveolus'
 import { TileArkType } from '$lib/game/board/tile'
-import { Position } from '$lib/game/position'
+import { Position } from '$lib/math/position'
 export const CharacterContract = {
 	walk: {
 		into: [Position.array()],

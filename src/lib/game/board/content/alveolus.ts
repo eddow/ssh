@@ -8,10 +8,10 @@ import { Hive } from '$lib/game/hive/hive'
 import type { Job } from '$lib/game/job'
 import { gameIsaTypes } from '$lib/game/npcs/utils'
 import type { Character } from '$lib/game/population/character'
-import { toAxialCoord } from '$lib/game/position'
-import { type AxialCoord, axial } from '$lib/hex'
+import { type AxialCoord, axial } from '$lib/math'
+import { toAxialCoord } from '$lib/math/position'
 import { epsilon, tileSize } from '$lib/utils'
-import { renderTileGoods, type Storage, withStorageForwarder } from '../../storage'
+import { renderTileGoods, type Storage } from '../../storage'
 import { AlveolusGate } from '../border/alveolus-gate'
 import type { Tile } from '../tile'
 import type { TileContent } from './content'
@@ -22,20 +22,20 @@ interface LocalMovingGood extends MovingGood {
 	from: AxialCoord
 }
 @unreactive
-export abstract class Alveolus
-	extends withStorageForwarder(GcClassed<Ssh.AlveolusDefinition>())
-	implements TileContent
-{
+export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition>() implements TileContent {
 	public assignedWorker: Character | undefined
 	public tile: Tile
 	public declare hive: Hive
+	public storage: Storage<any>
 	// Configurable properties
 	public walkway: boolean = true
 	public conveyor: boolean = true
 
 	constructor(tile: Tile, storage: Storage<any>) {
-		super(storage)
+		super()
+		this.storage = storage
 		this.tile = tile
+
 		const hive = Hive.for(tile)
 		hive.attach(this)
 		// Only create gates between two alveoli
@@ -86,7 +86,7 @@ export abstract class Alveolus
 			sprite.anchor.set(0.5)
 			root.addChild(sprite)
 		}
-		root.addChild(renderTileGoods(game, size, () => this.renderedGoods()))
+		root.addChild(renderTileGoods(game, size, () => this.storage.renderedGoods()))
 
 		return root
 	}
@@ -95,10 +95,21 @@ export abstract class Alveolus
 		// Alveoli can't be built on (they already exist)
 		return false
 	}
+
+	@computed
+	get isBurdened(): boolean {
+		// Check if there are FreeGoods on this tile
+		const coord = toAxialCoord(this.tile.position)
+		const freeGoods = this.tile.board.freeGoods.getGoodsAt(coord)
+		return freeGoods.length > 0
+	}
+
 	alveolusSpecificJob?(): Job | undefined
 
 	getJob(): Job | undefined {
 		if (this.assignedWorker) return undefined
+		// Don't provide jobs if the alveolus is burdened by FreeGoods
+		if (this.isBurdened) return undefined
 		const carry = this.conveyJob()
 		if (carry) return carry
 		return this.alveolusSpecificJob?.()
@@ -125,7 +136,8 @@ export abstract class Alveolus
 		const results: LocalMovingGood[] = []
 
 		function canAdvance(mg: MovingGood) {
-			return hive.storageAt(mg.path[0])?.hasRoom(mg.goodType) || mg.path.length === 1
+			const storage = hive.storageAt(mg.path[0])
+			return storage?.hasRoom(mg.goodType) || mg.path.length === 1
 		}
 		// Special case: include all movements at the tile itself
 		const atHere = hive.movingGoods.get(here)
@@ -161,7 +173,7 @@ export abstract class Alveolus
 	}
 
 	deconstruct() {
-		this.tile.content = new UnBuiltLand(this.tile, 0, 'concrete')
+		this.tile.content = new UnBuiltLand(this.tile, 'concrete')
 		for (const gate of this.gates) gate.border.content = undefined
 		this.hive.removeAlveolus(this)
 	}
