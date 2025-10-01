@@ -18,13 +18,12 @@ import type { AllocationBase } from '../storage'
 import { InteractiveContext, loadNpcScripts, protoCtx, subject } from './scripts'
 import { DurationStep, EatStep, MoveToStep, PonderingStep, WaitForPredicateStep } from './steps'
 
-export interface Action<T = any> {
+export interface TransferPlan<T extends AllocationBase = AllocationBase> {
 	readonly description: 'grab' | 'drop'
-	readonly tileAllocation: T
 	readonly vehicleAllocation: T
+	readonly allocation: T
 	readonly amount: number
 	readonly source?: 'freeGoods' | 'storage'
-	readonly freeGoodsToGrab?: any[] // FreeGood[] - avoiding circular import
 }
 
 class FindFunctions {
@@ -61,6 +60,8 @@ class FindFunctions {
 			// Check free goods on the ground (new behavior)
 			const freeGoods = hex.freeGoods.getGoodsAt(axial.access(coord))
 			for (const freeGood of freeGoods) {
+				// Skip allocated or removed goods
+				if (freeGood.allocated || freeGood.removed) continue
 				const def = goodsCatalog[freeGood.goodType]
 				if (!def) continue
 				const fv = 'feedingValue' in def ? def.feedingValue : 0
@@ -256,62 +257,26 @@ class InventoryFunctions {
 			vehicleAllocation.cancel()
 		})
 
-		return { description: 'drop' as const, tileAllocation, vehicleAllocation, amount }
+		return { description: 'drop' as const, allocation: tileAllocation, vehicleAllocation, amount }
 	}
 	@contract(GoodType, 'number', type.or(TileArkType, TileBorderArkType))
-	planGrab(goodType: GoodType, quantity: number, source: Tile | TileBorder) {
+	planGrabStored(goodType: GoodType, quantity: number, source: Tile | TileBorder) {
 		const character = this[subject]
 		const vehicle = character.vehicle
 		assert(vehicle, 'tile.vehicle must be set')
 		const content = source.content
 		assert(content, 'source.content must be set')
+		assert('storage' in content, 'planGrabStored only works with TileContent that has storage')
 
 		const canGrab = vehicle.hasRoom(goodType)
 		if (canGrab <= 0) throw new Error('No room in vehicle to grab goods')
 
-		// First priority: Check for FreeGoods on the tile
-		const coord = toAxialCoord(source.position)
-		const freeGoods = character.game.hex.freeGoods.getGoodsAt(coord)
-		const matchingFreeGoods = freeGoods.filter((good) => good.goodType === goodType)
-
-		if (matchingFreeGoods.length > 0) {
-			// Plan to grab from FreeGoods
-			const amount = Math.min(canGrab, matchingFreeGoods.length, quantity)
-			if (amount <= 0) throw new Error('No FreeGoods to grab')
-
-			const vehicleAllocation = vehicle.allocate(goodType, amount, `planGrab.freeGoods.${goodType}`)
-
-			// Register final callback to cancel allocations when script ends
-			assert(character.runningScript, 'character.runningScript must be set')
-			character.runningScript.final(() => {
-				vehicleAllocation.cancel()
-			})
-
-			return {
-				description: 'grab' as const,
-				tileAllocation: null, // No tile allocation for FreeGoods
-				vehicleAllocation,
-				amount,
-				source: 'freeGoods',
-				freeGoodsToGrab: matchingFreeGoods.slice(0, amount), // Store which FreeGoods to grab
-			}
-		}
-
-		// Second priority: Check storage (existing behavior)
-		assert(
-			'storage' in content,
-			'planGrab only works with TileContent that has storage when no FreeGoods available',
-		)
 		const available = content.storage?.available(goodType) ?? 0
 		const amount = Math.min(canGrab, available, quantity)
 		if (amount <= 0) throw new Error('No goods to grab from storage')
 
-		const vehicleAllocation = vehicle.allocate(goodType, amount, `planGrab.storage.${goodType}`)
-		const tileAllocation = content.storage?.reserve(
-			goodType,
-			amount,
-			`planGrab.storage.${goodType}`,
-		)
+		const vehicleAllocation = vehicle.allocate(goodType, amount, `planGrabStored.${goodType}`)
+		const tileAllocation = content.storage?.reserve(goodType, amount, `planGrabStored.${goodType}`)
 
 		// Register final callback to cancel allocations when script ends
 		assert(character.runningScript, 'character.runningScript must be set')
@@ -322,16 +287,60 @@ class InventoryFunctions {
 
 		return {
 			description: 'grab' as const,
-			tileAllocation,
+			allocation: tileAllocation,
 			vehicleAllocation,
 			amount,
 			source: 'storage',
 		}
 	}
-	@contract('object')
-	effectuate(action: Action) {
+
+	@contract(GoodType, type.or(TileArkType, TileBorderArkType))
+	planGrabFree(goodType: GoodType, source: Tile | TileBorder): TransferPlan {
 		const character = this[subject]
-		const { tileAllocation, vehicleAllocation, amount, description } = action
+		const vehicle = character.vehicle
+		assert(vehicle, 'tile.vehicle must be set')
+
+		const canGrab = vehicle.hasRoom(goodType)
+		if (canGrab <= 0) throw new Error('No room in vehicle to grab goods')
+
+		// Check for FreeGoods on the tile - always grab exactly 1
+		const coord = toAxialCoord(source.position)
+		const freeGoods = character.game.hex.freeGoods.getGoodsAt(coord)
+		const matchingFreeGoods = freeGoods.filter(
+			(good) => good.goodType === goodType && !good.removed && !good.allocated,
+		)
+
+		if (matchingFreeGoods.length === 0) {
+			debugger
+			throw new Error('No FreeGoods to grab')
+		}
+
+		const amount = 1 // Always grab exactly 1 FreeGood
+		const freeGoodToGrab = matchingFreeGoods[0]
+
+		// Allocate both the vehicle space and the free good itself
+		const vehicleAllocation = vehicle.allocate(goodType, amount, `planGrabFree.${goodType}`)
+		const freeGoodAllocation = freeGoodToGrab.allocate(`planGrabFree.${goodType}`)
+
+		// Register final callback to cancel allocations when script ends
+		assert(character.runningScript, 'character.runningScript must be set')
+		character.runningScript.final(() => {
+			vehicleAllocation.cancel()
+			freeGoodAllocation.cancel()
+		})
+
+		return {
+			description: 'grab' as const,
+			allocation: freeGoodAllocation,
+			vehicleAllocation,
+			amount,
+			source: 'freeGoods',
+		}
+	}
+	@contract('object')
+	effectuate(action: TransferPlan) {
+		const character = this[subject]
+		const { allocation, vehicleAllocation, amount, description } = action
 		const {
 			tile: { content },
 			vehicle,
@@ -339,29 +348,13 @@ class InventoryFunctions {
 		assert(content, 'tile.content must be set')
 		assert(vehicle, 'tile.vehicle must be set')
 
-		// Check if this is a FreeGoods grab
-		if ('source' in action && action.source === 'freeGoods' && action.freeGoodsToGrab) {
-			return new DurationStep(amount * vehicle.transferTime, 'convey', description)
-				.finished(() => {
-					// Actually remove the FreeGoods from the ground
-					for (const freeGood of action.freeGoodsToGrab!) {
-						freeGood.remove()
-					}
-					vehicleAllocation.fulfill()
-				})
-				.canceled(() => {
-					vehicleAllocation.cancel()
-				})
-		}
-
-		// Original storage-based logic
 		return new DurationStep(amount * vehicle.transferTime, 'convey', description)
 			.finished(() => {
-				tileAllocation?.fulfill()
+				allocation?.fulfill()
 				vehicleAllocation.fulfill()
 			})
 			.canceled(() => {
-				tileAllocation?.cancel()
+				allocation?.cancel()
 				vehicleAllocation.cancel()
 			})
 	}

@@ -10,8 +10,9 @@ export const CharacterContract = {
 	inventory: {
 		dropAll: [],
 		makeRoom: [],
-		goDrop: [GoodType, 'number', TileArkType, Position.array().optional(), 'boolean?'],
-		goGrab: [GoodType, 'number', TileArkType, Position.array().optional(), 'boolean?'],
+		dropStored: [GoodType, 'number', TileArkType, Position.array().optional(), 'boolean?'],
+		grabStored: [GoodType, 'number', TileArkType, Position.array().optional(), 'boolean?'],
+		grabFree: [GoodType, TileArkType, Position.array().optional(), 'boolean?'],
 	},
 	selfCare: {
 		goEat: [],
@@ -21,6 +22,7 @@ export const CharacterContract = {
 		goWork: [AlveolusArkType, 'string', Position.array()],
 		harvest: [AlveolusArkType],
 		convey: [AlveolusArkType],
+		gather: [AlveolusArkType],
 		transform: [AlveolusArkType],
 	},
 } as const

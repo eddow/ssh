@@ -60,7 +60,6 @@ export class Hive {
 		this.alveoli.add(alveolus)
 		alveolus.hive = this
 		this.invalidatePathCache()
-		this.pokeAlveolus(alveolus)
 	}
 	/**
 	 * This hive is defined as a copy of another hive after an alveolus removal didn't divide it
@@ -331,6 +330,36 @@ export class Hive {
 			for (const [gt] of Object.entries(action.output))
 				if ((alveolus.storage?.available(gt as GoodType) || 0) > 0)
 					this.provide(gt as GoodType, alveolus)
+
+		// For storage alveoli, check queues and resolve what it can
+		if (action.type === 'storage') {
+			// Go through all queues and try to fulfill them
+			for (const [goodType, queue] of this.queues.entries()) {
+				// If there are providers waiting and storage can take this good
+				if ('providers' in queue && alveolus.canTake(goodType) > 0) {
+					// Find nearest provider and create movement
+					const provider = this.findNearest(alveolus, queue.providers, goodType)
+					if (provider) {
+						this.createMovement(goodType, provider, alveolus)
+						queue.providers.delete(provider)
+						if (queue.providers.size === 0) this.queues.delete(goodType)
+						this.pokeAlveolus(provider)
+					}
+				}
+
+				// If there are demanders waiting and storage has this good
+				if ('demanders' in queue && alveolus.canGive(goodType) > 0) {
+					// Find nearest demander and create movement
+					const demander = this.findNearest(alveolus, queue.demanders, goodType)
+					if (demander) {
+						this.createMovement(goodType, alveolus, demander)
+						queue.demanders.delete(demander)
+						if (queue.demanders.size === 0) this.queues.delete(goodType)
+						this.pokeAlveolus(demander)
+					}
+				}
+			}
+		}
 	}
 	//#endregion
 }

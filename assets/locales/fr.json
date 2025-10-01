@@ -8,7 +8,7 @@
 		"tree_chopper": "Bûcheron",
 		"stonecutter": "Tailleur de Pierre",
 		"sawmill": "Scierie",
-		"transit": "Zone de Transbordement",
+		"gather": "Rassembleur",
 		"storage": "Magasin"
 	},
 	"goods": {

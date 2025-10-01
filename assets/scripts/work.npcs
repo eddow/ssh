@@ -54,4 +54,21 @@ function convey(alveolus)
 	loop
 end function
 
-return { goWork, harvest, transform, convey }
+function gather(alveolus)
+	do while I.keepWorking and alveolus.keepWorking
+		// naive: find best free good the hive needs and bring it home
+		need = find.hiveNeed()
+		if not need then return false
+		found = find.good(need.type)
+		if not found then return false
+		inventory.makeRoom
+		inventory.grabFree need.type, found.tile, found.path, false
+		// bring back to alveolus tile (hive edge)
+		path = find.path(alveolus.tile, false)
+		if not path then return false
+		inventory.dropStored need.type, need.qty, alveolus.tile, path, false
+		pokeAlveolus
+	loop
+end function
+
+return { goWork, harvest, transform, convey, gather }

@@ -1,6 +1,15 @@
 declare namespace Ssh {
 	type SpriteDefinition = string
 	type Sprite = string
+
+	interface SlottedStorage {
+		capacity: number
+		slots: number
+	}
+	interface SpecificStorage {
+		[goodType: string]: number
+	}
+	type StorageAction = SlottedStorageAction | SpecificStorageAction
 	interface DepositDefinition {
 		maxAmount: number
 		regenerate?: number
@@ -19,9 +28,9 @@ declare namespace Ssh {
 		inputs: Record<string, number>
 		output: Record<string, number>
 	}
-	interface TransitAction {
-		type: 'transit'
-		individual: boolean
+	interface GatherAction {
+		type: 'gather'
+		radius: number
 	}
 	interface SlottedStorageAction {
 		type: 'storage'
@@ -35,7 +44,7 @@ declare namespace Ssh {
 	type Action =
 		| HarvestingAction
 		| TransformationAction
-		| TransitAction
+		| GatherAction
 		| SlottedStorageAction
 		| SpecificStorageAction
 
@@ -59,7 +68,7 @@ declare namespace Ssh {
 		}
 	}
 
-	type ActivityType = 'idle' | 'walk' | 'work' | 'eat' | 'sleep' | 'rest' | 'convey'
+	type ActivityType = 'idle' | 'walk' | 'work' | 'eat' | 'sleep' | 'rest' | 'convey' | 'gather'
 
 	type NeedType = 'hunger' | 'tiredness' | 'fatigue'
 }

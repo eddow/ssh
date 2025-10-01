@@ -1,13 +1,13 @@
 import { noStorage } from '$lib/game/storage'
 import { Alveolus } from '../board/content/alveolus'
 import type { Tile } from '../board/tile'
-//TODO => collector
-export class TransitAlveolus extends Alveolus {
-	declare action: Ssh.TransitAction
+
+export class GatherAlveolus extends Alveolus {
+	declare action: Ssh.GatherAction
 	constructor(tile: Tile) {
 		const def: Ssh.AlveolusDefinition = new.target.prototype
-		if (def.action.type !== 'transit') {
-			throw new Error('TransitAlveolus can only be created from a transit action')
+		if (def.action.type !== 'gather') {
+			throw new Error('GatherAlveolus can only be created from a gather action')
 		}
 		super(tile, noStorage)
 	}

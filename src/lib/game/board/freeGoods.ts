@@ -1,4 +1,4 @@
-import { effect, reactive, type ScopedCallback } from 'mutts/src'
+import { effect, reactive, type ScopedCallback, unreactive } from 'mutts/src'
 import { Container, Sprite } from 'pixi.js'
 import { goods } from '$assets/game-content'
 import type { GoodType } from '$lib/arktype'
@@ -14,11 +14,44 @@ import {
 	toWorldCoord,
 } from '../../math/position'
 import { GameObject, withGenerator, withTicked } from '../object'
+import {
+	allocationEnded,
+	guardAllocation,
+	invalidateAllocation,
+	isAllocationValid,
+} from '../storage/guard'
+
+@unreactive
+class FreeGoodAllocation {
+	constructor(
+		public readonly freeGood: FreeGood,
+		reason: any,
+	) {
+		guardAllocation(this, reason)
+	}
+
+	cancel(): void {
+		if (!isAllocationValid(this)) return
+		allocationEnded(this)
+		invalidateAllocation(this)
+		this.freeGood.allocated = false
+	}
+
+	fulfill(): void {
+		if (!isAllocationValid(this)) return
+		allocationEnded(this)
+		invalidateAllocation(this)
+		this.freeGood.remove()
+	}
+}
 
 export interface FreeGood {
 	goodType: GoodType
 	position: Position
+	removed: boolean
+	allocated: boolean
 	remove(): void
+	allocate(reason: any): FreeGoodAllocation
 }
 
 export class FreeGoods extends withTicked(withGenerator(GameObject)) {
@@ -40,7 +73,19 @@ export class FreeGoods extends withTicked(withGenerator(GameObject)) {
 		const good: FreeGood = reactive({
 			goodType,
 			position: exactly || ('position' in pos ? pos.position : pos),
+			removed: false,
+			allocated: false,
 			remove: () => this.remove(pos, good),
+			allocate: (reason: any): FreeGoodAllocation => {
+				if (good.allocated) {
+					throw new Error(`FreeGood already allocated: ${reason}`)
+				}
+				if (good.removed) {
+					throw new Error(`FreeGood already removed: ${reason}`)
+				}
+				good.allocated = true
+				return new FreeGoodAllocation(good, reason)
+			},
 		})
 		this.goods.set(coord, [...(this.goods.get(coord) || []), good])
 
@@ -55,6 +100,18 @@ export class FreeGoods extends withTicked(withGenerator(GameObject)) {
 				cleanup: effect(() => {
 					const { x, y } = toWorldCoord(good.position)
 					sprite.position.set(x, y)
+
+					// Apply reddish tint when allocated (like reserved goods in storage)
+					if (good.allocated) {
+						sprite.tint = 0xff6666 // Light red tint
+						sprite.alpha = 0.7
+					} else {
+						sprite.tint = 0xffffff // White (no tint)
+						sprite.alpha = 1.0
+					}
+
+					// Return cleanup function (no-op in this case since we're just setting properties)
+					return () => {}
 				}),
 			})
 		})
@@ -62,6 +119,10 @@ export class FreeGoods extends withTicked(withGenerator(GameObject)) {
 		return good
 	}
 	remove(pos: Positioned, good: FreeGood): void {
+		// Guard against double-removal
+		if (good.removed) return
+		good.removed = true
+
 		const coord = toAxialCoord(pos)
 		const newList = this.goods.get(coord)!.filter((g) => g !== good)
 		if (newList.length === 0) this.goods.delete(coord)

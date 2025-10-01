@@ -29,7 +29,7 @@ export class HarvestAlveolus extends Alveolus {
 	}
 	@computed
 	get hiveHasCollector() {
-		return this.hive.byActionType.transit?.length
+		return this.hive.byActionType.gather?.length
 	}
 	@computed
 	get alveoliNeedingGood() {

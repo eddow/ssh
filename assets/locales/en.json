@@ -8,7 +8,7 @@
 		"tree_chopper": "Tree Chopper",
 		"stonecutter": "Stone Cutter",
 		"sawmill": "Sawmill",
-		"transit": "Loading/Unloading Zone",
+		"gather": "Gather",
 		"storage": "Store"
 	},
 	"goods": {

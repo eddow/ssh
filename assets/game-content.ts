@@ -97,9 +97,9 @@ export const alveoli = {
 		sprites: ['store'],
 		icon: 'store',
 	},
-	transit: {
+	gather: {
 		preparationTime: 1,
-		action: { type: 'transit', individual: true },
+		action: { type: 'gather', radius: 6 },
 		workTime: 2,
 		sprites: ['transit'],
 		icon: 'transit',

@@ -37,7 +37,6 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition>() imple
 		this.tile = tile
 
 		const hive = Hive.for(tile)
-		hive.attach(this)
 		// Only create gates between two alveoli
 		for (const surrounding of this.tile.surroundings) {
 			// Check if the neighboring tile also contains an alveolus
@@ -48,6 +47,8 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition>() imple
 				}
 			}
 		}
+		// Attach (and poke) *after* creating gates
+		hive.attach(this)
 	}
 
 	get debugInfo() {
