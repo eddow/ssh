@@ -29,7 +29,7 @@
     "madge": "^8.0.0",
     "mutts": "file:../mutts",
     "npc-script": "file:../npcs",
-    "omni18n": "^1.1.17",
+    "omni18n": "file:../omni18n",
     "pixi.js": "^8.13.0",
     "svelte": "^5.38.1",
     "svelte-check": "^4.3.1",

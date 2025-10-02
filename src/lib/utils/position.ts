@@ -6,10 +6,11 @@ import {
 	type AxialRef,
 	axial,
 	cartesian,
+	epsilon,
 	fromCartesian,
+	tileSize,
 	type WorldCoord,
-} from '$lib/math'
-import { epsilon, tileSize } from '$lib/utils'
+} from '$lib/utils'
 
 function roughly(x: number) {
 	return Math.round(x / epsilon) * epsilon

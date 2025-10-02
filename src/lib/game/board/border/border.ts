@@ -5,9 +5,8 @@ import type { Game } from '$lib/game/game'
 import { GameObject, withGenerator } from '$lib/game/object'
 import type { Storage } from '$lib/game/storage'
 import { renderBorderGoods } from '$lib/game/storage/goods-renderer'
-import { type AxialRef, axial } from '$lib/math'
-import { type Position, toAxialCoord, toWorldCoord } from '$lib/math/position'
-import { tileSize } from '$lib/utils'
+import { type AxialRef, axial, tileSize } from '$lib/utils'
+import { type Position, toAxialCoord, toWorldCoord } from '$lib/utils/position'
 import type { Tile } from '../tile'
 
 export interface TileBorderContent extends Storage<any> {

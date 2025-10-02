@@ -1,38 +1,44 @@
 function dropStored(good, qty, place, path = null, punctual = true)
 	drop = inventory.planDrop(good, qty, place)
-	if not path then path = find.path(tile, place, punctual)
-	if tile != place then do
-		walk.into path
-	while tile != place
-		path = find.path(tile, place, punctual)
-	loop
-	if not punctual then walk.enter
-	inventory.effectuate drop
+	plan drop
+		if not path then path = find.path(tile, place, punctual)
+		if tile != place then do
+			walk.into path
+		while tile != place
+			path = find.path(tile, place, punctual)
+		loop
+		if not punctual then walk.enter
+		inventory.effectuate drop
+	end plan
 end function
 
 function grabStored(good, qty, place, path = null, punctual = true)
 	if not path then path = find.path(tile, place, punctual)
 	grab = inventory.planGrabStored(good, qty, place)
-	if tile != place then do
-		walk.into path
-	while tile != place
-		path = find.path(tile, place, punctual)
-	loop
-	if not punctual then walk.enter
-	inventory.effectuate grab
+	plan grab
+		if tile != place then do
+			walk.into path
+		while tile != place
+			path = find.path(tile, place, punctual)
+		loop
+		if not punctual then walk.enter
+		inventory.effectuate grab
+	end plan
 end function
 
 function grabFree(good, place, path = null, punctual = true)
 	if not path then path = find.path(tile, place, punctual)
 	grab = inventory.planGrabFree(good, place)
-	if tile != place then do
-		walk.into path
-// TODO: find a way to stop the loop if the free-good has been removed in the meantime
-	while tile != place
-		path = find.path(tile, place, punctual)
-	loop
-	if not punctual then walk.enter
-	inventory.effectuate grab
+	plan grab
+		if tile != place then do
+			walk.into path
+	// TODO: find a way to stop the loop if the free-good has been removed in the meantime
+		while tile != place
+			path = find.path(tile, place, punctual)
+		loop
+		if not punctual then walk.enter
+		inventory.effectuate grab
+	end plan
 end function
 
 function dropAll()

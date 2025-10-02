@@ -17,7 +17,7 @@ import {
 	registerContract,
 } from '$lib/arktype'
 import { epsilon, objectMap } from '$lib/utils'
-import { Positioned, positionRoughly, toAxialCoord } from '../../math/position'
+import { Positioned, positionRoughly, toAxialCoord } from '../../utils/position'
 import type { GameObject, InteractiveGameObject } from '../object'
 import { gameIsaTypes, gameOperators, lerp } from './utils'
 
@@ -169,6 +169,7 @@ export class Finalized {
 	}
 }
 
+// TODO: plan -> no more `Finalized`
 export class ScriptExecution extends Finalized {
 	constructor(
 		public readonly script: GameScript,

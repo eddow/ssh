@@ -1,97 +1,87 @@
 <script lang="ts">
-	import Icon from '@iconify/svelte'
-	import type { DockviewApi } from 'dockview-core'
-	import { DockView } from 'dockview-svelte/src'
-	import { ButtonGroup, RadioButton, Toolbar, ToolbarButton, ToolbarGroup } from 'flowbite-svelte'
-	// Icons now handled by IconifyIcon component
-	import { onMount } from 'svelte'
-	import * as gameContent from '$assets/game-content'
-	import ResourceImage from '$components/parts/resourceImage.svelte'
-	import DarkMode from '$components/parts/system/dark-mode.svelte'
-	import FlagLanguageSelector from '$components/parts/system/FlagLanguageSelector.svelte'
-	import { configuration, games, interactionMode } from '$lib/globals.svelte'
-	import { T } from '$lib/i18n'
-	import widgets from './widgets'
+import Icon from '@iconify/svelte'
+import type { DockviewApi } from 'dockview-core'
+import { DockView } from 'dockview-svelte/src'
+import { ButtonGroup, RadioButton, Toolbar, ToolbarButton, ToolbarGroup } from 'flowbite-svelte'
+// Icons now handled by IconifyIcon component
+import { onMount } from 'svelte'
+import * as gameContent from '$assets/game-content'
+import ResourceImage from '$components/parts/resourceImage.svelte'
+import DarkMode from '$components/parts/system/dark-mode.svelte'
+import FlagLanguageSelector from '$components/parts/system/FlagLanguageSelector.svelte'
+import { configuration, games, interactionMode } from '$lib/globals.svelte'
+import { T } from '$lib/i18n'
+import widgets from './widgets'
 
-	$effect(() => {
-		if (configuration.darkMode) document.documentElement.classList.add('dark')
-		else document.documentElement.classList.remove('dark')
+$effect(() => {
+	if (configuration.darkMode) document.documentElement.classList.add('dark')
+	else document.documentElement.classList.remove('dark')
+})
+$effect(() => {
+	const disposable = api!.onDidLayoutChange(() => {
+		const layout = api!.toJSON()
+		localStorage.setItem('layout', JSON.stringify(layout))
 	})
-	$effect(() => {
-		const disposable = api!.onDidLayoutChange(() => {
-			const layout = api!.toJSON()
-			localStorage.setItem('layout', JSON.stringify(layout))
-		})
-		return () => {
-			disposable.dispose()
-		}
-	})
-
-	function showSystem(widget: 'configuration' | 'games' | 'debug') {
-		return () => {
-			const otherSystem = api!.panels.find((p) => p.id.startsWith('system.'))
-			dockview!.toggleUniqueDock(
-				widget,
-				{},
-				{
-					id: `system.${widget}`,
-					...(otherSystem
-						? {
-								position: {
-									direction: 'within',
-									referencePanel: otherSystem
-								}
-							}
-						: { floating: true })
-				}
-			)
-		}
+	return () => {
+		disposable.dispose()
 	}
-	function showMyProjects() {
+})
+
+function showSystem(widget: 'configuration' | 'games' | 'debug') {
+	return () => {
+		const otherSystem = api!.panels.find((p) => p.id.startsWith('system.'))
 		dockview!.toggleUniqueDock(
-			'my-projects',
+			widget,
 			{},
 			{
-				id: 'my-projects',
-				floating: true
-			}
+				id: `system.${widget}`,
+				...(otherSystem
+					? {
+							position: {
+								direction: 'within',
+								referencePanel: otherSystem,
+							},
+						}
+					: { floating: true }),
+			},
 		)
 	}
-	const game = games.game('GameX')
-	const layoutJson = location.host.startsWith('localhost') ? localStorage.getItem('layout') : null
-	let dockview = $state<DockView | undefined>(undefined)
-	let api = $state<DockviewApi | undefined>(undefined)
-	onMount(async () => {
-		if (layoutJson)
-			try {
-				api!.fromJSON(JSON.parse(layoutJson))
-				return
-			} catch {
-				localStorage.removeItem('layout')
-			}
-		else {
-			showSystem('configuration')()
-			addGame()
+}
+const game = games.game('GameX')
+const layoutJson = location.host.startsWith('localhost') ? localStorage.getItem('layout') : null
+let dockview = $state<DockView | undefined>(undefined)
+let api = $state<DockviewApi | undefined>(undefined)
+onMount(async () => {
+	if (layoutJson)
+		try {
+			api!.fromJSON(JSON.parse(layoutJson))
+			return
+		} catch {
+			localStorage.removeItem('layout')
 		}
-	})
-	function preventDefault(event: MouseEvent) {
-		if (event.button === 4 || event.button === 3) {
-			event.preventDefault()
-		}
+	else {
+		showSystem('configuration')()
+		addGame()
 	}
-	function addGame() {
-		dockview!.showUniqueDock(
-			'game',
-			{ game: 'GameX' },
-			{
-				id: 'game-view',
-				position: {
-					direction: 'within'
-				}
-			}
-		)
+})
+function preventDefault(event: MouseEvent) {
+	if (event.button === 4 || event.button === 3) {
+		event.preventDefault()
 	}
-	// TODO: dockview template #toolbar -> injected API ?
+}
+function addGame() {
+	dockview!.showUniqueDock(
+		'game',
+		{ game: 'GameX' },
+		{
+			id: 'game-view',
+			position: {
+				direction: 'within',
+			},
+		},
+	)
+}
+// TODO: dockview template #toolbar -> injected API ?
 </script>
 
 <!-- Prevent default navigation behaviors associated to buttons 3 & 4 -->
@@ -104,9 +94,6 @@
 			</ToolbarButton>
 			<ToolbarButton onclick={addGame} title={$T.ui.games}>
 				<Icon icon="mdi:plus" width="24" height="24" />
-			</ToolbarButton>
-			<ToolbarButton onclick={showMyProjects} title={$T.ui.projects}>
-				<Icon icon="mdi:clipboard-list" width="24" height="24" />
 			</ToolbarButton>
 			<ToolbarButton onclick={showSystem('debug')} title={$T.ui.debug}>
 				<Icon icon="mdi:bug" width="24" height="24" />

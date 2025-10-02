@@ -46,8 +46,4 @@ export class TransformAlveolus extends Alveolus {
 	get keepWorking(): boolean {
 		return this.canWork
 	}
-	//TODO: sawmill don't give out wood behaviour: implement
-	available(goodType: GoodType): number {
-		return goodType in this.action.inputs ? 0 : this.storage.available(goodType) || 0
-	}
 }

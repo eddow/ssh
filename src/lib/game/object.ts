@@ -1,7 +1,7 @@
 // Library used by Pixi
 import EventEmitter from 'eventemitter3'
 import { effect, ReactiveBase, type ScopedCallback, unreactive } from 'mutts/src'
-import type { Position } from '../math/position'
+import type { Position } from '../utils/position'
 import type { Tile } from './board/tile'
 import type { Game } from './game'
 

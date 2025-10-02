@@ -3,16 +3,16 @@ import { Container, Sprite } from 'pixi.js'
 import { goods } from '$assets/game-content'
 import type { GoodType } from '$lib/arktype'
 import { assert } from '$lib/debug'
-import type { AxialCoord } from '$lib/math'
-import { AxialKeyMap } from '$lib/math/mem'
+import type { AxialCoord } from '$lib/utils'
 import { epsilon } from '$lib/utils'
+import { AxialKeyMap } from '$lib/utils/mem'
 import {
 	axialDistance,
 	type Position,
 	type Positioned,
 	toAxialCoord,
 	toWorldCoord,
-} from '../../math/position'
+} from '../../utils/position'
 import { GameObject, withGenerator, withTicked } from '../object'
 import {
 	allocationEnded,

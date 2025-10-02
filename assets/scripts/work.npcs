@@ -8,7 +8,8 @@ function goWork(alveolus, job, path)
 	loop
 	walk.enter
 	work.prepare
-	work[job] alveolus
+	// TODO: work = plan
+	work[job](alveolus)
 end function
 
 function harvest(alveolus)
@@ -22,16 +23,18 @@ function harvest(alveolus)
 		work.harvestStep
 		if alveolus.gather then
 			drop = inventory.planDrop(aCarriedGood, 1, alveolus.tile)
-			do while tile != alveolus.tile
-				path = find.path(alveolus.tile, false)
-				walk.until path
-			loop
-			walk.enter
-			// try load in the hive grid
-			inventory.effectuate drop
+			plan drop
+				do while tile != alveolus.tile
+					path = find.path(alveolus.tile, false)
+					walk.until path
+				loop
+				walk.enter
+				// try load in the hive grid
+				inventory.effectuate drop
+			end plan
 			do
 				good = aCarriedGood
-			while aCarriedGood
+			while good
 				inventory.dropAsFreeGood good
 			loop
 			pokeAlveolus	// We just did add resources in the hive, tell this alveolus to perhaps signal it

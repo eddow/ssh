@@ -5,8 +5,8 @@
 
 import { deposits, goods as goodsCatalog, terrain as terrainDetails } from '$assets/game-content'
 import type { DepositType, TerrainType } from '$lib/arktype'
-import type { AxialCoord } from '$lib/math'
-import { axial } from '$lib/math'
+import type { AxialCoord } from '$lib/utils'
+import { axial } from '$lib/utils'
 import { Deposit } from '../board/content/unbuilt-land'
 import { TerrainGenerator } from './terrain'
 

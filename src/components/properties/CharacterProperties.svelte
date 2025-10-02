@@ -60,6 +60,7 @@ const activityBadgeColors: Record<Ssh.ActivityType, FlowbiteBadgeColor> = {
 	rest: 'indigo',
 	convey: 'blue',
 	idle: 'gray',
+	gather: 'pink',
 }
 </script>
 

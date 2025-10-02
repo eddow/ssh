@@ -1,8 +1,8 @@
 import { computed } from 'mutts/src'
 import type { GoodType } from '$lib/arktype'
+import type { Goods } from '.'
 import type { RenderedGoodSlots } from './goods-renderer'
 import { AllocationError } from './guard'
-import type { Goods } from './index'
 import { Storage } from './storage'
 
 export class NoStorage extends Storage<any> {

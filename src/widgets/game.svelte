@@ -66,12 +66,16 @@ $effect(() => {
 
 const game = games.game(gameName)
 let gameView = $state<GameView | undefined>(undefined)
-size.subscribe((size) => {
-	if (gameView) {
-		gameView.stage.pivot.set(-size.width / 2, -size.height / 2)
-		if (gameView.pixi?.renderer) gameView.pixi.renderer.resize(size.width, size.height)
-	}
-})
+$effect(() =>
+	size.subscribe((size) => {
+		if (gameView) {
+			gameView.stage.pivot.set(-size.width / 2, -size.height / 2)
+			if (gameView.pixi?.renderer) gameView.pixi.renderer.resize(size.width, size.height)
+		}
+	}),
+)
+//@ts-expect-error
+window.dob = size
 
 let container = $state<HTMLDivElement>()
 

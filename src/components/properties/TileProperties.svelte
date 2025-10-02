@@ -1,20 +1,20 @@
 <script lang="ts">
-	import { Badge } from 'flowbite-svelte'
-	import GoodsList from '$components/parts/GoodsList.svelte'
-	import PropertyGrid from '$components/parts/PropertyGrid.svelte'
-	import PropertyGridRow from '$components/parts/PropertyGridRow.svelte'
-	import AlveolusProperties from '$components/properties/AlveolusProperties.svelte'
-	import UnBuiltProperties from '$components/properties/UnBuiltProperties.svelte'
-	import { Alveolus } from '$lib/game/board/content/alveolus'
-	import { UnBuiltLand } from '$lib/game/board/content/unbuilt-land'
-	import type { Tile } from '$lib/game/board/tile'
-	import { T } from '$lib/i18n'
-	import { p2s } from '$lib/mutts.svelte'
+import { Badge } from 'flowbite-svelte'
+import GoodsList from '$components/parts/GoodsList.svelte'
+import PropertyGrid from '$components/parts/PropertyGrid.svelte'
+import PropertyGridRow from '$components/parts/PropertyGridRow.svelte'
+import AlveolusProperties from '$components/properties/AlveolusProperties.svelte'
+import UnBuiltProperties from '$components/properties/UnBuiltProperties.svelte'
+import { Alveolus } from '$lib/game/board/content/alveolus'
+import { UnBuiltLand } from '$lib/game/board/content/unbuilt-land'
+import type { Tile } from '$lib/game/board/tile'
+import { T } from '$lib/i18n'
+import { p2s } from '$lib/mutts.svelte'
 
-	let { tile }: { tile: Tile } = $props()
-	let tileContent = $derived.by(p2s(() => tile.content))
-	let stock = $derived.by(p2s(() => tile.content!.storage?.stock))
-	// TODO: terrain type as background color
+let { tile }: { tile: Tile } = $props()
+let tileContent = $derived.by(p2s(() => tile.content))
+let stock = $derived.by(p2s(() => tile.content!.storage?.stock))
+// TODO: terrain type as background color
 </script>
 
 {#if tileContent}

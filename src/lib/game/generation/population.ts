@@ -3,9 +3,9 @@
  * Extracted from population/index.ts for better organization
  */
 
-import type { AxialCoord } from '$lib/math'
-import { axial } from '$lib/math'
-import { AxialSet } from '$lib/math/mem'
+import type { AxialCoord } from '$lib/utils'
+import { axial } from '$lib/utils'
+import { AxialSet } from '$lib/utils/mem'
 
 export interface PopulationGenerationConfig {
 	characterCount: number

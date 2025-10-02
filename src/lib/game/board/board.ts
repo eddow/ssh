@@ -11,12 +11,13 @@ import {
 	findNearest,
 	findPath,
 	fromCartesian,
+	isInteger,
 	type NeighborInfo,
 	type Scoring,
+	tileSize,
 	type WorldCoord,
-} from '$lib/math'
-import { AxialKeyMap } from '$lib/math/mem'
-import { isInteger, tileSize } from '$lib/utils'
+} from '$lib/utils'
+import { AxialKeyMap } from '$lib/utils/mem'
 import type { Game } from '../game'
 import { QueueStep } from '../npcs/steps'
 import type { Character } from '../population/character'

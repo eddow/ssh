@@ -1,0 +1,71 @@
+import * as gameContent from '$assets/game-content'
+import type { CharacterContract } from '$assets/scripts/contracts'
+import { contract, GoodType } from '$lib/arktype'
+import { objectMap } from '$lib/utils'
+import type { Character } from '../../population/character'
+import { InteractiveContext, loadNpcScripts, protoCtx, subject } from '../scripts'
+
+// Import all the function classes
+import { FindFunctions } from './find'
+import { InventoryFunctions, type TransferPlan } from './inventory'
+import { PlanFunctions } from './plan'
+import { SelfCareFunctions } from './selfCare'
+import { WalkFunctions } from './walk'
+import { WorkFunctions } from './work'
+
+// Re-export TransferPlan for external use
+export type { TransferPlan }
+
+class CharacterContext extends InteractiveContext<Character> {
+	get I() {
+		return this[subject]
+	}
+	get hunger() {
+		return this[subject].hunger
+	}
+	get triggerLevels() {
+		return this[subject].triggerLevels
+	}
+
+	get carriedFood() {
+		return this[subject].carriedFood
+	}
+	get aCarriedGood() {
+		return this[subject].aCarriedGood
+	}
+	get vehicle() {
+		return this[subject].vehicle
+	}
+	@contract(GoodType.optional())
+	haveRoom(goodType?: GoodType): number {
+		return this[subject].vehicle.hasRoom(goodType)
+	}
+	@contract()
+	pokeAlveolus() {
+		return this[subject].assignedAlveolus!.poke()
+	}
+}
+
+const characterContext = protoCtx(CharacterContext, {
+	find: protoCtx(FindFunctions),
+	inventory: protoCtx(InventoryFunctions),
+	walk: protoCtx(WalkFunctions),
+	selfCare: protoCtx(SelfCareFunctions),
+	work: protoCtx(WorkFunctions),
+	plan: protoCtx(PlanFunctions),
+	...gameContent,
+})
+
+const alveoli = import.meta.glob('$assets/scripts/**/*.npcs', {
+	query: '?raw',
+	eager: true,
+})
+loadNpcScripts(
+	objectMap(alveoli, (v: any) => v.default) as Record<string, string>,
+	characterContext,
+)
+export default function aCharacterContext(character: Character) {
+	return Object.create(characterContext, {
+		[subject]: { value: character },
+	}) as CharacterContract & typeof characterContext
+}

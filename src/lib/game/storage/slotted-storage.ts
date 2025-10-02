@@ -1,6 +1,7 @@
 import { computed, reactive, unreactive } from 'mutts/src'
 import type { GoodType } from '$lib/arktype'
 import { assert } from '$lib/debug'
+import type { Goods } from '.'
 import type { RenderedGoodSlot, RenderedGoodSlots } from './goods-renderer'
 import {
 	AllocationError,
@@ -9,7 +10,6 @@ import {
 	invalidateAllocation,
 	isAllocationValid,
 } from './guard'
-import type { Goods } from './index'
 import { type AllocationBase, Storage } from './storage'
 
 @unreactive
