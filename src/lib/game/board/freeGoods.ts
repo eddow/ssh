@@ -3,8 +3,7 @@ import { Container, Sprite } from 'pixi.js'
 import { goods } from '$assets/game-content'
 import type { GoodType } from '$lib/arktype'
 import { assert } from '$lib/debug'
-import type { AxialCoord } from '$lib/utils'
-import { epsilon } from '$lib/utils'
+import { axial, epsilon } from '$lib/utils'
 import { AxialKeyMap } from '$lib/utils/mem'
 import {
 	axialDistance,
@@ -55,7 +54,7 @@ export interface FreeGood {
 }
 
 export class FreeGoods extends withTicked(withGenerator(GameObject)) {
-	private readonly goods = new AxialKeyMap<FreeGood[]>([], () => [])
+	private readonly goods = reactive(new AxialKeyMap<FreeGood[]>([], () => []))
 	private readonly display = new Map<FreeGood, { sprite: Sprite; cleanup: ScopedCallback }>()
 	private readonly fgContainer: Container = new Container()
 	render() {
@@ -137,8 +136,40 @@ export class FreeGoods extends withTicked(withGenerator(GameObject)) {
 		}
 	}
 
-	getGoodsAt(coord: AxialCoord): FreeGood[] {
-		return this.goods.get(coord) || []
+	getGoodsAt(coord: Positioned): FreeGood[] {
+		return this.goods.get(toAxialCoord(coord)) || []
+	}
+
+	findNearestGoods(
+		start: Positioned,
+		center: Positioned,
+		goodTypes: GoodType[],
+		maxRadius: number,
+	): { goodType: GoodType; path: Positioned[] } | undefined {
+		const path = this.game.hex.findNearest(
+			start,
+			(coord: Positioned) => {
+				const goodsList = this.getGoodsAt(coord)
+				return goodsList.some((g) => goodTypes.includes(g.goodType) && !g.allocated)
+			},
+			(coord: Positioned) => {
+				// Stop condition: check if still within radius from center
+				const distance = axial.distance(toAxialCoord(coord), toAxialCoord(center))
+				return distance > maxRadius
+			},
+		)
+
+		if (path) {
+			const destination = path[path.length - 1]
+			const goodsList = this.getGoodsAt(destination)
+			const foundGood = goodsList.find((g) => goodTypes.includes(g.goodType) && !g.allocated)
+
+			if (foundGood) {
+				return { goodType: foundGood.goodType, path }
+			}
+		}
+
+		return undefined
 	}
 
 	update(deltaTime: number): void {
@@ -154,7 +185,7 @@ export class FreeGoods extends withTicked(withGenerator(GameObject)) {
 				const halfLife = goodDef.halfLife // in seconds
 
 				// Skip decay for goods with infinite half-life
-				if (halfLife === Infinity) {
+				if (!Number.isFinite(halfLife)) {
 					continue
 				}
 

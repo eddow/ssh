@@ -5,7 +5,7 @@ import type { Game } from '$lib/game/game'
 import { GameObject, withGenerator } from '$lib/game/object'
 import type { Storage } from '$lib/game/storage'
 import { renderBorderGoods } from '$lib/game/storage/goods-renderer'
-import { type AxialRef, axial, tileSize } from '$lib/utils'
+import { type Positioned, tileSize } from '$lib/utils'
 import { type Position, toAxialCoord, toWorldCoord } from '$lib/utils/position'
 import type { Tile } from '../tile'
 
@@ -16,10 +16,10 @@ export interface TileBorderContent extends Storage<any> {
 
 export class TileBorder extends withGenerator(GameObject) {
 	readonly position: Position
-	constructor(game: Game, coord: AxialRef) {
+	constructor(game: Game, coord: Positioned) {
 		super(game)
 		const hex = game.hex
-		this.position = coord = axial.access(coord)
+		this.position = coord = toAxialCoord(coord)
 		this.tile = {
 			get a(): Tile {
 				return hex.getTile({ q: Math.ceil(coord.q), r: Math.floor(coord.r) })!

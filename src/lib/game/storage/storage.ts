@@ -1,7 +1,5 @@
-import type { GoodType } from '$lib/arktype'
+import type { Goods, GoodType } from '$lib/arktype'
 import type { RenderedGoodSlots } from './goods-renderer'
-
-export type Goods = { [k in GoodType]?: number }
 
 export interface AllocationBase {
 	cancel(): void
@@ -14,7 +12,7 @@ export abstract class Storage<Allocation extends AllocationBase> {
 	 * @returns The maximum quantity that can be stored
 	 */
 	abstract hasRoom(goodType?: GoodType): number
-
+	abstract get isEmpty(): boolean
 	/**
 	 * Check if all goods can be stored
 	 * @param goods - The goods to check
@@ -39,15 +37,15 @@ export abstract class Storage<Allocation extends AllocationBase> {
 	abstract removeGood(goodType: GoodType, qty: number): number
 
 	/**
-	 * Allocate room for a good and return an opaque allocation token
+	 * Allocate room for goods and return an opaque allocation token
 	 * @throws Error if allocation fails (insufficient room)
 	 */
-	abstract allocate(goodType: GoodType, qty: number, reason: any): Allocation
+	abstract allocate(goods: Goods, reason: any): Allocation
 	/**
 	 * Reserve existing goods for removal and return an opaque allocation token
 	 * @throws Error if reservation fails (insufficient goods)
 	 */
-	abstract reserve(goodType: GoodType, qty: number, reason: any): Allocation
+	abstract reserve(goods: Goods, reason: any): Allocation
 
 	/**
 	 * Get all goods currently stored (stock totals, includes reserved)
@@ -87,6 +85,10 @@ export function withStorageForwarder<
 			return this.storage.hasRoom(goodType)
 		}
 
+		get isEmpty(): boolean {
+			return this.storage.isEmpty
+		}
+
 		canStoreAll(goods: Goods): boolean {
 			return this.storage.canStoreAll(goods)
 		}
@@ -99,12 +101,12 @@ export function withStorageForwarder<
 			return this.storage.removeGood(goodType, qty)
 		}
 
-		allocate(goodType: GoodType, qty: number, reason: any): Allocation {
-			return this.storage.allocate(goodType, qty, reason)
+		allocate(goods: Goods, reason: any): Allocation {
+			return this.storage.allocate(goods, reason)
 		}
 
-		reserve(goodType: GoodType, qty: number, reason: any): Allocation {
-			return this.storage.reserve(goodType, qty, reason)
+		reserve(goods: Goods, reason: any): Allocation {
+			return this.storage.reserve(goods, reason)
 		}
 
 		get stock() {

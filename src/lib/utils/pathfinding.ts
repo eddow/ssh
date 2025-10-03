@@ -1,9 +1,10 @@
-import type { AxialCoord, AxialKey, AxialRef } from './axial'
+import { type Positioned, toAxialCoord } from '.'
+import type { AxialCoord, AxialKey } from './axial'
 import { axial } from './axial'
 import { AxialKeyMap, HeapMin } from './mem'
 
-export type GetNeighbors = (coord: AxialRef) => (NeighborInfo | AxialCoord)[]
-export type Scoring<T> = (coord: AxialRef) => T | false
+export type GetNeighbors = (coord: Positioned) => (NeighborInfo | AxialCoord)[]
+export type Scoring<T> = (coord: Positioned) => T | false
 export interface NeighborInfo {
 	coord: AxialCoord
 	walkTime: number
@@ -58,14 +59,14 @@ function reconstructPath(
  */
 export function findPath(
 	getNeighbors: GetNeighbors,
-	start: AxialRef,
-	goal: AxialRef,
+	start: Positioned,
+	goal: Positioned,
 	maxTime: number,
 	punctual: boolean = true,
 ): AxialCoord[] | undefined {
 	// TODO: use bidirectional if the function becomes used
-	const startCoord = axial.access(start)
-	const goalCoord = axial.access(goal)
+	const startCoord = toAxialCoord(start)
+	const goalCoord = toAxialCoord(goal)
 	const goalDistance = punctual ? 0 : 1
 
 	// Initialize data structures
@@ -151,8 +152,8 @@ export function findPath(
 /**
  * Heuristic function for hexagonal grid (Manhattan distance approximation)
  */
-export function heuristic(a: AxialRef, b: AxialRef): number {
-	return axial.distance(axial.access(a), axial.access(b))
+export function heuristic(a: Positioned, b: Positioned): number {
+	return axial.distance(toAxialCoord(a), toAxialCoord(b))
 }
 
 /**
@@ -166,12 +167,12 @@ export function heuristic(a: AxialRef, b: AxialRef): number {
  */
 export function findNearest<_T>(
 	getNeighbors: GetNeighbors,
-	start: AxialRef,
+	start: Positioned,
 	isGoal: Scoring<true>,
-	stop: number | ((coord: AxialRef, walkTime: number) => boolean),
+	stop: number | ((coord: Positioned, walkTime: number) => boolean),
 	punctual: boolean = true,
 ): AxialCoord[] | undefined {
-	const startCoord = axial.access(start)
+	const startCoord = toAxialCoord(start)
 	if (typeof stop === 'number')
 		stop = (
 			(stop) => (_, walkTime: number) =>
@@ -271,13 +272,13 @@ function relativeScore(score: number, walkTime: number): number {
  */
 export function findBest<_T>(
 	getNeighbors: GetNeighbors,
-	start: AxialRef,
+	start: Positioned,
 	scoring: Scoring<number>,
-	stop: number | ((coord: AxialRef, walkTime: number) => boolean),
+	stop: number | ((coord: Positioned, walkTime: number) => boolean),
 	bestPossibleScore: number,
 	punctual: boolean = true,
 ): AxialCoord[] | undefined {
-	const startCoord = axial.access(start)
+	const startCoord = toAxialCoord(start)
 	if (typeof stop === 'number')
 		stop = (
 			(stop) => (_, walkTime: number) =>

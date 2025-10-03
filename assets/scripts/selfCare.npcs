@@ -1,6 +1,6 @@
 function goEat()
-	do while hunger > triggerLevels.hunger.satisfied
-		food = carriedFood
+	do while I.hunger > I.triggerLevels.hunger.satisfied
+		food = I.carriedFood
 		if food then
 			selfCare.eat food
 			continue

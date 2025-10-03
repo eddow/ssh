@@ -1,99 +1,163 @@
-import { contract } from '$lib/arktype'
+import { contract, type Goods, type GoodType } from '$lib/arktype'
 import { assert } from '$lib/debug'
+import { type Alveolus, type HexBoard, isTileCoord } from '$lib/game/board'
 import type { Character } from '$lib/game/population/character'
-import { toAxialCoord } from '$lib/utils'
+import type { AllocationBase } from '$lib/game/storage'
+import { type AxialCoord, type Positioned, toAxialCoord } from '$lib/utils'
 import { subject } from '../scripts'
-import type { TransferPlan } from './inventory'
+// plans should be unreactive
+export interface TransferPlan<T extends AllocationBase = AllocationBase> {
+	readonly type: 'transfer'
+	readonly description: 'grab' | 'drop'
+	vehicleAllocation?: T // Will be created in begin(), cleared in finalize()
+	allocation?: T // Will be created in begin(), cleared in finalize()
+	readonly goods: Goods
+	// Additional metadata needed for plan creation
+	readonly target?: Positioned
+}
 
+export interface GatherPlan<T extends AllocationBase = AllocationBase> {
+	readonly type: 'gather'
+	vehicleAllocation?: T // Will be created in begin(), cleared in finalize()
+	allocation?: T // Will be created in begin(), cleared in finalize()
+	readonly goodType: GoodType
+	readonly target: Positioned
+}
+
+export interface WorkPlan {
+	readonly type: 'work'
+	readonly jobType: string
+	readonly alveolus: Alveolus
+	readonly path: AxialCoord[]
+}
+
+function getContentFromPosition(hex: HexBoard, position: Positioned) {
+	const coord = toAxialCoord(position)
+	return isTileCoord(coord) ? hex.getTileContent(coord) : hex.getBorderContent(coord)
+}
+export type Plan = TransferPlan | GatherPlan | WorkPlan
 class PlanFunctions {
 	declare [subject]: Character
 
 	@contract('object')
-	begin(transferPlan: TransferPlan) {
-		// Begin the transfer plan - create the allocations
+	begin(plan: Plan) {
 		const character = this[subject]
-		const { goodType, amount, description, destination, sourceTile, source } = transferPlan
-		const vehicle = character.vehicle
+		const hex = character.game.hex
 
-		assert(vehicle, 'vehicle must be set')
+		if (plan.type === 'transfer') {
+			// Begin the transfer plan - create the allocations
+			const { goods, description, target } = plan
+			const vehicle = character.vehicle
 
-		// Create allocations based on plan type
-		let vehicleAllocation: any
-		let allocation: any
+			assert(vehicle, 'vehicle must be set')
 
-		if (description === 'drop') {
-			// Drop plan: allocate vehicle space and destination storage
-			assert(destination, 'destination must be set for drop plan')
-			const content = destination.content
-			assert(content, 'destination.content must be set')
-			assert('storage' in content, 'planDrop only works with TileContent that has storage')
+			// Create allocations based on plan type
+			let vehicleAllocation: any
+			let allocation: any
 
-			vehicleAllocation = vehicle.reserve(goodType, amount, `planDrop.${goodType}`)
-			allocation = content.storage?.allocate(goodType, amount, `planDrop.${goodType}`)
-		} else if (description === 'grab') {
-			// Grab plan: allocate vehicle space and reserve source
-			vehicleAllocation = vehicle.allocate(goodType, amount, `planGrab.${goodType}`)
+			if (description === 'drop') {
+				// Drop plan: allocate vehicle space and destination storage
+				assert(target, 'target must be set for drop plan')
+				const content = getContentFromPosition(hex, target)
+				assert(content, 'target content must be set')
+				assert('storage' in content, 'planDropStored only works with TileContent that has storage')
 
-			if (source === 'storage') {
-				assert(sourceTile, 'sourceTile must be set for storage grab')
-				const content = sourceTile.content
-				assert(content, 'sourceTile.content must be set')
+				vehicleAllocation = vehicle.reserve(goods, `planDropStored`)
+				allocation = content.storage?.allocate(goods, `planDropStored`)
+			} else if (description === 'grab') {
+				// Grab plan: allocate vehicle space and reserve source storage
+				assert(target, 'target must be set for storage grab')
+				const content = getContentFromPosition(hex, target)
+				assert(content, 'target content must be set')
 				assert('storage' in content, 'planGrabStored only works with TileContent that has storage')
 
-				allocation = content.storage?.reserve(goodType, amount, `planGrabStored.${goodType}`)
-			} else if (source === 'freeGoods') {
-				assert(sourceTile, 'sourceTile must be set for free goods grab')
-
-				// Find and allocate the free good
-				const coord = toAxialCoord(sourceTile.position)
-				const freeGoods = character.game.hex.freeGoods.getGoodsAt(coord)
-				const matchingFreeGoods = freeGoods.filter(
-					(good) => good.goodType === goodType && !good.removed && !good.allocated,
-				)
-
-				if (matchingFreeGoods.length === 0) {
-					throw new Error('No FreeGoods to grab')
-				}
-
-				const freeGoodToGrab = matchingFreeGoods[0]
-				allocation = freeGoodToGrab.allocate(`planGrabFree.${goodType}`)
+				vehicleAllocation = vehicle.allocate(goods, `planGrab`)
+				allocation = content.storage?.reserve(goods, `planGrabStored`)
 			}
+
+			// Return the plan with allocations set
+			Object.assign(plan, {
+				vehicleAllocation,
+				allocation,
+			})
+		} else if (plan.type === 'gather') {
+			// Begin the gather plan - create the allocations
+			const { goodType, target } = plan
+			const vehicle = character.vehicle
+
+			assert(vehicle, 'vehicle must be set')
+
+			// Find and allocate the free good
+			const coord = toAxialCoord(target)
+			const freeGoods = character.game.hex.freeGoods.getGoodsAt(coord)
+			const matchingFreeGoods = freeGoods.filter(
+				(good) => good.goodType === goodType && !good.allocated,
+			)
+
+			if (matchingFreeGoods.length === 0) {
+				throw new Error(`No FreeGoods to grab for ${goodType}`)
+			}
+
+			const freeGoodToGrab = matchingFreeGoods[0]
+			const vehicleAllocation = vehicle.allocate({ [goodType]: 1 }, `planGrabFree.${goodType}`)
+			const allocation = freeGoodToGrab.allocate(`planGrabFree.${goodType}`)
+
+			// Return the plan with allocations set
+			Object.assign(plan, {
+				vehicleAllocation,
+				allocation,
+			})
+		} else if (plan.type === 'work') {
+			// Begin the work plan - assign worker and alveolus
+			const { alveolus } = plan
+
+			// Assign worker to alveolus
+			alveolus.assignedWorker = character
+			character.assignedAlveolus = alveolus
+
+			// Set the assigned worker in the plan
+			Object.assign(plan, {
+				assignedWorker: character,
+			})
 		}
 
-		// Return the plan with allocations set
-		Object.assign(transferPlan, {
-			vehicleAllocation,
-			allocation,
-		})
+		return plan
 	}
 
 	@contract('object')
-	conclude(transferPlan: TransferPlan) {
-		// Conclude the transfer plan - complete the transfer successfully
+	conclude(plan: Plan) {
+		if (plan.type === 'transfer' || plan.type === 'gather') {
+			// Fulfill the allocations
+			plan.allocation?.fulfill()
+			plan.vehicleAllocation?.fulfill()
+		}
 
-		// Fulfill the allocations
-		transferPlan.allocation?.fulfill()
-		transferPlan.vehicleAllocation?.fulfill()
-
-		return transferPlan
+		return plan
 	}
 
 	@contract('object')
-	cancel(transferPlan: TransferPlan) {
-		// Cancel the transfer plan - abort the transfer
+	cancel(plan: Plan) {
+		if (plan.type === 'transfer' || plan.type === 'gather') {
+			// Cancel the allocations
+			plan.allocation?.cancel()
+			plan.vehicleAllocation?.cancel()
+		}
 
-		// Cancel the allocations
-		transferPlan.allocation?.cancel()
-		transferPlan.vehicleAllocation?.cancel()
+		return plan
 	}
 
 	@contract('object')
-	finalize(transferPlan: TransferPlan) {
-		// Finalize the transfer plan - cleanup after completion or cancellation
+	finally(plan: Plan) {
+		if (plan.type === 'transfer' || plan.type === 'gather') {
+			// Clear allocations back to undefined
+			delete plan.vehicleAllocation
+			delete plan.allocation
+		} else if (plan.type === 'work') {
+			plan.alveolus.assignedWorker = undefined
+			this[subject].assignedAlveolus = undefined
+		}
 
-		// Clear allocations back to undefined
-		delete transferPlan.vehicleAllocation
-		delete transferPlan.allocation
+		return plan
 	}
 }
 

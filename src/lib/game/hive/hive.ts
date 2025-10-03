@@ -1,7 +1,7 @@
-import { computed, reactive } from 'mutts/src'
+import { computed, ReactiveBase, reactive } from 'mutts/src'
 import type { GoodType } from '$lib/arktype'
 import { assert } from '$lib/debug'
-import { type AxialCoord, type AxialRef, axial, findPath, setPop } from '$lib/utils'
+import { type AxialCoord, findPath, type Positioned, setPop } from '$lib/utils'
 import { AxialKeyMap } from '$lib/utils/mem'
 import { toAxialCoord } from '../../utils/position'
 import { type HexBoard, isTileCoord } from '../board/board'
@@ -23,9 +23,11 @@ export interface MovingGood {
 export type HiveDemanderQueue = { demanders: Set<Alveolus> }
 export type HiveProviderQueue = { providers: Set<Alveolus> }
 export type HiveQueue = HiveDemanderQueue | HiveProviderQueue
-
-export class Hive {
-	private constructor(public readonly board: HexBoard) {}
+@reactive
+export class Hive extends ReactiveBase {
+	private constructor(public readonly board: HexBoard) {
+		super()
+	}
 	// Path cache for complete paths between alveoli
 	private pathCache = new Map<string, AxialCoord[]>()
 
@@ -66,7 +68,7 @@ export class Hive {
 	 */
 	private copyFrom(hive: Hive) {
 		if (hive.name) this.name = hive.name
-		this.needs = hive.needs
+		for (const [goodType, queue] of hive.queues) this.queues.set(goodType, queue)
 	}
 	/**
 	 * This hive is defined as a part of another hive who had just been divided by an alveolus removal
@@ -74,11 +76,17 @@ export class Hive {
 	 */
 	private partOf(hive: Hive) {
 		if (hive.name) this.name = `${hive.name} - ${Math.random().toString(36).substring(2, 5)}`
-		this.needs = {}
-		for (const [goodType, alveoli] of Object.entries(hive.needs)) {
-			const mySet = new Set<Alveolus>()
-			for (const alveolus of alveoli) if (alveolus.hive === this) mySet.add(alveolus)
-			if (mySet.size > 0) this.needs[goodType as GoodType] = mySet
+		const filteredQueue = (which: 'demanders' | 'providers', queue: HiveQueue) => {
+			if (which in queue) {
+				const mySet = new Set<Alveolus>()
+				// @ts-expect-error `which` is guaranteed to be in queue
+				for (const alveolus of queue[which]) if (alveolus.hive === this) mySet.add(alveolus)
+				if (mySet.size > 0) return { [which]: mySet } as HiveQueue
+			}
+		}
+		for (const [goodType, queue] of hive.queues) {
+			const q = filteredQueue('demanders', queue) || filteredQueue('providers', queue)
+			if (q) this.queues.set(goodType, q)
 		}
 	}
 	/**
@@ -168,8 +176,8 @@ export class Hive {
 	}
 	//#endregion
 
-	getNeighborsForGood(ref: AxialRef, _goodType: GoodType) {
-		const coord = axial.access(ref)
+	getNeighborsForGood(ref: Positioned, _goodType: GoodType) {
+		const coord = toAxialCoord(ref)
 		if (isTileCoord(coord)) {
 			const content = this.board.getTileContent(ref) as Alveolus
 			return content.gates.map((g) => g.border.position)
@@ -182,10 +190,16 @@ export class Hive {
 		return [...notMeGates(border.tile.a), ...notMeGates(border.tile.b)]
 	}
 	//#region Needy / events
-	needs: Partial<Record<GoodType, Set<Alveolus>>> = {}
+	get needs() {
+		const needsSet = new Set<GoodType>()
+		for (const [good, queue] of this.queues) {
+			if ('demanders' in queue) needsSet.add(good)
+		}
+		return needsSet
+	}
 	movingGoods = reactive(new AxialKeyMap<MovingGood[]>())
-	storageAt(coord: AxialRef): Storage<any> | undefined {
-		if (isTileCoord(axial.access(coord))) {
+	storageAt(coord: Positioned): Storage<any> | undefined {
+		if (isTileCoord(toAxialCoord(coord))) {
 			const content = this.board.getTileContent(coord) as Alveolus
 			return content.storage
 		}
@@ -211,8 +225,8 @@ export class Hive {
 			goodType,
 			...positions,
 		}
-		const providerToken = provider.storage.reserve(goodType, 1, reason)
-		const demanderToken = demander.storage.allocate(goodType, 1, reason)
+		const providerToken = provider.storage.reserve({ [goodType]: 1 }, reason)
+		const demanderToken = demander.storage.allocate({ [goodType]: 1 }, reason)
 		let from = positions.provider
 		let list = this.movingGoods.get(from) ?? []
 		function removeFromList(good: MovingGood) {
@@ -286,8 +300,6 @@ export class Hive {
 
 	demand(goodType: GoodType, demander: Alveolus) {
 		const q = this.getQueue(goodType)
-		this.needs[goodType] ??= new Set()
-		this.needs[goodType]!.add(demander)
 		if (!q) {
 			// Try to satisfy immediately from nearest storage with stock
 			const storages = new Set<Alveolus>()
@@ -359,6 +371,10 @@ export class Hive {
 				}
 			}
 		}
+	}
+
+	pokeAll() {
+		for (const alveolus of this.alveoli) this.pokeAlveolus(alveolus)
 	}
 	//#endregion
 }

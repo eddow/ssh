@@ -1,5 +1,5 @@
-function dropStored(good, qty, place, path = null, punctual = true)
-	drop = inventory.planDrop(good, qty, place)
+function dropStored(goods, place, path = null, punctual = true)
+	drop = inventory.planDropStored(goods, place)
 	plan drop
 		if not path then path = find.path(tile, place, punctual)
 		if tile != place then do
@@ -10,11 +10,12 @@ function dropStored(good, qty, place, path = null, punctual = true)
 		if not punctual then walk.enter
 		inventory.effectuate drop
 	end plan
+	pokeAlveolus
 end function
 
-function grabStored(good, qty, place, path = null, punctual = true)
+function grabStored(goods, place, path = null, punctual = true)
 	if not path then path = find.path(tile, place, punctual)
-	grab = inventory.planGrabStored(good, qty, place)
+	grab = inventory.planGrabStored(goods, place)
 	plan grab
 		if tile != place then do
 			walk.into path
@@ -24,6 +25,7 @@ function grabStored(good, qty, place, path = null, punctual = true)
 		if not punctual then walk.enter
 		inventory.effectuate grab
 	end plan
+	pokeAlveolus
 end function
 
 function grabFree(good, place, path = null, punctual = true)
@@ -41,9 +43,9 @@ function grabFree(good, place, path = null, punctual = true)
 	end plan
 end function
 
-function dropAll()
+function dropAllFree()
 	do
-		good = aCarriedGood
+		good = keys(I.vehicle.stock)[0]
 	while good
 		// Move around the tile for preparationTime before dropping
 		walk.moveTo find.randomPositionInTile()
@@ -53,7 +55,7 @@ end function
 
 function makeRoom()
 	do while not haveRoom()
-		good = aCarriedGood
+		good = keys(I.vehicle.stock)[0]
 		if not good then error "Try to make room but has no good to drop"
 		// Move around the tile for preparationTime before dropping
 		walk.moveTo find.randomPositionInTile()
@@ -61,6 +63,6 @@ function makeRoom()
 	loop
 end function
 
-return { dropAll, makeRoom, dropStored, grabStored, grabFree }
+return { dropAllFree, makeRoom, dropStored, grabStored, grabFree }
 
 

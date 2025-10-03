@@ -6,7 +6,7 @@ import { goods as goodsCatalog } from '$assets/game-content'
 import type { GoodType } from '$lib/arktype'
 import { assert } from '$lib/debug'
 import { mrg } from '$lib/globals.svelte'
-import { type AxialCoord, type AxialRef, axial, maxBy } from '$lib/utils'
+import { type AxialCoord, axial, maxBy, type Positioned } from '$lib/utils'
 import { axialDistance, type Position, toAxialCoord, toWorldCoord } from '../../utils/position'
 import { Alveolus } from '../board/content/alveolus'
 import type { Tile } from '../board/tile'
@@ -84,7 +84,7 @@ export class Character extends withInteractive(
 		const start = toAxialCoord(this.position)
 
 		// Score function: evaluates how good a job is at a given coordinate
-		const scoreJob = (coord: AxialRef): number | false => {
+		const scoreJob = (coord: Positioned): number | false => {
 			const content = this.game.hex.getTile(coord)?.content
 			if (!(content instanceof Alveolus)) return false
 			const job = content.getJob()
@@ -108,14 +108,16 @@ export class Character extends withInteractive(
 		const jobProvider = targetTile.content as Alveolus
 		const job = jobProvider.getJob() as Job
 		this.log('character.beginJob', job.type)
-		// TODO: convey -> `.assignedConveyor` ?
-		jobProvider.assignedWorker = this
-		this.assignedAlveolus = jobProvider
-		return this.scriptsContext.work.goWork(jobProvider, job.type, path).final(() => {
-			this.log('character.finishedJob', job.type)
-			jobProvider.assignedWorker = undefined
-			this.assignedAlveolus = undefined
-		})
+
+		// Create and return the work plan - the plan lifecycle will handle state management
+		return this.scriptsContext.work.goWork(
+			{
+				type: 'work',
+				jobType: job.type,
+				alveolus: jobProvider,
+			},
+			path,
+		)
 	}
 
 	get keepWorking(): boolean {
@@ -189,9 +191,9 @@ export class Character extends withInteractive(
 		if (this.hunger > this.triggerLevels.hunger.high) return this.scriptsContext.selfCare.goEat()
 
 		if (Object.values(this.vehicle.stock).some((qty) => qty > 0))
-			return this.scriptsContext.inventory.dropAll()
+			return this.scriptsContext.inventory.dropAllFree()
 		const tryAnActivity =
-			// TODO: make sure to dropAll before findBestJob - or indeed to find where to drop
+			// TODO: make sure to dropAllFree before findBestJob - or indeed to find where to drop
 			this.fatigue < this.triggerLevels.fatigue.high ? this.findBestJob() : undefined // goRest
 		// Default to wandering when no specific action is needed
 		return tryAnActivity || this.scriptsContext.selfCare.wander()

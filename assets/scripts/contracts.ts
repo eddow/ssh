@@ -1,29 +1,29 @@
-import { type ContractType, GoodType } from '$lib/arktype'
-import { AlveolusArkType } from '$lib/game/board/content/alveolus'
+import { type ContractType, Goods, GoodType } from '$lib/arktype'
 import { TileArkType } from '$lib/game/board/tile'
-import { Position } from '$lib/utils/position'
+import { Position, Positioned } from '$lib/utils/position'
 export const CharacterContract = {
 	walk: {
 		into: [Position.array()],
 		until: [Position.array()],
 	},
 	inventory: {
-		dropAll: [],
+		dropAllFree: [],
 		makeRoom: [],
-		dropStored: [GoodType, 'number', TileArkType, Position.array().optional(), 'boolean?'],
-		grabStored: [GoodType, 'number', TileArkType, Position.array().optional(), 'boolean?'],
-		grabFree: [GoodType, TileArkType, Position.array().optional(), 'boolean?'],
+		dropStored: [Goods, TileArkType, Position.array().optional(), 'boolean?'],
+		grabStored: [Goods, TileArkType, Position.array().optional(), 'boolean?'],
+		grabFree: [GoodType, Positioned, Position.array().optional(), 'boolean?'],
 	},
 	selfCare: {
 		goEat: [],
 		wander: [],
 	},
 	work: {
-		goWork: [AlveolusArkType, 'string', Position.array()],
-		harvest: [AlveolusArkType],
-		convey: [AlveolusArkType],
-		gather: [AlveolusArkType],
-		transform: [AlveolusArkType],
+		// It's well known, it's a jobPlan
+		goWork: ['unknown', Position.array()],
+		harvest: ['unknown'],
+		convey: ['unknown'],
+		gather: ['unknown'],
+		transform: ['unknown'],
 	},
 } as const
 

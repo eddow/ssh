@@ -1,7 +1,6 @@
 import { computed, reactive, unreactive } from 'mutts/src'
-import type { GoodType } from '$lib/arktype'
+import type { Goods, GoodType } from '$lib/arktype'
 import { assert } from '$lib/debug'
-import type { Goods } from '.'
 import type { RenderedGoodSlot, RenderedGoodSlots } from './goods-renderer'
 import {
 	AllocationError,
@@ -108,6 +107,10 @@ export class SlottedStorage extends Storage<SlottedAllocation> {
 		return totalCapacity
 	}
 
+	get isEmpty(): boolean {
+		return this.slots.every((slot) => slot === undefined || slot.quantity === 0)
+	}
+
 	addGood(goodType: GoodType, qty: number): number {
 		let remaining = qty
 
@@ -177,54 +180,74 @@ export class SlottedStorage extends Storage<SlottedAllocation> {
 		return total
 	}
 
-	allocate(goodType: GoodType, qty: number, reason: any): SlottedAllocation {
-		assert(qty > 0, 'Cannot allocate non-positive quantity')
+	allocate(goods: Goods, reason: any): SlottedAllocation {
 		const alloc: number[] = Array(this.slots.length).fill(0)
-		let remaining = Math.min(qty, this.hasRoom(goodType))
-		if (remaining <= 0)
-			throw new AllocationError(`Insufficient room to allocate ${qty} of ${goodType}`, reason)
+		let hasAnyAllocation = false
 
-		// Allocate in existing slots first
-		for (let i = 0; i < this.slots.length && remaining > 0; i++) {
-			const slot = this.slots[i]
-			if (!slot || slot.goodType !== goodType) continue
-			const free = this.maxQuantityPerSlot - slot.quantity - slot.allocated
-			if (free <= 0) continue
-			const take = Math.min(remaining, free)
-			slot.allocated += take
-			alloc[i] += take
-			remaining -= take
+		for (const [goodType, qty] of Object.entries(goods) as [GoodType, number][]) {
+			assert(qty, 'qty must be set')
+
+			let remaining = Math.min(qty, this.hasRoom(goodType))
+			if (remaining <= 0) continue
+
+			// Allocate in existing slots first
+			for (let i = 0; i < this.slots.length && remaining > 0; i++) {
+				const slot = this.slots[i]
+				if (!slot || slot.goodType !== goodType) continue
+				const free = this.maxQuantityPerSlot - slot.quantity - slot.allocated
+				if (free <= 0) continue
+				const take = Math.min(remaining, free)
+				slot.allocated += take
+				alloc[i] += take
+				remaining -= take
+			}
+
+			// Allocate in empty slots
+			for (let i = 0; i < this.slots.length && remaining > 0; i++) {
+				if (this.slots[i] !== undefined) continue
+				const take = Math.min(remaining, this.maxQuantityPerSlot)
+				this.slots[i] = { goodType, quantity: 0, allocated: take, reserved: 0 }
+				alloc[i] += take
+				remaining -= take
+			}
+
+			if (qty - remaining > 0) hasAnyAllocation = true
 		}
 
-		// Allocate in empty slots
-		for (let i = 0; i < this.slots.length && remaining > 0; i++) {
-			if (this.slots[i] !== undefined) continue
-			const take = Math.min(remaining, this.maxQuantityPerSlot)
-			this.slots[i] = { goodType, quantity: 0, allocated: take, reserved: 0 }
-			alloc[i] += take
-			remaining -= take
+		if (!hasAnyAllocation) {
+			throw new AllocationError(`Insufficient room to allocate any goods`, reason)
 		}
 
 		return new SlottedAllocation(this, alloc, reason)
 	}
 
-	reserve(goodType: GoodType, qty: number, reason: any): SlottedAllocation {
-		assert(qty > 0, 'Cannot reserve non-positive quantity')
+	reserve(goods: Goods, reason: any): SlottedAllocation {
 		const alloc: number[] = Array(this.slots.length).fill(0)
-		let remaining = Math.min(qty, this.available(goodType))
-		if (remaining <= 0)
-			throw new AllocationError(`Insufficient goods to reserve ${qty} of ${goodType}`, reason)
+		let hasAnyReservation = false
 
-		// Reserve goods that are present but not yet reserved
-		for (let i = 0; i < this.slots.length && remaining > 0; i++) {
-			const slot = this.slots[i]
-			if (!slot || slot.goodType !== goodType) continue
-			const freeReservable = Math.max(0, slot.quantity - slot.reserved)
-			if (freeReservable <= 0) continue
-			const take = Math.min(remaining, freeReservable)
-			slot.reserved += take
-			alloc[i] -= take // negative marks reservation
-			remaining -= take
+		for (const [goodType, qty] of Object.entries(goods) as [GoodType, number][]) {
+			assert(qty, 'qty must be set')
+
+			let remaining = Math.min(qty, this.available(goodType))
+			if (remaining <= 0) continue
+
+			// Reserve goods that are present but not yet reserved
+			for (let i = 0; i < this.slots.length && remaining > 0; i++) {
+				const slot = this.slots[i]
+				if (!slot || slot.goodType !== goodType) continue
+				const freeReservable = Math.max(0, slot.quantity - slot.reserved)
+				if (freeReservable <= 0) continue
+				const take = Math.min(remaining, freeReservable)
+				slot.reserved += take
+				alloc[i] -= take // negative marks reservation
+				remaining -= take
+			}
+
+			if (qty - remaining > 0) hasAnyReservation = true
+		}
+
+		if (!hasAnyReservation) {
+			throw new AllocationError(`Insufficient goods to reserve any goods`, reason)
 		}
 
 		return new SlottedAllocation(this, alloc, reason)

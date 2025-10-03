@@ -1,4 +1,4 @@
-import { contract, type GoodType } from '$lib/arktype'
+import { contract, type Goods, type GoodType } from '$lib/arktype'
 import { assert } from '$lib/debug'
 import type { Character } from '$lib/game/population/character'
 import type { AllocationBase } from '$lib/game/storage'
@@ -51,9 +51,7 @@ class WorkFunctions {
 		const nextStorage = hive.storageAt(hop)
 		const hopAlloc =
 			mg.path.length && nextStorage
-				? 'storage' in nextStorage
-					? nextStorage.allocate(mg.goodType, 1, { type: 'convey.hop', movement: mg })
-					: nextStorage.allocate(mg.goodType, 1, { type: 'convey.hop', movement: mg })
+				? nextStorage.allocate({ [mg.goodType]: 1 }, { type: 'convey.hop', movement: mg })
 				: undefined
 		const moving = character.game.hex.freeGoods.add(alveolus.tile, mg.goodType, mg.from)
 		const time = character.vehicle.transferTime * axial.distance(mg.from, hop)
@@ -71,16 +69,13 @@ class WorkFunctions {
 					mg.allocations.target.fulfill()
 				} else {
 					hopAlloc!.fulfill()
-					mg.allocations.source =
-						'storage' in nextStorage!
-							? nextStorage!.reserve(mg.goodType, 1, {
-									type: 'convey.path',
-									movement: mg,
-								})
-							: nextStorage!.reserve(mg.goodType, 1, {
-									type: 'convey.path',
-									movement: mg,
-								})
+					mg.allocations.source = nextStorage!.reserve(
+						{ [mg.goodType]: 1 },
+						{
+							type: 'convey.path',
+							movement: mg,
+						},
+					)
 				}
 			})
 	}
@@ -125,20 +120,19 @@ class WorkFunctions {
 		assert(alveolus.action.type === 'transform', 'assignedAlveolus.action must be a transform')
 		const action = alveolus.action
 		const allocations: AllocationBase[] = []
-		for (const [goodType, qty] of Object.entries(action.inputs)) {
-			const allocation = alveolus.storage.reserve(goodType as GoodType, qty, {
-				type: 'transform.input',
-				alveolus,
-			})
-			allocations.push(allocation)
-		}
-		for (const [goodType, qty] of Object.entries(action.output)) {
-			const allocation = alveolus.storage.allocate(goodType as GoodType, qty, {
-				type: 'transform.output',
-				alveolus,
-			})
-			allocations.push(allocation)
-		}
+		const inputAllocation = alveolus.storage.reserve(action.inputs as Goods, {
+			type: 'transform.input',
+			alveolus,
+			inputs: action.inputs,
+		})
+		allocations.push(inputAllocation)
+
+		const outputAllocation = alveolus.storage.allocate(action.output as Goods, {
+			type: 'transform.output',
+			alveolus,
+			output: action.output,
+		})
+		allocations.push(outputAllocation)
 		return new DurationStep(alveolus.workTime, 'work', `transform.${alveolus.name}`)
 			.finished(() => {
 				for (const allocation of allocations) allocation.fulfill()

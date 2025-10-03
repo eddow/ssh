@@ -1,8 +1,9 @@
 import { maxWalkTime } from '$assets/constants'
 import { goods as goodsCatalog } from '$assets/game-content'
-import { contract, GoodType } from '$lib/arktype'
+import { contract, type GoodType } from '$lib/arktype'
+import { type GatherAlveolus, GatherAlveolusArkType } from '$lib/game/hive/gather'
 import type { Character } from '$lib/game/population/character'
-import { type AxialCoord, type AxialRef, axial } from '$lib/utils'
+import { type AxialCoord, axial } from '$lib/utils'
 import { Positioned, toAxialCoord } from '../../../utils/position'
 import { UnBuiltLand } from '../../board/content/unbuilt-land'
 import type { Tile } from '../../board/tile'
@@ -23,7 +24,7 @@ class FindFunctions {
 	@contract()
 	food() {
 		const { hex } = this[subject].game
-		function bestFoodOnTile(coord: AxialRef): GoodType | null {
+		function bestFoodOnTile(coord: Positioned): GoodType | null {
 			const tile = hex.getTile(coord)
 			if (!tile) return null
 
@@ -40,7 +41,7 @@ class FindFunctions {
 			}
 
 			// Check free goods on the ground (new behavior)
-			const freeGoods = hex.freeGoods.getGoodsAt(axial.access(coord))
+			const freeGoods = hex.freeGoods.getGoodsAt(toAxialCoord(coord))
 			for (const freeGood of freeGoods) {
 				// Skip allocated or removed goods
 				if (freeGood.allocated || freeGood.removed) continue
@@ -82,28 +83,6 @@ class FindFunctions {
 		)
 		if (!path || path.length === 0) return false as const
 		return path
-	}
-	@contract(GoodType)
-	freeSpot(goodType: GoodType) {
-		const { hex } = this[subject].game
-		const start = toAxialCoord(this[subject].tile.position)
-		let qty = 0
-		const path = hex.findNearestForCharacter(
-			start,
-			this[subject],
-			(coord) => {
-				const tile = hex.getTile(coord)
-				if (!tile) return false
-				qty = tile.content!.storage?.hasRoom(goodType) || 0
-				return qty > 0
-			},
-			maxWalkTime,
-			true,
-		)
-		if (!path || path.length === 0) return false as const
-		const targetCoord = path[path.length - 1]
-		const targetTile = hex.getTile(targetCoord)!
-		return { tile: targetTile, path, qty }
 	}
 
 	@contract()
@@ -163,6 +142,20 @@ class FindFunctions {
 				true,
 			),
 		}
+	}
+	@contract(GatherAlveolusArkType, 'number')
+	gatherables(gatherer: GatherAlveolus, maxRadius: number) {
+		// TODO: Count all the reachable goods, and take the more representative first ? (the goods there is the most around the gatherer)
+		const goods = Array.from(gatherer.hive.needs).filter(
+			(good) => !!this[subject].vehicle.hasRoom(good),
+		)
+		const {
+			hex: { freeGoods },
+		} = this[subject].game
+		const start = toAxialCoord(this[subject].tile.position)
+		const path = freeGoods.findNearestGoods(start, toAxialCoord(gatherer.tile), goods, maxRadius)
+		if (!path) return false as const
+		return path
 	}
 }
 

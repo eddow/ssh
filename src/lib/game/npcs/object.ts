@@ -79,10 +79,17 @@ export function withScripted<T extends new (...args: any[]) => TickedGameObject>
 		}
 		abandonAnd(exec: ScriptExecution) {
 			if (this.stepExecutor) this.stepExecutor.cancel()
-			for (const script of this.runningScripts) script.cancel()
+			for (const script of this.runningScripts) script.cancel(this.scriptsContext)
 			this.runningScripts.splice(0, this.runningScripts.length)
 			this.stepExecutor = undefined
 			this.begin(exec)
+		}
+
+		cancelPlan(plan: any) {
+			while (true) {
+				const cancelling = this.runningScripts.shift()
+				cancelling?.cancel(this.scriptsContext, plan)
+			}
 		}
 	}
 	return ScriptedMixin

@@ -10,7 +10,7 @@ end function
 
 function into(path)
 	target = path[path.length-1]
-	walk.until path
+	until path	// not `walk.until` to avoid going through JS & adding an action
 	if tile == tileAt(target) then
 		walk.moveTo target
 	end if

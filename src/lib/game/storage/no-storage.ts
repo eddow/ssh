@@ -1,6 +1,5 @@
 import { computed } from 'mutts/src'
-import type { GoodType } from '$lib/arktype'
-import type { Goods } from '.'
+import type { Goods, GoodType } from '$lib/arktype'
 import type { RenderedGoodSlots } from './goods-renderer'
 import { AllocationError } from './guard'
 import { Storage } from './storage'
@@ -31,18 +30,12 @@ export class NoStorage extends Storage<any> {
 		return 0
 	}
 
-	allocate(_goodType: GoodType, qty: number, reason: any): never {
-		throw new AllocationError(
-			`Cannot allocate ${qty} of ${_goodType} - no storage available`,
-			reason,
-		)
+	allocate(_goods: Goods, reason: any): never {
+		throw new AllocationError(`Cannot allocate goods - no storage available`, reason)
 	}
 
-	reserve(_goodType: GoodType, qty: number, reason: any): never {
-		throw new AllocationError(
-			`Cannot reserve ${qty} of ${_goodType} - no storage available`,
-			reason,
-		)
+	reserve(_goods: Goods, reason: any): never {
+		throw new AllocationError(`Cannot reserve goods - no storage available`, reason)
 	}
 
 	renderedGoods(): RenderedGoodSlots {
@@ -56,6 +49,10 @@ export class NoStorage extends Storage<any> {
 	}
 	canStoreAll(_goods: Goods): boolean {
 		return false
+	}
+
+	get isEmpty(): boolean {
+		return true
 	}
 }
 

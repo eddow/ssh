@@ -3,8 +3,7 @@ import { outputBufferSize } from '$assets/constants'
 import type { GoodType } from '$lib/arktype'
 import type { Job } from '$lib/game/job'
 import { SpecificStorage } from '$lib/game/storage'
-import type { AxialRef } from '$lib/utils'
-import { axialDistance, toAxialCoord } from '../../utils/position'
+import { axialDistance, type Positioned, toAxialCoord } from '../../utils/position'
 import { UnBuiltLand } from '../board'
 import { Alveolus, multiplyGoodsQty } from '../board/content/alveolus'
 import type { Tile } from '../board/tile'
@@ -34,7 +33,7 @@ export class HarvestAlveolus extends Alveolus {
 	@computed
 	get alveoliNeedingGood() {
 		return Object.keys(this.action.output).reduce(
-			(acc, goodType) => acc + (this.hive.needs[goodType as GoodType]?.size || 0),
+			(acc, goodType) => acc + (this.hive.needs.has(goodType as GoodType) ? 1 : 0),
 			0,
 		)
 	}
@@ -49,7 +48,7 @@ export class HarvestAlveolus extends Alveolus {
 	alveolusSpecificJob(): Job | undefined {
 		const nearestDeposit = this.tile.game.hex.findNearest(
 			toAxialCoord(this.tile.position),
-			(coord: AxialRef) => {
+			(coord: Positioned) => {
 				const tile = this.tile.game.hex.getTile(coord)
 				return (
 					tile?.content instanceof UnBuiltLand && tile.content.deposit?.name === this.action.deposit

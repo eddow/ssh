@@ -4,7 +4,7 @@ import { ColorMatrixFilter, Container, Graphics, Point, TilingSprite } from 'pix
 
 import type { AlveolusType } from '$lib/arktype'
 import { mrg } from '$lib/globals.svelte'
-import { type AxialCoord, type AxialRef, axial, type NeighborInfo, tileSize } from '$lib/utils'
+import { type AxialCoord, axial, type NeighborInfo, tileSize } from '$lib/utils'
 import {
 	axialDistance,
 	type Position,
@@ -164,11 +164,11 @@ export class Tile extends withInteractive(withGenerator(GameObject)) {
 		const coord = toAxialCoord(this.position)
 		const neighbors = axial.neighbors(coord)
 		return neighbors
-			.map((neighbor: AxialRef) => {
+			.map((neighbor: Positioned) => {
 				const tile = this.board.getTile(neighbor)
 				return tile
 					? {
-							coord: axial.coord(neighbor),
+							coord: toAxialCoord(neighbor),
 							walkTime: tile.content!.walkTime,
 						}
 					: null

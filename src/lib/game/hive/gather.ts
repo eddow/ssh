@@ -1,9 +1,10 @@
+import { type } from 'arktype'
 import { computed } from 'mutts/src'
-import type { GoodType } from '$lib/arktype'
 import type { Job } from '$lib/game/job'
-import { noStorage } from '$lib/game/storage'
+import { toAxialCoord } from '$lib/utils/position'
 import { Alveolus } from '../board/content/alveolus'
 import type { Tile } from '../board/tile'
+import { SlottedStorage } from '../storage'
 
 export class GatherAlveolus extends Alveolus {
 	declare action: Ssh.GatherAction
@@ -12,33 +13,31 @@ export class GatherAlveolus extends Alveolus {
 		if (def.action.type !== 'gather') {
 			throw new Error('GatherAlveolus can only be created from a gather action')
 		}
-		super(tile, noStorage)
+		super(tile, new SlottedStorage(6, 6))
 	}
 
 	@computed
 	get hasFreeGoodsToGather(): boolean {
 		// Check if there are any free goods in the world that the hive needs
-		const hiveNeeds = this.hive.needs
-		for (const goodType in hiveNeeds) {
-			if (hiveNeeds[goodType as GoodType]?.size) {
-				// Check if there are any free goods of this type available
-				const allFreeGoods = Array.from(this.tile.game.hex.freeGoods.goods.entries())
-				for (const [, goodsList] of allFreeGoods) {
-					if (goodsList.some((g) => g.goodType === goodType && !g.allocated && !g.removed)) {
-						return true
-					}
-				}
-			}
-		}
-		return false
+		const hiveNeeds = Array.from(this.hive.needs)
+		if (hiveNeeds.length === 0) return false
+
+		// Use FreeGoods.findNearestGoods to check if there are any free goods available within radius
+		const nearestGoods = this.tile.game.hex.freeGoods.findNearestGoods(
+			toAxialCoord(this.tile.position),
+			toAxialCoord(this.tile.position), // Center is the same as start for gather
+			hiveNeeds,
+			this.action.radius,
+		)
+		return nearestGoods !== undefined
 	}
 
 	get keepWorking(): boolean {
-		return this.hasFreeGoodsToGather
+		return this.hasFreeGoodsToGather && this.storage.isEmpty
 	}
 
 	alveolusSpecificJob(): Job | undefined {
-		if (this.hasFreeGoodsToGather) {
+		if (this.hasFreeGoodsToGather && this.storage.isEmpty) {
 			return {
 				type: 'gather',
 				fatigue: this.getFatigueCost(),
@@ -47,3 +46,5 @@ export class GatherAlveolus extends Alveolus {
 		}
 	}
 }
+
+export const GatherAlveolusArkType = type.instanceOf(GatherAlveolus)

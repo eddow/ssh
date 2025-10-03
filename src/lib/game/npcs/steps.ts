@@ -1,4 +1,4 @@
-import { effect } from 'mutts/src'
+import { effect, unreactive } from 'mutts/src'
 import { activityDurations, ponderingFatigueRecovery } from '$assets/constants'
 import { goods as goodsCatalog } from '$assets/game-content'
 import type { GoodType } from '$lib/arktype'
@@ -7,11 +7,34 @@ import { casing } from '$lib/utils'
 import type { Position, Positioned } from '../../utils/position'
 import type { Character } from '../population'
 import type { ScriptedObject } from './object'
-import { Finalized } from './scripts'
 import { lerp } from './utils'
 
 //#region Abstracts
 
+@unreactive
+export class Finalized {
+	#finished: (() => void)[] = []
+	#canceled: (() => void)[] = []
+	#final: (() => void)[] = []
+	final(final: () => void) {
+		this.#final.push(final)
+		return this
+	}
+	canceled(canceled: () => void) {
+		this.#canceled.push(canceled)
+		return this
+	}
+	finished(finished: () => void) {
+		this.#finished.push(finished)
+		return this
+	}
+	cancel() {
+		for (const callback of [...this.#canceled, ...this.#final]) callback()
+	}
+	finish() {
+		for (const callback of [...this.#finished, ...this.#final]) callback()
+	}
+}
 export abstract class ASingleStep extends Finalized {
 	get description(): string | false {
 		return casing(this.constructor.name).transform((terms) => {

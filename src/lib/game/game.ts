@@ -283,13 +283,14 @@ export class Game extends Eventful<GameEvents> {
 
 	private applyHivesPatches(hives: NonNullable<GamePatches['hives']>) {
 		for (const hive of hives) {
+			let hiveInstance: Hive | undefined
 			for (const a of hive.alveoli) {
 				const tile = this.hex.getTile(a.coord)
 				if (!tile) continue
 				const AlveolusCtor = alveolusClass[a.alveolus as keyof typeof alveolusClass]
 				if (!AlveolusCtor) continue
 				const alv = new AlveolusCtor(tile)
-				assert(alv.hive, 'Alveolus building on load')
+				hiveInstance = alv.hive
 				alv.hive.name = hive.name
 				if (a.goods)
 					for (const [good, qty] of Object.entries(a.goods))
@@ -297,6 +298,8 @@ export class Game extends Eventful<GameEvents> {
 				tile.content = alv
 				tile.asGenerated = false
 			}
+			assert(hiveInstance, 'Alveolus building on load')
+			hiveInstance.pokeAll()
 		}
 	}
 

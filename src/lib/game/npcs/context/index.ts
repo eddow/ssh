@@ -7,34 +7,21 @@ import { InteractiveContext, loadNpcScripts, protoCtx, subject } from '../script
 
 // Import all the function classes
 import { FindFunctions } from './find'
-import { InventoryFunctions, type TransferPlan } from './inventory'
+import { InventoryFunctions } from './inventory'
 import { PlanFunctions } from './plan'
 import { SelfCareFunctions } from './selfCare'
 import { WalkFunctions } from './walk'
 import { WorkFunctions } from './work'
 
 // Re-export TransferPlan for external use
-export type { TransferPlan }
+export type { GatherPlan, Plan, TransferPlan, WorkPlan } from './plan'
 
 class CharacterContext extends InteractiveContext<Character> {
 	get I() {
 		return this[subject]
 	}
-	get hunger() {
-		return this[subject].hunger
-	}
-	get triggerLevels() {
-		return this[subject].triggerLevels
-	}
-
-	get carriedFood() {
-		return this[subject].carriedFood
-	}
 	get aCarriedGood() {
 		return this[subject].aCarriedGood
-	}
-	get vehicle() {
-		return this[subject].vehicle
 	}
 	@contract(GoodType.optional())
 	haveRoom(goodType?: GoodType): number {

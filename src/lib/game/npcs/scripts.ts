@@ -23,6 +23,9 @@ import { gameIsaTypes, gameOperators, lerp } from './utils'
 
 type XOrDictX<X> = X | { [k: string]: XOrDictX<X> }
 
+/*unreactive(MiniScriptExecutor)
+unreactive(NpcScript)*/
+
 @unreactive
 export class GlobalContext {
 	@contract('unknown')
@@ -91,6 +94,10 @@ export class GlobalContext {
 		}
 		throw new Error(`Invalid roughly type: ${typeof a}`)
 	}
+	@contract('object')
+	keys(object: object) {
+		return Object.keys(object)
+	}
 }
 
 export const subject = Symbol('subject')
@@ -143,50 +150,19 @@ function isXOrDictX<X>(x: XOrDictX<X>, Class: new (...args: any[]) => X): x is X
 		(x && typeof x === 'object' && Object.values(x).every((v) => isXOrDictX(v, Class)))
 	)
 }
-
 @unreactive
-export class Finalized {
-	#finished: (() => void)[] = []
-	#canceled: (() => void)[] = []
-	#final: (() => void)[] = []
-	final(final: () => void) {
-		this.#final.push(final)
-		return this
-	}
-	canceled(canceled: () => void) {
-		this.#canceled.push(canceled)
-		return this
-	}
-	finished(finished: () => void) {
-		this.#finished.push(finished)
-		return this
-	}
-	cancel() {
-		for (const callback of [...this.#canceled, ...this.#final]) callback()
-	}
-	finish() {
-		for (const callback of [...this.#finished, ...this.#final]) callback()
-	}
-}
-
-// TODO: plan -> no more `Finalized`
-export class ScriptExecution extends Finalized {
+export class ScriptExecution {
 	constructor(
 		public readonly script: GameScript,
 		public readonly name: string,
 		public state?: ExecutionState,
-	) {
-		super()
-	}
+	) {}
 	run(context: ExecutionContext) {
 		if (!this.state) throw new Error('ScriptExecution was finished')
 		const executor = this.script.executor(context, this.state)
 		try {
 			const result = executor.execute()
 			this.state = result.type === 'yield' ? executor.state : undefined
-			if (result.type === 'return') {
-				this.finish()
-			}
 			return result
 		} catch (error) {
 			if (error instanceof ExecutionError) {
@@ -195,6 +171,9 @@ export class ScriptExecution extends Finalized {
 			}
 			throw error
 		}
+	}
+	cancel(context: ExecutionContext, plan?: any) {
+		return this.script.cancel(context, this.state!, plan)
 	}
 }
 

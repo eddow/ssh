@@ -1,54 +1,16 @@
 import { type } from 'arktype'
-import { contract, GoodType } from '$lib/arktype'
+import { contract, Goods, GoodType } from '$lib/arktype'
 import { assert } from '$lib/debug'
 import { type TileBorder, TileBorderArkType } from '$lib/game/board/border/border'
 import { type Tile, TileArkType } from '$lib/game/board/tile'
 import type { Character } from '$lib/game/population/character'
-import type { AllocationBase } from '$lib/game/storage'
-import { toAxialCoord } from '$lib/utils'
+import { Positioned, toAxialCoord } from '$lib/utils'
 import { subject } from '../scripts'
 import { DurationStep } from '../steps'
-
-export interface TransferPlan<T extends AllocationBase = AllocationBase> {
-	readonly description: 'grab' | 'drop'
-	vehicleAllocation?: T // Will be created in begin(), cleared in finalize()
-	allocation?: T // Will be created in begin(), cleared in finalize()
-	readonly amount: number
-	readonly source?: 'freeGoods' | 'storage'
-	// Additional metadata needed for plan creation
-	readonly goodType: GoodType
-	readonly destination?: Tile | TileBorder
-	readonly sourceTile?: Tile | TileBorder
-}
+import type { GatherPlan, TransferPlan } from './plan'
 
 class InventoryFunctions {
 	declare [subject]: Character
-	@contract(GoodType, 'number?')
-	grab(goodType: GoodType, maxAmount: number = 1) {
-		const character = this[subject]
-		const {
-			vehicle,
-			tile: { content },
-		} = character
-		assert(content, 'tile.content must be set')
-		assert(vehicle, 'tile.vehicle must be set')
-
-		const canGrab = vehicle.hasRoom(goodType)
-		const amount = Math.min(canGrab, maxAmount)
-
-		if (amount <= 0) throw new Error('No goods to grab')
-		const vehicleTransfer = vehicle.allocate(goodType, amount, `grab.${goodType}`)
-		const tileTransfer = content.storage?.reserve(goodType, amount, `grab.${goodType}`)
-		return new DurationStep(amount * vehicle.transferTime, 'convey', `grab.${goodType}`)
-			.finished(() => {
-				vehicleTransfer.fulfill()
-				tileTransfer.fulfill()
-			})
-			.canceled(() => {
-				vehicleTransfer.cancel()
-				tileTransfer.cancel()
-			})
-	}
 
 	@contract(GoodType, 'number?')
 	dropAsFreeGood(goodType: GoodType, maxAmount: number = 1) {
@@ -59,7 +21,7 @@ class InventoryFunctions {
 		const available = vehicle.available(goodType) ?? 0
 		let amount = Math.min(available, maxAmount)
 		if (amount <= 0) throw new Error('No goods to drop')
-		const vehicleTransfer = vehicle.reserve(goodType, amount, `drop.${goodType}`)
+		const vehicleTransfer = vehicle.reserve({ [goodType]: amount }, `drop.${goodType}`)
 		return new DurationStep(amount * vehicle.transferTime, 'convey', `drop.${goodType}`)
 			.finished(() => {
 				while (amount--)
@@ -70,30 +32,44 @@ class InventoryFunctions {
 				vehicleTransfer.cancel()
 			})
 	}
-	@contract(GoodType, 'number', type.or(TileArkType, TileBorderArkType))
-	planDrop(goodType: GoodType, quantity: number, destination: Tile | TileBorder) {
+	@contract(Goods, type.or(TileArkType, TileBorderArkType))
+	planDropStored(goods: Goods, destination: Tile | TileBorder): TransferPlan {
 		const character = this[subject]
 		const content = destination.content
 		const vehicle = character.vehicle
 		assert(vehicle, 'tile.vehicle must be set')
 		assert(content, 'destination.content must be set')
-		assert('storage' in content, 'planDrop only works with TileContent that has storage')
+		assert('storage' in content, 'planDropStored only works with TileContent that has storage')
 
-		const available = vehicle.available(goodType) ?? 0
-		const canStore = content.storage?.hasRoom(goodType) || 0
-		const amount = Math.min(available, canStore, quantity)
-		if (amount <= 0) throw new Error('No goods to drop')
+		// Calculate actual amounts for each good type
+		const actualGoods: Goods = {}
+		let totalAmount = 0
+
+		for (const [goodType, requestedQuantity] of Object.entries(goods) as [GoodType, number][]) {
+			if (!requestedQuantity || requestedQuantity <= 0) continue
+
+			const available = vehicle.available(goodType) ?? 0
+			const canStore = content.storage?.hasRoom(goodType) || 0
+			const amount = Math.min(available, canStore, requestedQuantity)
+
+			if (amount > 0) {
+				actualGoods[goodType] = amount
+				totalAmount += amount
+			}
+		}
+
+		if (totalAmount <= 0) throw new Error('No goods to drop')
 
 		// Return plan without allocations - they will be created in plan.begin()
 		return {
+			type: 'transfer' as const,
 			description: 'drop' as const,
-			amount,
-			goodType,
-			destination,
+			goods: actualGoods,
+			target: destination,
 		}
 	}
-	@contract(GoodType, 'number', type.or(TileArkType, TileBorderArkType))
-	planGrabStored(goodType: GoodType, quantity: number, source: Tile | TileBorder) {
+	@contract(Goods, type.or(TileArkType, TileBorderArkType))
+	planGrabStored(goods: Goods, source: Tile | TileBorder) {
 		const character = this[subject]
 		const vehicle = character.vehicle
 		assert(vehicle, 'tile.vehicle must be set')
@@ -101,25 +77,38 @@ class InventoryFunctions {
 		assert(content, 'source.content must be set')
 		assert('storage' in content, 'planGrabStored only works with TileContent that has storage')
 
-		const canGrab = vehicle.hasRoom(goodType)
-		if (canGrab <= 0) throw new Error('No room in vehicle to grab goods')
+		// Calculate actual amounts for each good type
+		const actualGoods: Goods = {}
+		let totalAmount = 0
 
-		const available = content.storage?.available(goodType) ?? 0
-		const amount = Math.min(canGrab, available, quantity)
-		if (amount <= 0) throw new Error('No goods to grab from storage')
+		for (const [goodType, requestedQuantity] of Object.entries(goods) as [GoodType, number][]) {
+			if (!requestedQuantity || requestedQuantity <= 0) continue
+
+			const canGrab = vehicle.hasRoom(goodType)
+			if (canGrab <= 0) continue // Skip this good type if no room
+
+			const available = content.storage?.available(goodType) ?? 0
+			const amount = Math.min(canGrab, available, requestedQuantity)
+
+			if (amount > 0) {
+				actualGoods[goodType] = amount
+				totalAmount += amount
+			}
+		}
+
+		if (totalAmount <= 0) throw new Error('No goods to grab from storage')
 
 		// Return plan without allocations - they will be created in plan.begin()
 		return {
+			type: 'transfer' as const,
 			description: 'grab' as const,
-			amount,
-			source: 'storage',
-			goodType,
+			goods: actualGoods,
 			sourceTile: source,
 		}
 	}
 
-	@contract(GoodType, type.or(TileArkType, TileBorderArkType))
-	planGrabFree(goodType: GoodType, source: Tile | TileBorder): TransferPlan {
+	@contract(GoodType, Positioned)
+	planGrabFree(goodType: GoodType, source: Positioned): GatherPlan {
 		const character = this[subject]
 		const vehicle = character.vehicle
 		assert(vehicle, 'tile.vehicle must be set')
@@ -128,7 +117,7 @@ class InventoryFunctions {
 		if (canGrab <= 0) throw new Error('No room in vehicle to grab goods')
 
 		// Check for FreeGoods on the tile - always grab exactly 1
-		const coord = toAxialCoord(source.position)
+		const coord = toAxialCoord(source)
 		const freeGoods = character.game.hex.freeGoods.getGoodsAt(coord)
 		const matchingFreeGoods = freeGoods.filter(
 			(good) => good.goodType === goodType && !good.removed && !good.allocated,
@@ -139,21 +128,17 @@ class InventoryFunctions {
 			throw new Error('No FreeGoods to grab')
 		}
 
-		const amount = 1 // Always grab exactly 1 FreeGood
-
 		// Return plan without allocations - they will be created in plan.begin()
 		return {
-			description: 'grab' as const,
-			amount,
-			source: 'freeGoods',
+			type: 'gather' as const,
 			goodType,
-			sourceTile: source,
+			target: source,
 		}
 	}
 	@contract('object')
-	effectuate(action: TransferPlan) {
+	effectuate(action: TransferPlan | GatherPlan) {
 		const character = this[subject]
-		const { vehicleAllocation, amount, description } = action
+		const { vehicleAllocation } = action
 		const {
 			tile: { content },
 			vehicle,
@@ -162,7 +147,21 @@ class InventoryFunctions {
 		assert(vehicle, 'tile.vehicle must be set')
 		assert(vehicleAllocation, 'vehicleAllocation must be set - plan should be in begin() state')
 
-		return new DurationStep(amount * vehicle.transferTime, 'convey', description)
+		// Calculate total transfer time based on plan type
+		let totalAmount: number
+		let description: string
+
+		if (action.type === 'transfer') {
+			totalAmount = Object.values(action.goods).reduce((sum, qty) => sum + qty, 0)
+			description = action.description
+		} else if (action.type === 'gather') {
+			totalAmount = 1 // Always grab exactly 1 FreeGood
+			description = 'gather'
+		} else {
+			throw new Error('Unknown plan type')
+		}
+
+		return new DurationStep(totalAmount * vehicle.transferTime, 'convey', description)
 	}
 }
 

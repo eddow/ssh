@@ -1,18 +1,23 @@
-function goWork(alveolus, job, path)
-	inventory.dropAll
-	if tile != alveolus.tile then do
-		walk.until path
-	while tile != alveolus.tile
-		path = find.path(alveolus.tile, false)
-		if not path then error "No path found to alveolus"
-	loop
-	walk.enter
-	work.prepare
-	// TODO: work = plan
-	work[job](alveolus)
+function goWork(jobPlan, path)
+	alveolus = jobPlan.alveolus
+	plan jobPlan
+		inventory.dropAllFree
+		if tile != alveolus.tile then do
+			walk.until path
+		while tile != alveolus.tile
+			path = find.path(alveolus.tile, false)
+			if not path then error "No path found to alveolus"
+		loop
+		walk.enter
+		work.prepare
+		// TODO: work = plan
+		// TODO: understand why `work[job](alveolus)` doesn't work/yield
+		work[jobPlan.jobType] jobPlan
+	end plan
 end function
 
-function harvest(alveolus)
+function harvest(jobPlan)
+	alveolus = jobPlan.alveolus
 	do while I.keepWorking and alveolus.keepWorking
 		do while not tile.content.deposit or tile.content.deposit.name != alveolus.action.deposit
 			where = find.deposit(alveolus.action.deposit)
@@ -22,55 +27,42 @@ function harvest(alveolus)
 		walk.enter
 		work.harvestStep
 		if alveolus.gather then
-			drop = inventory.planDrop(aCarriedGood, 1, alveolus.tile)
-			plan drop
-				do while tile != alveolus.tile
-					path = find.path(alveolus.tile, false)
-					walk.until path
-				loop
-				walk.enter
-				// try load in the hive grid
-				inventory.effectuate drop
-			end plan
-			do
-				good = aCarriedGood
-			while good
-				inventory.dropAsFreeGood good
-			loop
-			pokeAlveolus	// We just did add resources in the hive, tell this alveolus to perhaps signal it
+			inventory.dropStored I.vehicle.stock, alveolus.tile
 		else
-			inventory.dropAll
+			inventory.dropAllFree
 		end if
 	loop
 end function
 
-function transform(alveolus)
+function transform(jobPlan)
+	alveolus = jobPlan.alveolus
 	do while I.keepWorking and alveolus.keepWorking
 		work.transformStep
 	loop
 end function
 
-function convey(alveolus)
+function convey(jobPlan)
+	alveolus = jobPlan.alveolus
 	do while I.keepWorking and alveolus.goodMovements.length
 		work.conveyStep
-		//if alveolus.incomingGoods then waitForIncomingGoods
+		if alveolus.incomingGoods then work.waitForIncomingGoods
 	loop
 end function
 
-function gather(alveolus)
+function gather(jobPlan)
+	alveolus = jobPlan.alveolus
 	do while I.keepWorking and alveolus.keepWorking
-		// naive: find best free good the hive needs and bring it home
-		need = find.hiveNeed()
-		if not need then return false
-		found = find.good(need.type)
-		if not found then return false
-		inventory.makeRoom
-		inventory.grabFree need.type, found.tile, found.path, false
+		do
+			gatherable = find.gatherables(alveolus, alveolus.action.radius)
+		while gatherable
+			good = gatherable.goodType
+			path = gatherable.path
+			inventory.grabFree good, path[path.length - 1], path
+		loop
 		// bring back to alveolus tile (hive edge)
 		path = find.path(alveolus.tile, false)
-		if not path then return false
-		inventory.dropStored need.type, need.qty, alveolus.tile, path, false
-		pokeAlveolus
+		if not path then error "No path found to alveolus"
+		inventory.dropStored I.vehicle.stock, alveolus.tile, path, false
 	loop
 end function
 

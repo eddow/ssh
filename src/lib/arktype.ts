@@ -6,10 +6,17 @@ export type TerrainType = keyof typeof terrain
 export type GoodType = keyof typeof goods
 export type DepositType = keyof typeof deposits
 export type AlveolusType = keyof typeof alveoli
+export type Goods = { [k in GoodType]?: number }
+
 export const GoodType = type.enumerated(...(Object.keys(goodsCatalog) as GoodType[]))
 export const TerrainType = type.enumerated(...(Object.keys(terrain) as TerrainType[]))
 export const DepositType = type.enumerated(...(Object.keys(deposits) as DepositType[]))
 export const AlveolusType = type.enumerated(...(Object.keys(alveoli) as AlveolusType[]))
+export const Goods = type.object(
+	Object.fromEntries(Object.keys(goodsCatalog).map((goodType) => [goodType, 'number?'])) as {
+		[k in GoodType]: 'number?'
+	},
+)
 
 // Decorator for validating multiple arguments with individual schemas
 export type ArkDef = Parameters<typeof type>[0]

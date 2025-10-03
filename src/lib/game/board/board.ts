@@ -4,18 +4,17 @@ import { assert } from '$lib/debug'
 import { GameObject, withContainer, withHittable } from '$lib/game/object'
 import {
 	type AxialCoord,
-	type AxialRef,
 	axial,
-	cartesian,
 	findBest,
 	findNearest,
 	findPath,
 	fromCartesian,
 	isInteger,
 	type NeighborInfo,
+	type Positioned,
 	type Scoring,
 	tileSize,
-	type WorldCoord,
+	toAxialCoord,
 } from '$lib/utils'
 import { AxialKeyMap } from '$lib/utils/mem'
 import type { Game } from '../game'
@@ -37,14 +36,6 @@ export class HexBoard extends withContainer(withHittable(GameObject)) {
 	// stopping (or making) a transit, etc.
 	readonly freeGoods: FreeGoods
 
-	axial2world(coord: AxialRef): WorldCoord {
-		return cartesian(coord, tileSize)
-	}
-
-	world2axial(world: WorldCoord): AxialCoord {
-		return fromCartesian(world, tileSize)
-	}
-
 	constructor(
 		public game: Game,
 		public readonly boardSize: number = 12,
@@ -55,7 +46,7 @@ export class HexBoard extends withContainer(withHittable(GameObject)) {
 	}
 
 	hitTest(worldX: number, worldY: number, selectedAction?: string): any {
-		const coord = axial.round(this.world2axial({ x: worldX, y: worldY }))
+		const coord = axial.round(fromCartesian({ x: worldX, y: worldY }, tileSize))
 		if (axial.distance(coord, { q: 0, r: 0 }) > this.boardSize) return false
 		const tile = this.getTile(coord)
 		if (!tile) return false
@@ -72,19 +63,18 @@ export class HexBoard extends withContainer(withHittable(GameObject)) {
 		sprite.scale.y /= scale
 	}
 
-	inBound(coord: AxialRef): boolean {
-		coord = axial.access(coord)
+	inBound(coord: Positioned): boolean {
+		coord = toAxialCoord(coord)
 		return axial.distance(coord) < this.boardSize
 	}
-
-	getTileContent(ref: AxialRef): TileContent | undefined {
-		const coord = axial.access(ref)
+	getTileContent(ref: Positioned): TileContent | undefined {
+		const coord = toAxialCoord(ref)
 		assert(isTileCoord(coord), 'coord must be a tile coordinate')
 		return this.contents.get({ q: coord.q, r: coord.r }) as TileContent | undefined
 	}
 
-	setTileContent(ref: AxialRef, content: TileContent | undefined) {
-		const coord = axial.access(ref)
+	setTileContent(ref: Positioned, content: TileContent | undefined) {
+		const coord = toAxialCoord(ref)
 		assert(isTileCoord(coord), 'coord must be a tile coordinate')
 		if (!content) this.contents.delete({ q: coord.q, r: coord.r })
 		else this.contents.set({ q: coord.q, r: coord.r }, content)
@@ -93,40 +83,40 @@ export class HexBoard extends withContainer(withHittable(GameObject)) {
 		if (tile) tile.asGenerated = false
 	}
 
-	getTile(ref: AxialRef): Tile | undefined {
-		const coord = axial.access(ref)
+	getTile(ref: Positioned): Tile | undefined {
+		const coord = toAxialCoord(ref)
 		if (!(isInteger(coord.q) && isInteger(coord.r)) || !this.inBound(coord)) return undefined
 		const content = this.contents.get({ q: coord.q, r: coord.r }) as TileContent | undefined
 		return content?.tile ?? new Tile(this, coord)
 	}
 
-	getBorderContent(ref: AxialRef): TileBorderContent | undefined {
-		const coord = axial.access(ref)
+	getBorderContent(ref: Positioned): TileBorderContent | undefined {
+		const coord = toAxialCoord(ref)
 		assert(!isTileCoord(coord), 'coord must be a border coordinate')
 		return this.contents.get({ q: coord.q, r: coord.r }) as TileBorderContent | undefined
 	}
-	setBorderContent(ref: AxialRef, content?: TileBorderContent) {
-		const coord = axial.access(ref)
+	setBorderContent(ref: Positioned, content?: TileBorderContent) {
+		const coord = toAxialCoord(ref)
 		if (!content) this.contents.delete({ q: coord.q, r: coord.r })
 		else this.contents.set({ q: coord.q, r: coord.r }, content)
 	}
 
-	getBorder(ref: AxialRef): TileBorder | undefined {
-		const coord = axial.access(ref)
+	getBorder(ref: Positioned): TileBorder | undefined {
+		const coord = toAxialCoord(ref)
 		assert(!isTileCoord(coord), 'coord must be a border coordinate')
 		if (!this.inBound(coord)) return undefined
 		const content = this.contents.get({ q: coord.q, r: coord.r }) as TileBorderContent | undefined
-		return content?.border ?? new TileBorder(this.game, ref)
+		return content?.border ?? new TileBorder(this.game, coord)
 	}
 
 	/** Attempts to move a character onto a coordinate. Returns true if successful. */
 	moveCharacter(
 		character: Character,
-		to: AxialRef,
-		from?: AxialRef,
+		to: Positioned,
+		from?: Positioned,
 	): QueueStep<Character> | undefined {
 		if (from) {
-			const fromCoord = axial.access(from)
+			const fromCoord = toAxialCoord(from)
 			const occupation = this.occupied.get(fromCoord)!
 			const occupant = occupation.shift()
 			assert(occupant === character, 'Character is not the occupant of the from coordinate')
@@ -137,7 +127,7 @@ export class HexBoard extends withContainer(withHittable(GameObject)) {
 				this.occupied.delete(fromCoord)
 			}
 		}
-		const toCoord = axial.access(to)
+		const toCoord = toAxialCoord(to)
 		const occupied = this.occupied.get(toCoord)! /*
 		console.trace(character, toCoord.q, toCoord.r)
 		if (occupied[0] === character) debugger*/
@@ -149,21 +139,21 @@ export class HexBoard extends withContainer(withHittable(GameObject)) {
 		}
 	}
 
-	getNeighbors(coord: AxialRef): NeighborInfo[] {
+	getNeighbors(coord: Positioned): NeighborInfo[] {
 		const tile = this.getTile(coord)
 		if (!tile) return []
 		return tile.walkNeighbors
 	}
 
-	getNeighborsForCharacter(coord: AxialRef, _character: Character): NeighborInfo[] {
+	getNeighborsForCharacter(coord: Positioned, _character: Character): NeighborInfo[] {
 		const tile = this.getTile(coord)
 		if (!tile) return []
 		return tile.walkNeighbors
 	}
 
 	findPathForCharacter(
-		start: AxialRef,
-		goal: AxialRef,
+		start: Positioned,
+		goal: Positioned,
 		character: Character,
 		maxTime: number,
 		punctual: boolean = true,
@@ -178,19 +168,19 @@ export class HexBoard extends withContainer(withHittable(GameObject)) {
 	}
 
 	findNearest(
-		start: AxialRef,
+		start: Positioned,
 		isGoal: Scoring<true>,
-		stop: number | ((coord: AxialRef, walkTime: number) => boolean),
+		stop: number | ((coord: Positioned, walkTime: number) => boolean),
 		punctual: boolean = true,
 	) {
 		return findNearest((c) => this.getNeighbors(c), start, isGoal, stop, punctual)
 	}
 
 	findNearestForCharacter(
-		start: AxialRef,
+		start: Positioned,
 		character: Character,
 		isGoal: Scoring<true>,
-		stop: number | ((coord: AxialRef, walkTime: number) => boolean),
+		stop: number | ((coord: Positioned, walkTime: number) => boolean),
 		punctual: boolean = true,
 	) {
 		return findNearest(
@@ -203,10 +193,10 @@ export class HexBoard extends withContainer(withHittable(GameObject)) {
 	}
 
 	findBestForCharacter(
-		start: AxialRef,
+		start: Positioned,
 		character: Character,
 		scoring: Scoring<number>,
-		stop: number | ((coord: AxialRef, walkTime: number) => boolean),
+		stop: number | ((coord: Positioned, walkTime: number) => boolean),
 		bestPossibleScore: number,
 		punctual: boolean = true,
 	) {
