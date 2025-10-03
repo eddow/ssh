@@ -93,6 +93,7 @@ class PlanFunctions {
 			const coord = toAxialCoord(target)
 			const freeGoods = character.game.hex.freeGoods.getGoodsAt(coord)
 			const matchingFreeGoods = freeGoods.filter(
+				// TODO: Validate that no free good found on the terrain (returned by `getGoodsAt`) is `removed`
 				(good) => good.goodType === goodType && !good.allocated,
 			)
 
@@ -104,7 +105,7 @@ class PlanFunctions {
 			const vehicleAllocation = vehicle.allocate({ [goodType]: 1 }, `planGrabFree.${goodType}`)
 			const allocation = freeGoodToGrab.allocate(`planGrabFree.${goodType}`)
 			plan.releaseStopper = effect(() => {
-				if (freeGoodToGrab.removed) this[subject].cancelPlan(plan)
+				if (freeGoodToGrab.isRemoved) this[subject].cancelPlan(plan)
 			})
 			// Return the plan with allocations set
 			Object.assign(plan, {

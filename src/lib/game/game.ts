@@ -299,7 +299,7 @@ export class Game extends Eventful<GameEvents> {
 				tile.asGenerated = false
 			}
 			assert(hiveInstance, 'Alveolus building on load')
-			hiveInstance.pokeAll()
+			hiveInstance.advertiseAll()
 		}
 	}
 

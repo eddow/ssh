@@ -28,8 +28,8 @@ class CharacterContext extends InteractiveContext<Character> {
 		return this[subject].vehicle.hasRoom(goodType)
 	}
 	@contract()
-	pokeAlveolus() {
-		return this[subject].assignedAlveolus!.poke()
+	advertiseAlveolus() {
+		return this[subject].assignedAlveolus!.advertise()
 	}
 }
 

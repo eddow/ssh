@@ -46,12 +46,17 @@ export class TransformAlveolus extends Alveolus {
 	get keepWorking(): boolean {
 		return this.canWork
 	}
-	poke() {
+	advertise(): void {
 		const action = this.action
 		for (const [gt] of Object.entries(action.inputs))
-			if ((this.storage?.hasRoom(gt as GoodType) || 0) > 0) this.hive.demand(gt as GoodType, this)
+			while (this.storage?.hasRoom(gt as GoodType) && this.hive.demand(gt as GoodType, this));
 		for (const [gt] of Object.entries(action.output))
-			if ((this.storage?.available(gt as GoodType) || 0) > 0)
-				this.hive.provide(gt as GoodType, this)
+			while (this.storage?.available(gt as GoodType) && this.hive.provide(gt as GoodType, this));
+	}
+	canGive(goodType: GoodType): number {
+		return goodType in this.action.output ? this.storage.available(goodType) : 0
+	}
+	canTake(goodType: GoodType): number {
+		return goodType in this.action.inputs ? this.storage.hasRoom(goodType) : 0
 	}
 }

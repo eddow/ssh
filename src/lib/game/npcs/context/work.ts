@@ -55,15 +55,18 @@ class WorkFunctions {
 				: undefined
 		const moving = character.game.hex.freeGoods.add(alveolus.tile, mg.goodType, mg.from)
 		const time = character.vehicle.transferTime * axial.distance(mg.from, hop)
-
+		const timeout = setTimeout(() => {
+			debugger
+		}, 2000)
 		return new MoveToStep(time, moving, hop, 'work', `convey.${mg.goodType}`)
 			.canceled(() => {
 				hopAlloc?.cancel()
 				mg.allocations.target.cancel()
-				mg.demander.poke()
+				mg.demander.advertise()
 				mg.finish()
 			})
 			.finished(() => {
+				clearTimeout(timeout)
 				moving.remove()
 				if (!mg.path.length) {
 					mg.allocations.target.fulfill()
@@ -77,6 +80,9 @@ class WorkFunctions {
 						},
 					)
 				}
+			})
+			.final(() => {
+				if (!moving.isRemoved) debugger
 			})
 	}
 	@contract()
@@ -136,7 +142,7 @@ class WorkFunctions {
 		return new DurationStep(alveolus.workTime, 'work', `transform.${alveolus.name}`)
 			.finished(() => {
 				for (const allocation of allocations) allocation.fulfill()
-				alveolus.poke()
+				alveolus.advertise()
 			})
 			.canceled(() => {
 				for (const allocation of allocations) allocation.cancel()

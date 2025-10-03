@@ -47,8 +47,8 @@ class FreeGoodAllocation {
 export interface FreeGood {
 	goodType: GoodType
 	position: Position
-	removed: boolean
 	allocated: boolean
+	get isRemoved(): boolean
 	remove(): void
 	allocate(reason: any): FreeGoodAllocation
 }
@@ -69,17 +69,22 @@ export class FreeGoods extends withTicked(withGenerator(GameObject)) {
 			'`exactly` must be roughly the same as pos.position',
 		)
 		const coord = toAxialCoord(pos)
+		const self = this
 		const good: FreeGood = reactive({
 			goodType,
 			position: exactly || ('position' in pos ? pos.position : pos),
-			removed: false,
 			allocated: false,
+			get isRemoved() {
+				const coord = axial.round(toAxialCoord(good.position))
+				const goodsList = self.goods.get(coord) || []
+				return !goodsList.includes(good)
+			},
 			remove: () => this.remove(pos, good),
 			allocate: (reason: any): FreeGoodAllocation => {
 				if (good.allocated) {
 					throw new Error(`FreeGood already allocated: ${reason}`)
 				}
-				if (good.removed) {
+				if (good.isRemoved) {
 					debugger
 					throw new Error(`FreeGood already removed: ${reason}`)
 				}
@@ -120,8 +125,7 @@ export class FreeGoods extends withTicked(withGenerator(GameObject)) {
 	}
 	remove(pos: Positioned, good: FreeGood): void {
 		// Guard against double-removal
-		if (good.removed) return
-		good.removed = true
+		if (good.isRemoved) return
 
 		const coord = toAxialCoord(pos)
 		const newList = this.goods.get(coord)!.filter((g) => g !== good)

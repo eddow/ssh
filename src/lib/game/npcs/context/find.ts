@@ -44,7 +44,7 @@ class FindFunctions {
 			const freeGoods = hex.freeGoods.getGoodsAt(toAxialCoord(coord))
 			for (const freeGood of freeGoods) {
 				// Skip allocated or removed goods
-				if (freeGood.allocated || freeGood.removed) continue
+				if (freeGood.allocated) continue
 				const def = goodsCatalog[freeGood.goodType]
 				if (!def) continue
 				const fv = 'feedingValue' in def ? def.feedingValue : 0

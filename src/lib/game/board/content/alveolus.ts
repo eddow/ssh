@@ -134,7 +134,6 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition>() imple
 		const hive = this.hive
 		const here = toAxialCoord(this.tile.position)
 		const results: LocalMovingGood[] = []
-
 		function canAdvance(mg: MovingGood) {
 			const storage = hive.storageAt(mg.path[0])
 			return storage?.hasRoom(mg.goodType) || mg.path.length === 1
@@ -184,7 +183,7 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition>() imple
 			.map((neighbor) => neighbor?.content)
 			.filter((c): c is Alveolus => c instanceof Alveolus)
 	}
-	abstract poke(): void
+	abstract advertise(): void
 
 	/**
 	 * Check if this alveolus has a specific good in stock

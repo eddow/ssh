@@ -153,7 +153,7 @@ export class SpecificStorage extends Storage<SpecificAllocation> {
 		let hasAnyAllocation = false
 
 		for (const [goodType, qty] of Object.entries(goods) as [GoodType, number][]) {
-			if (!qty || qty <= 0) continue
+			assert(qty && qty > 0, 'qty must be set')
 
 			const room = this.hasRoom(goodType)
 			const take = Math.min(qty, room)
@@ -176,7 +176,7 @@ export class SpecificStorage extends Storage<SpecificAllocation> {
 		let hasAnyReservation = false
 
 		for (const [goodType, qty] of Object.entries(goods) as [GoodType, number][]) {
-			if (!qty || qty <= 0) continue
+			assert(qty && qty > 0, 'qty must be set')
 
 			const available = Math.max(0, (this._goods[goodType] || 0) - (this._reserved[goodType] || 0))
 			const take = Math.min(qty, available)

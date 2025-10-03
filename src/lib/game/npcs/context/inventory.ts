@@ -1,6 +1,7 @@
 import { type } from 'arktype'
 import { contract, Goods, GoodType } from '$lib/arktype'
 import { assert } from '$lib/debug'
+import { Alveolus } from '$lib/game/board'
 import { type TileBorder, TileBorderArkType } from '$lib/game/board/border/border'
 import { type Tile, TileArkType } from '$lib/game/board/tile'
 import type { Character } from '$lib/game/population/character'
@@ -22,6 +23,7 @@ class InventoryFunctions {
 		let amount = Math.min(available, maxAmount)
 		if (amount <= 0) throw new Error('No goods to drop')
 		const vehicleTransfer = vehicle.reserve({ [goodType]: amount }, `drop.${goodType}`)
+		if (character.tile.content instanceof Alveolus) debugger
 		return new DurationStep(amount * vehicle.transferTime, 'convey', `drop.${goodType}`)
 			.finished(() => {
 				while (amount--)
@@ -120,7 +122,7 @@ class InventoryFunctions {
 		const coord = toAxialCoord(source)
 		const freeGoods = character.game.hex.freeGoods.getGoodsAt(coord)
 		const matchingFreeGoods = freeGoods.filter(
-			(good) => good.goodType === goodType && !good.removed && !good.allocated,
+			(good) => good.goodType === goodType && !good.allocated,
 		)
 
 		if (matchingFreeGoods.length === 0) {

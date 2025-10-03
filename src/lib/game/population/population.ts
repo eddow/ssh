@@ -1,5 +1,5 @@
 import { type RandGenerator, uuid } from '$lib/numbers'
-import type { AxialCoord } from '$lib/utils'
+import { type AxialCoord, toAxialCoord } from '$lib/utils'
 import type { Game } from '../game'
 import { GameObject, withContainer, withHittable } from '../object'
 import { Character } from './character'
@@ -16,7 +16,7 @@ export class Population extends withContainer(withHittable(GameObject)) {
 
 	hitTest(worldX: number, worldY: number, selectedAction?: string): any {
 		if (selectedAction && selectedAction !== 'select') return false
-		const coord = this.game.hex.world2axial({ x: worldX, y: worldY })
+		const coord = toAxialCoord({ x: worldX, y: worldY })
 		// Check if any character is hit
 		for (const character of this.characters.values()) {
 			if (character.hitTest(coord, selectedAction)) return character

@@ -10,7 +10,7 @@ function dropStored(goods, place, path = null, punctual = true)
 		if not punctual then walk.enter
 		inventory.effectuate drop
 	end plan
-	pokeAlveolus
+	advertiseAlveolus
 end function
 
 function grabStored(goods, place, path = null, punctual = true)
@@ -25,7 +25,7 @@ function grabStored(goods, place, path = null, punctual = true)
 		if not punctual then walk.enter
 		inventory.effectuate grab
 	end plan
-	pokeAlveolus
+	advertiseAlveolus
 end function
 
 function grabFree(good, place, path = null, punctual = true)

@@ -140,8 +140,10 @@ export class Hive extends ReactiveBase {
 		)
 
 		if (path && path.length > 0) {
-			// Remove the start coordinate as we know it
-			path.shift()
+			// path is tile - border - tile - border - ... - tile
+			// We should keep only the borders and the last tile
+			const maxNdx = Math.floor(path.length / 2)
+			for (let i = 0; i < maxNdx; i++) path.splice(i, 1)
 			this.pathCache.set(key, path)
 			return path
 		}
@@ -270,72 +272,69 @@ export class Hive extends ReactiveBase {
 		return true
 	}
 
-	provide(goodType: GoodType, provider: Alveolus) {
+	/**
+	 * Provide a good to the hive
+	 * @param goodType - The type of good to provide
+	 * @param provider - The alveolus that can provide the good
+	 * @returns true if a movement was created, false otherwise
+	 */
+	provide(goodType: GoodType, provider: Alveolus): boolean {
 		const q = this.getQueue(goodType)
 		if (!q) {
 			// If no demander, choose the nearest storage
 			const storages = new Set<Alveolus>()
-			for (const alveolus of this.alveoli) {
-				if (alveolus.action.type === 'storage' && alveolus.canTake(goodType) > 0) {
-					storages.add(alveolus)
-				}
-			}
+			for (const alveolus of this.alveoli)
+				if (alveolus.canTake(goodType) > 0) storages.add(alveolus)
 			if (storages.size === 0) {
 				this.queues.set(goodType, { providers: new Set([provider]) })
 				// No storage found, we have no place to put the good
 				// TODO: show the building in "overflowing" flag
-				return
+				return false
 			}
 			const storage = this.findNearest(provider, storages, goodType)
 			assert(storage !== undefined, 'Storage found but none reachable')
 			this.createMovement(goodType, provider, storage)
-			storage.poke()
-			return
+			storage.advertise()
+			return true
 		}
 		if ('providers' in q) {
 			q.providers.add(provider)
-			return
+			return false
 		}
 		assert('demanders' in q, 'Providers are present but none reachable')
-		// Choose the nearest demander
-		const demander = this.findNearest(provider, q.demanders, goodType)
-		assert(demander !== undefined, 'Demanders are present but none reachable')
-		this.createMovement(goodType, provider, demander)
-		demander.poke()
-		q.demanders.delete(demander)
-		if (q.demanders.size === 0) this.queues.delete(goodType)
+		return this.answerNeed(goodType, provider)
 	}
 
-	demand(goodType: GoodType, demander: Alveolus) {
+	/**
+	 * Demand a good from the hive
+	 * @param goodType - The type of good to demand
+	 * @param demander - The alveolus that can demand the good
+	 * @returns true if a movement was created, false otherwise
+	 */
+	demand(goodType: GoodType, demander: Alveolus): boolean {
 		const q = this.getQueue(goodType)
 		if (!q) {
 			// Try to satisfy immediately from nearest storage with stock
 			const storages = new Set<Alveolus>()
-			for (const alveolus of this.alveoli) {
-				if (alveolus.action.type === 'storage' && alveolus.canGive(goodType) > 0) {
-					storages.add(alveolus)
-				}
+			for (const alveolus of this.alveoli) if (alveolus.canGive(goodType)) storages.add(alveolus)
+			if (storages.size === 0) {
+				this.queues.set(goodType, { demanders: new Set([demander]) })
+				return false
 			}
-			if (storages.size === 0) return this.queues.set(goodType, { demanders: new Set([demander]) })
 			const storage = this.findNearest(demander, storages, goodType)
 			assert(storage !== undefined, 'Storage found but none reachable')
 			this.createMovement(goodType, storage, demander)
-			storage.poke()
-			return
+			storage.advertise()
+			return true
 		}
 		if ('demanders' in q) {
 			q.demanders.add(demander)
-			return
+			return false
 		}
 
 		// Providers exist: choose nearest and assert reachable
 		assert('providers' in q, 'Demanders are present but none reachable')
-		const provider = this.findNearest(demander, q.providers, goodType)
-		assert(provider !== undefined, 'Providers are present but none reachable')
-		this.createMovement(goodType, provider, demander)
-		provider.poke()
-		q.providers.delete(provider)
-		if (q.providers.size === 0) this.queues.delete(goodType)
+		return this.answerProvision(goodType, demander)
 	}
 
 	/**
@@ -350,10 +349,6 @@ export class Hive extends ReactiveBase {
 			return false
 		}
 
-		if (source.canGive(goodType) <= 0) {
-			return false
-		}
-
 		const demander = this.findNearest(source, queue.demanders, goodType)
 		if (!demander) {
 			return false
@@ -362,7 +357,7 @@ export class Hive extends ReactiveBase {
 		this.createMovement(goodType, source, demander)
 		queue.demanders.delete(demander)
 		if (queue.demanders.size === 0) this.queues.delete(goodType)
-		demander.poke()
+		demander.advertise()
 		return true
 	}
 
@@ -378,10 +373,6 @@ export class Hive extends ReactiveBase {
 			return false
 		}
 
-		if (source.canTake(goodType) <= 0) {
-			return false
-		}
-
 		const provider = this.findNearest(source, queue.providers, goodType)
 		if (!provider) {
 			return false
@@ -390,12 +381,12 @@ export class Hive extends ReactiveBase {
 		this.createMovement(goodType, provider, source)
 		queue.providers.delete(provider)
 		if (queue.providers.size === 0) this.queues.delete(goodType)
-		provider.poke()
+		provider.advertise()
 		return true
 	}
 
-	pokeAll() {
-		for (const alveolus of this.alveoli) alveolus.poke()
+	advertiseAll() {
+		for (const alveolus of this.alveoli) alveolus.advertise()
 	}
 	//#endregion
 }

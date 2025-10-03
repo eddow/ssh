@@ -37,5 +37,8 @@ Active WIP. Systems and naming may change (e.g., convey/collect flows). Expect b
 
 # TODO
 
-freeGood.removed -> refactor
-poke -> as long as poke success
+freeGood.removed -> refactor ✅ (replaced with computed isRemoved property)
+no transit through (full storage?)
+queue circles
+allocate goods moving to storage
+Clean alveoli who contain a freeGood

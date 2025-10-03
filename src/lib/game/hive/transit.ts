@@ -2,9 +2,12 @@ import type { GoodType } from '$lib/arktype'
 import { Alveolus } from '../board'
 
 export class TransitAlveolus extends Alveolus {
-	poke(): void {
+	canGive(goodType: GoodType): number {
+		return this.storage.available(goodType)
+	}
+	advertise(): void {
 		const stock = this.storage.stock
-		for (const goodType of Object.keys(stock) as GoodType[])
-			if (stock[goodType]) this.hive.provide(goodType, this)
+		const goods = Object.keys(stock) as GoodType[]
+		for (const good of goods) while (this.storage.available(good) && this.hive.provide(good, this));
 	}
 }
