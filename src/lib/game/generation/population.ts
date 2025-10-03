@@ -36,7 +36,7 @@ export class PopulationGenerator {
 		const eligible = tileData
 			.filter((t) => {
 				const d = axial.distance(t.coord, origin)
-				return t.terrain !== 'water' && !t.deposit && d >= minR && d <= maxR
+				return t.terrain !== 'water' /*&& !t.deposit*/ && d >= minR && d <= maxR
 			})
 			.map((t) => ({ tile: t, d: axial.distance(t.coord, origin) }))
 			.sort((a, b) => a.d - b.d)

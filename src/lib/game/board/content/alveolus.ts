@@ -186,6 +186,13 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition>() imple
 	abstract advertise(): void
 
 	/**
+	 * Shortcut to hive.campaign(this)
+	 */
+	campaign(): void {
+		this.hive.campaign(this)
+	}
+
+	/**
 	 * Check if this alveolus has a specific good in stock
 	 * Default implementation delegates to storage
 	 */

@@ -75,7 +75,7 @@ export class FreeGoods extends withTicked(withGenerator(GameObject)) {
 			position: exactly || ('position' in pos ? pos.position : pos),
 			allocated: false,
 			get isRemoved() {
-				const coord = axial.round(toAxialCoord(good.position))
+				const coord = toAxialCoord(pos)
 				const goodsList = self.goods.get(coord) || []
 				return !goodsList.includes(good)
 			},

@@ -20,16 +20,13 @@ class CharacterContext extends InteractiveContext<Character> {
 	get I() {
 		return this[subject]
 	}
-	get aCarriedGood() {
-		return this[subject].aCarriedGood
-	}
 	@contract(GoodType.optional())
 	haveRoom(goodType?: GoodType): number {
 		return this[subject].vehicle.hasRoom(goodType)
 	}
 	@contract()
 	advertiseAlveolus() {
-		return this[subject].assignedAlveolus!.advertise()
+		return this[subject].assignedAlveolus!.campaign()
 	}
 }
 

@@ -47,6 +47,9 @@ export class Hive extends ReactiveBase {
 	public name?: string
 	public readonly alveoli = new Set<Alveolus>()
 	private readonly queues: Map<GoodType, HiveQueue> = new Map()
+
+	// Campaign management
+	private runningCampaign: { queue: Set<Alveolus>; done: Set<Alveolus> } | undefined
 	@computed
 	get byActionType() {
 		const rv: Partial<Record<Ssh.Action['type'], Alveolus[]>> = {}
@@ -294,7 +297,7 @@ export class Hive extends ReactiveBase {
 			const storage = this.findNearest(provider, storages, goodType)
 			assert(storage !== undefined, 'Storage found but none reachable')
 			this.createMovement(goodType, provider, storage)
-			storage.advertise()
+			this.campaign(storage)
 			return true
 		}
 		if ('providers' in q) {
@@ -314,6 +317,7 @@ export class Hive extends ReactiveBase {
 	demand(goodType: GoodType, demander: Alveolus): boolean {
 		const q = this.getQueue(goodType)
 		if (!q) {
+			// TODO: Look in the moving goods towards a storage
 			// Try to satisfy immediately from nearest storage with stock
 			const storages = new Set<Alveolus>()
 			for (const alveolus of this.alveoli) if (alveolus.canGive(goodType)) storages.add(alveolus)
@@ -324,7 +328,7 @@ export class Hive extends ReactiveBase {
 			const storage = this.findNearest(demander, storages, goodType)
 			assert(storage !== undefined, 'Storage found but none reachable')
 			this.createMovement(goodType, storage, demander)
-			storage.advertise()
+			this.campaign(storage)
 			return true
 		}
 		if ('demanders' in q) {
@@ -357,7 +361,7 @@ export class Hive extends ReactiveBase {
 		this.createMovement(goodType, source, demander)
 		queue.demanders.delete(demander)
 		if (queue.demanders.size === 0) this.queues.delete(goodType)
-		demander.advertise()
+		this.campaign(demander)
 		return true
 	}
 
@@ -381,12 +385,34 @@ export class Hive extends ReactiveBase {
 		this.createMovement(goodType, provider, source)
 		queue.providers.delete(provider)
 		if (queue.providers.size === 0) this.queues.delete(goodType)
-		provider.advertise()
+		this.campaign(provider)
 		return true
 	}
 
 	advertiseAll() {
-		for (const alveolus of this.alveoli) alveolus.advertise()
+		this.campaign(...this.alveoli)
+	}
+
+	/**
+	 * Start or continue a campaign for alveolus advertisement
+	 * @param alveolus The alveolus that had external stimuli and needs to advertise
+	 */
+	campaign(...alveoli: Alveolus[]): void {
+		if (this.runningCampaign) {
+			// Add to campaign queue
+			for (const alveolus of alveoli)
+				if (!this.runningCampaign.done.has(alveolus)) this.runningCampaign.queue.add(alveolus)
+			return
+		}
+		this.runningCampaign = { queue: new Set(alveoli), done: new Set() }
+
+		while (this.runningCampaign.queue.size > 0) {
+			const alveolus = this.runningCampaign.queue.values().next().value!
+			this.runningCampaign.queue.delete(alveolus)
+			this.runningCampaign.done.add(alveolus)
+			alveolus.advertise()
+		}
+		this.runningCampaign = undefined
 	}
 	//#endregion
 }

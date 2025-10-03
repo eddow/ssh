@@ -278,6 +278,17 @@ export const axial = {
 	},
 
 	/**
+	 * Enumerate all hex coordinates within a given radius from a center point
+	 * @param center The center axial coordinate
+	 * @param radius The radius to search within
+	 */
+	*allTiles(center: AxialCoord, radius: number): Generator<AxialCoord> {
+		for (const offset of axial.enum(radius)) {
+			yield axial.linear(center, offset)
+		}
+	},
+
+	/**
 	 * Retrieves the tiles around a given tile
 	 * @returns AxialCoord[]
 	 */

@@ -4,7 +4,6 @@ import { toAxialCoord } from '$lib/utils/position'
 import type { Tile } from '../board/tile'
 import { SlottedStorage } from '../storage'
 import { TransitAlveolus } from './transit'
-import { computed } from 'mutts/src'
 
 export class GatherAlveolus extends TransitAlveolus {
 	declare action: Ssh.GatherAction
@@ -16,7 +15,7 @@ export class GatherAlveolus extends TransitAlveolus {
 		super(tile, new SlottedStorage(6, 6))
 	}
 
-	@computed
+	//@computed
 	get hasFreeGoodsToGather(): boolean {
 		// Check if there are any free goods in the world that the hive needs
 		const hiveNeeds = Array.from(this.hive.needs)

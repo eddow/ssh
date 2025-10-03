@@ -93,7 +93,6 @@ class PlanFunctions {
 			const coord = toAxialCoord(target)
 			const freeGoods = character.game.hex.freeGoods.getGoodsAt(coord)
 			const matchingFreeGoods = freeGoods.filter(
-				// TODO: Validate that no free good found on the terrain (returned by `getGoodsAt`) is `removed`
 				(good) => good.goodType === goodType && !good.allocated,
 			)
 

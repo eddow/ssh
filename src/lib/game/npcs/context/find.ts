@@ -145,15 +145,36 @@ class FindFunctions {
 	}
 	@contract(GatherAlveolusArkType, 'number')
 	gatherables(gatherer: GatherAlveolus, maxRadius: number) {
-		// TODO: Count all the reachable goods, and take the more representative first ? (the goods there is the most around the gatherer)
-		const goods = Array.from(gatherer.hive.needs).filter(
-			(good) => !!this[subject].vehicle.hasRoom(good),
-		)
 		const {
 			hex: { freeGoods },
 		} = this[subject].game
+		const center = toAxialCoord(gatherer.tile)
+
+		// Count all goods within the radius
+		const goodCounts = new Map<GoodType, number>()
+		for (const coord of axial.allTiles(center, maxRadius)) {
+			const goodsAtTile = freeGoods.getGoodsAt(coord)
+			for (const good of goodsAtTile) {
+				if (!good.allocated && gatherer.hive.needs.has(good.goodType)) {
+					const currentCount = goodCounts.get(good.goodType) || 0
+					goodCounts.set(good.goodType, currentCount + 1)
+				}
+			}
+		}
+
+		// Filter by hive needs and vehicle capacity, then sort by quantity (most abundant first)
+		const availableGoods = Array.from(gatherer.hive.needs)
+			.filter((good) => !!this[subject].vehicle.hasRoom(good))
+			.map((good) => ({ good, count: goodCounts.get(good) || 0 }))
+			.filter(({ count }) => count > 0)
+			.sort((a, b) => b.count - a.count)
+
+		if (availableGoods.length === 0) return false as const
+
+		// Take the most abundant good that the vehicle can carry
+		const targetGood = availableGoods[0].good
 		const start = toAxialCoord(this[subject].tile.position)
-		const path = freeGoods.findNearestGoods(start, toAxialCoord(gatherer.tile), goods, maxRadius)
+		const path = freeGoods.findNearestGoods(start, center, [targetGood], maxRadius)
 		if (!path) return false as const
 		return path
 	}
