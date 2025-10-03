@@ -46,4 +46,12 @@ export class TransformAlveolus extends Alveolus {
 	get keepWorking(): boolean {
 		return this.canWork
 	}
+	poke() {
+		const action = this.action
+		for (const [gt] of Object.entries(action.inputs))
+			if ((this.storage?.hasRoom(gt as GoodType) || 0) > 0) this.hive.demand(gt as GoodType, this)
+		for (const [gt] of Object.entries(action.output))
+			if ((this.storage?.available(gt as GoodType) || 0) > 0)
+				this.hive.provide(gt as GoodType, this)
+	}
 }

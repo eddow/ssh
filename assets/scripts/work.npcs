@@ -10,7 +10,6 @@ function goWork(jobPlan, path)
 		loop
 		walk.enter
 		work.prepare
-		// TODO: work = plan
 		// TODO: understand why `work[job](alveolus)` doesn't work/yield
 		work[jobPlan.jobType] jobPlan
 	end plan
@@ -45,7 +44,7 @@ function convey(jobPlan)
 	alveolus = jobPlan.alveolus
 	do while I.keepWorking and alveolus.goodMovements.length
 		work.conveyStep
-		if alveolus.incomingGoods then work.waitForIncomingGoods
+		if not alveolus.goodMovements.length and alveolus.incomingGoods then work.waitForIncomingGoods
 	loop
 end function
 

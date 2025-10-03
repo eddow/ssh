@@ -28,7 +28,7 @@ class WorkFunctions {
 	waitForIncomingGoods() {
 		return new WaitForPredicateStep(
 			'wait for incoming goods',
-			() => this[subject].assignedAlveolus!.incomingGoods,
+			() => this[subject].assignedAlveolus!.goodMovements.length > 0,
 		)
 	}
 	@contract(AlveolusArkType.optional())

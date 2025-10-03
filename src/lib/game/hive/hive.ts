@@ -197,6 +197,14 @@ export class Hive extends ReactiveBase {
 		}
 		return needsSet
 	}
+
+	get provides() {
+		const providesSet = new Set<GoodType>()
+		for (const [good, queue] of this.queues) {
+			if ('providers' in queue) providesSet.add(good)
+		}
+		return providesSet
+	}
 	movingGoods = reactive(new AxialKeyMap<MovingGood[]>())
 	storageAt(coord: Positioned): Storage<any> | undefined {
 		if (isTileCoord(toAxialCoord(coord))) {
@@ -210,7 +218,7 @@ export class Hive extends ReactiveBase {
 		return this.queues.get(goodType)
 	}
 
-	private createMovement(goodType: GoodType, provider: Alveolus, demander: Alveolus) {
+	public createMovement(goodType: GoodType, provider: Alveolus, demander: Alveolus) {
 		const positions = {
 			provider: toAxialCoord(provider.tile.position),
 			demander: toAxialCoord(demander.tile.position),
@@ -281,7 +289,7 @@ export class Hive extends ReactiveBase {
 			const storage = this.findNearest(provider, storages, goodType)
 			assert(storage !== undefined, 'Storage found but none reachable')
 			this.createMovement(goodType, provider, storage)
-			this.pokeAlveolus(storage)
+			storage.poke()
 			return
 		}
 		if ('providers' in q) {
@@ -293,7 +301,7 @@ export class Hive extends ReactiveBase {
 		const demander = this.findNearest(provider, q.demanders, goodType)
 		assert(demander !== undefined, 'Demanders are present but none reachable')
 		this.createMovement(goodType, provider, demander)
-		this.pokeAlveolus(demander)
+		demander.poke()
 		q.demanders.delete(demander)
 		if (q.demanders.size === 0) this.queues.delete(goodType)
 	}
@@ -312,7 +320,7 @@ export class Hive extends ReactiveBase {
 			const storage = this.findNearest(demander, storages, goodType)
 			assert(storage !== undefined, 'Storage found but none reachable')
 			this.createMovement(goodType, storage, demander)
-			this.pokeAlveolus(storage)
+			storage.poke()
 			return
 		}
 		if ('demanders' in q) {
@@ -325,56 +333,69 @@ export class Hive extends ReactiveBase {
 		const provider = this.findNearest(demander, q.providers, goodType)
 		assert(provider !== undefined, 'Providers are present but none reachable')
 		this.createMovement(goodType, provider, demander)
-		this.pokeAlveolus(provider)
+		provider.poke()
 		q.providers.delete(provider)
 		if (q.providers.size === 0) this.queues.delete(goodType)
 	}
 
-	public pokeAlveolus(alveolus: Alveolus) {
-		// Advertise needs (inputs) and provides (outputs) agnostic of action.type
-		const action = alveolus.action as any
-		if ('inputs' in action)
-			for (const [gt] of Object.entries(action.inputs))
-				if ((alveolus.storage?.hasRoom(gt as GoodType) || 0) > 0)
-					this.demand(gt as GoodType, alveolus)
-		if ('output' in action)
-			for (const [gt] of Object.entries(action.output))
-				if ((alveolus.storage?.available(gt as GoodType) || 0) > 0)
-					this.provide(gt as GoodType, alveolus)
-
-		// For storage alveoli, check queues and resolve what it can
-		if (action.type === 'storage') {
-			// Go through all queues and try to fulfill them
-			for (const [goodType, queue] of this.queues.entries()) {
-				// If there are providers waiting and storage can take this good
-				if ('providers' in queue && alveolus.canTake(goodType) > 0) {
-					// Find nearest provider and create movement
-					const provider = this.findNearest(alveolus, queue.providers, goodType)
-					if (provider) {
-						this.createMovement(goodType, provider, alveolus)
-						queue.providers.delete(provider)
-						if (queue.providers.size === 0) this.queues.delete(goodType)
-						this.pokeAlveolus(provider)
-					}
-				}
-
-				// If there are demanders waiting and storage has this good
-				if ('demanders' in queue && alveolus.canGive(goodType) > 0) {
-					// Find nearest demander and create movement
-					const demander = this.findNearest(alveolus, queue.demanders, goodType)
-					if (demander) {
-						this.createMovement(goodType, alveolus, demander)
-						queue.demanders.delete(demander)
-						if (queue.demanders.size === 0) this.queues.delete(goodType)
-						this.pokeAlveolus(demander)
-					}
-				}
-			}
+	/**
+	 * Answer a need for a specific good type from a storage alveolus
+	 * @param goodType The type of good needed
+	 * @param source The storage alveolus that can provide the good
+	 * @returns true if a movement was created, false otherwise
+	 */
+	public answerNeed(goodType: GoodType, source: Alveolus): boolean {
+		const queue = this.getQueue(goodType)
+		if (!queue || !('demanders' in queue) || queue.demanders.size === 0) {
+			return false
 		}
+
+		if (source.canGive(goodType) <= 0) {
+			return false
+		}
+
+		const demander = this.findNearest(source, queue.demanders, goodType)
+		if (!demander) {
+			return false
+		}
+
+		this.createMovement(goodType, source, demander)
+		queue.demanders.delete(demander)
+		if (queue.demanders.size === 0) this.queues.delete(goodType)
+		demander.poke()
+		return true
+	}
+
+	/**
+	 * Answer a provision request for a specific good type to a storage alveolus
+	 * @param goodType The type of good being provided
+	 * @param source The storage alveolus that can accept the good
+	 * @returns true if a movement was created, false otherwise
+	 */
+	public answerProvision(goodType: GoodType, source: Alveolus): boolean {
+		const queue = this.getQueue(goodType)
+		if (!queue || !('providers' in queue) || queue.providers.size === 0) {
+			return false
+		}
+
+		if (source.canTake(goodType) <= 0) {
+			return false
+		}
+
+		const provider = this.findNearest(source, queue.providers, goodType)
+		if (!provider) {
+			return false
+		}
+
+		this.createMovement(goodType, provider, source)
+		queue.providers.delete(provider)
+		if (queue.providers.size === 0) this.queues.delete(goodType)
+		provider.poke()
+		return true
 	}
 
 	pokeAll() {
-		for (const alveolus of this.alveoli) this.pokeAlveolus(alveolus)
+		for (const alveolus of this.alveoli) alveolus.poke()
 	}
 	//#endregion
 }

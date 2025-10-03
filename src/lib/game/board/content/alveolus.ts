@@ -184,9 +184,7 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition>() imple
 			.map((neighbor) => neighbor?.content)
 			.filter((c): c is Alveolus => c instanceof Alveolus)
 	}
-	poke() {
-		this.hive.pokeAlveolus(this)
-	}
+	abstract poke(): void
 
 	/**
 	 * Check if this alveolus has a specific good in stock

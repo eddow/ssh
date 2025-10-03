@@ -2,11 +2,11 @@ import { type } from 'arktype'
 import { computed } from 'mutts/src'
 import type { Job } from '$lib/game/job'
 import { toAxialCoord } from '$lib/utils/position'
-import { Alveolus } from '../board/content/alveolus'
 import type { Tile } from '../board/tile'
 import { SlottedStorage } from '../storage'
+import { TransitAlveolus } from './transit'
 
-export class GatherAlveolus extends Alveolus {
+export class GatherAlveolus extends TransitAlveolus {
 	declare action: Ssh.GatherAction
 	constructor(tile: Tile) {
 		const def: Ssh.AlveolusDefinition = new.target.prototype

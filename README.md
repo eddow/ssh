@@ -34,3 +34,8 @@ A small sandbox colony/automation game experiment on a hex grid. NPCs perform jo
 
 ### Status
 Active WIP. Systems and naming may change (e.g., convey/collect flows). Expect breaking changes.
+
+# TODO
+
+freeGood.removed -> refactor
+poke -> as long as poke success

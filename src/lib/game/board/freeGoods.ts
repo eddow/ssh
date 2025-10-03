@@ -80,6 +80,7 @@ export class FreeGoods extends withTicked(withGenerator(GameObject)) {
 					throw new Error(`FreeGood already allocated: ${reason}`)
 				}
 				if (good.removed) {
+					debugger
 					throw new Error(`FreeGood already removed: ${reason}`)
 				}
 				good.allocated = true

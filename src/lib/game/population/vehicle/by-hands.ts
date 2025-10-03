@@ -11,7 +11,7 @@ export class ByHands extends SlottedStorage implements Vehicle {
 	readonly transferTime = activityDurations.handTransfer
 
 	constructor(character: any) {
-		super(1, 1) // 1 slot, max 1 quantity per slot
+		super(3, 3) // 1 slot, max 1 quantity per slot
 		this.character = character
 	}
 

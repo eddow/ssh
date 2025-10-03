@@ -7,7 +7,7 @@ import type { Character } from '$lib/game/population/character'
 import { Positioned, toAxialCoord } from '$lib/utils'
 import { subject } from '../scripts'
 import { DurationStep } from '../steps'
-import type { GatherPlan, TransferPlan } from './plan'
+import type { PickupPlan, TransferPlan } from './plan'
 
 class InventoryFunctions {
 	declare [subject]: Character
@@ -108,7 +108,7 @@ class InventoryFunctions {
 	}
 
 	@contract(GoodType, Positioned)
-	planGrabFree(goodType: GoodType, source: Positioned): GatherPlan {
+	planGrabFree(goodType: GoodType, source: Positioned): PickupPlan {
 		const character = this[subject]
 		const vehicle = character.vehicle
 		assert(vehicle, 'tile.vehicle must be set')
@@ -130,13 +130,13 @@ class InventoryFunctions {
 
 		// Return plan without allocations - they will be created in plan.begin()
 		return {
-			type: 'gather' as const,
+			type: 'pickup' as const,
 			goodType,
 			target: source,
 		}
 	}
 	@contract('object')
-	effectuate(action: TransferPlan | GatherPlan) {
+	effectuate(action: TransferPlan | PickupPlan) {
 		const character = this[subject]
 		const { vehicleAllocation } = action
 		const {
@@ -154,9 +154,9 @@ class InventoryFunctions {
 		if (action.type === 'transfer') {
 			totalAmount = Object.values(action.goods).reduce((sum, qty) => sum + qty, 0)
 			description = action.description
-		} else if (action.type === 'gather') {
+		} else if (action.type === 'pickup') {
 			totalAmount = 1 // Always grab exactly 1 FreeGood
-			description = 'gather'
+			description = 'pickup'
 		} else {
 			throw new Error('Unknown plan type')
 		}

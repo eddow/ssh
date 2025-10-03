@@ -123,8 +123,8 @@ export class Character extends withInteractive(
 	get keepWorking(): boolean {
 		return (
 			this.hunger < this.triggerLevels.hunger.high &&
-			this.fatigue < this.triggerLevels.fatigue.high &&
-			this.tiredness < this.triggerLevels.tiredness.high
+			this.fatigue < this.triggerLevels.fatigue.high /*&&
+			this.tiredness < this.triggerLevels.tiredness.high*/
 		)
 	}
 

@@ -5,9 +5,10 @@ import type { Job } from '$lib/game/job'
 import { SpecificStorage } from '$lib/game/storage'
 import { axialDistance, type Positioned, toAxialCoord } from '../../utils/position'
 import { UnBuiltLand } from '../board'
-import { Alveolus, multiplyGoodsQty } from '../board/content/alveolus'
+import { multiplyGoodsQty } from '../board/content/alveolus'
 import type { Tile } from '../board/tile'
-export class HarvestAlveolus extends Alveolus {
+import { TransitAlveolus } from './transit'
+export class HarvestAlveolus extends TransitAlveolus {
 	declare action: Ssh.HarvestingAction
 	constructor(tile: Tile) {
 		const def: Ssh.AlveolusDefinition = new.target.prototype

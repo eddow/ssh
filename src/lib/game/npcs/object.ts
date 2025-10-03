@@ -86,9 +86,14 @@ export function withScripted<T extends new (...args: any[]) => TickedGameObject>
 		}
 
 		cancelPlan(plan: any) {
-			while (true) {
-				const cancelling = this.runningScripts.shift()
-				cancelling?.cancel(this.scriptsContext, plan)
+			while (this.runningScripts.length) {
+				const cancelling = this.runningScripts.shift()!
+				const newState = cancelling.cancel(this.scriptsContext, plan)
+				if (newState) {
+					cancelling.state = newState
+					this.runningScripts.unshift(cancelling)
+					break
+				}
 			}
 		}
 	}

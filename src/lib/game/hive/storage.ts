@@ -27,4 +27,14 @@ export class StorageAlveolus extends Alveolus {
 	canTake(goodType: GoodType): number {
 		return this.storage.hasRoom(goodType)
 	}
+
+	poke() {
+		// For storage alveoli, check queues and resolve what it can
+		// Use the public provides and needs getters to know what goods are available
+		for (const goodType of this.hive.provides)
+			if (this.canTake(goodType)) this.hive.answerProvision(goodType, this)
+
+		for (const goodType of this.hive.needs)
+			if (this.canGive(goodType)) this.hive.answerNeed(goodType, this)
+	}
 }

@@ -46,7 +46,8 @@
 			"sawmill": "Saw wood"
 		},
 		"convey": "Convey",
-		"queue": "Queue"
+		"queue": "Queue",
+		"pickup": "Pick up"
 	},
 	"alveolus": {
 		"alveolus": "Alveolus",

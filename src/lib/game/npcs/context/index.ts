@@ -14,7 +14,7 @@ import { WalkFunctions } from './walk'
 import { WorkFunctions } from './work'
 
 // Re-export TransferPlan for external use
-export type { GatherPlan, Plan, TransferPlan, WorkPlan } from './plan'
+export type { PickupPlan as GatherPlan, Plan, TransferPlan, WorkPlan } from './plan'
 
 class CharacterContext extends InteractiveContext<Character> {
 	get I() {

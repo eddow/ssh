@@ -1,3 +1,4 @@
+import { effect } from 'mutts/src'
 import { contract, type Goods, type GoodType } from '$lib/arktype'
 import { assert } from '$lib/debug'
 import { type Alveolus, type HexBoard, isTileCoord } from '$lib/game/board'
@@ -16,12 +17,13 @@ export interface TransferPlan<T extends AllocationBase = AllocationBase> {
 	readonly target?: Positioned
 }
 
-export interface GatherPlan<T extends AllocationBase = AllocationBase> {
-	readonly type: 'gather'
+export interface PickupPlan<T extends AllocationBase = AllocationBase> {
+	readonly type: 'pickup'
 	vehicleAllocation?: T // Will be created in begin(), cleared in finalize()
 	allocation?: T // Will be created in begin(), cleared in finalize()
 	readonly goodType: GoodType
 	readonly target: Positioned
+	releaseStopper?: () => void
 }
 
 export interface WorkPlan {
@@ -35,7 +37,7 @@ function getContentFromPosition(hex: HexBoard, position: Positioned) {
 	const coord = toAxialCoord(position)
 	return isTileCoord(coord) ? hex.getTileContent(coord) : hex.getBorderContent(coord)
 }
-export type Plan = TransferPlan | GatherPlan | WorkPlan
+export type Plan = TransferPlan | PickupPlan | WorkPlan
 class PlanFunctions {
 	declare [subject]: Character
 
@@ -80,7 +82,7 @@ class PlanFunctions {
 				vehicleAllocation,
 				allocation,
 			})
-		} else if (plan.type === 'gather') {
+		} else if (plan.type === 'pickup') {
 			// Begin the gather plan - create the allocations
 			const { goodType, target } = plan
 			const vehicle = character.vehicle
@@ -101,7 +103,9 @@ class PlanFunctions {
 			const freeGoodToGrab = matchingFreeGoods[0]
 			const vehicleAllocation = vehicle.allocate({ [goodType]: 1 }, `planGrabFree.${goodType}`)
 			const allocation = freeGoodToGrab.allocate(`planGrabFree.${goodType}`)
-
+			plan.releaseStopper = effect(() => {
+				if (freeGoodToGrab.removed) this[subject].cancelPlan(plan)
+			})
 			// Return the plan with allocations set
 			Object.assign(plan, {
 				vehicleAllocation,
@@ -126,7 +130,8 @@ class PlanFunctions {
 
 	@contract('object')
 	conclude(plan: Plan) {
-		if (plan.type === 'transfer' || plan.type === 'gather') {
+		if ('releaseStopper' in plan) plan.releaseStopper?.()
+		if (plan.type === 'transfer' || plan.type === 'pickup') {
 			// Fulfill the allocations
 			plan.allocation?.fulfill()
 			plan.vehicleAllocation?.fulfill()
@@ -137,7 +142,7 @@ class PlanFunctions {
 
 	@contract('object')
 	cancel(plan: Plan) {
-		if (plan.type === 'transfer' || plan.type === 'gather') {
+		if (plan.type === 'transfer' || plan.type === 'pickup') {
 			// Cancel the allocations
 			plan.allocation?.cancel()
 			plan.vehicleAllocation?.cancel()
@@ -148,7 +153,7 @@ class PlanFunctions {
 
 	@contract('object')
 	finally(plan: Plan) {
-		if (plan.type === 'transfer' || plan.type === 'gather') {
+		if (plan.type === 'transfer' || plan.type === 'pickup') {
 			// Clear allocations back to undefined
 			delete plan.vehicleAllocation
 			delete plan.allocation
@@ -156,8 +161,7 @@ class PlanFunctions {
 			plan.alveolus.assignedWorker = undefined
 			this[subject].assignedAlveolus = undefined
 		}
-
-		return plan
+		if ('releaseStopper' in plan) plan.releaseStopper?.()
 	}
 }
 

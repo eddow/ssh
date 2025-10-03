@@ -46,7 +46,8 @@
 			"sawmill": "Scie du bois"
 		},
 		"convey": "Convoie",
-		"queue": "Fait la queue"
+		"queue": "Fait la queue",
+		"pickup": "Ramasse"
 	},
 	"alveolus": {
 		"alveolus": "Alvéole",
