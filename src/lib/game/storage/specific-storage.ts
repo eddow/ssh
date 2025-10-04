@@ -33,10 +33,10 @@ class SpecificAllocation implements AllocationBase {
 
 			if (qty > 0) {
 				const curAlloc = this.storage._allocated[goodType] || 0
-				this.storage._allocated[goodType] = Math.max(0, curAlloc - qty)
+				this.storage._allocated[goodType] = curAlloc - qty
 			} else if (qty < 0) {
 				const curRes = this.storage._reserved[goodType] || 0
-				this.storage._reserved[goodType] = Math.max(0, curRes + qty)
+				this.storage._reserved[goodType] = curRes + qty
 			}
 		}
 	}

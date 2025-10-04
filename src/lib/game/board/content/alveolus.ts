@@ -1,5 +1,5 @@
 import { type } from 'arktype'
-import { computed, unreactive } from 'mutts/src'
+import { computed, effect, type ScopedCallback, unreactive } from 'mutts/src'
 import { Container, type ContainerChild, Sprite } from 'pixi.js'
 import type { GoodType } from '$lib/arktype'
 import type { Game } from '$lib/game/game'
@@ -17,11 +17,11 @@ import type { TileContent } from './content'
 import { UnBuiltLand } from './unbuilt-land'
 import { GcClassed } from './utils'
 
+//reactiveOptions.maxEffectChain = 1000
 interface LocalMovingGood extends MovingGood {
 	from: AxialCoord
 }
 
-// TODO: effect(storage->advertise) & remove manual campaigning
 @unreactive
 export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition>() implements TileContent {
 	public assignedWorker: Character | undefined
@@ -31,6 +31,7 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition>() imple
 	// Configurable properties
 	public walkway: boolean = true
 	public conveyor: boolean = true
+	private advertisingEffect: ScopedCallback
 
 	constructor(tile: Tile, storage: Storage<any>) {
 		super()
@@ -50,6 +51,9 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition>() imple
 		}
 		// Attach (and poke) *after* creating gates
 		hive.attach(this)
+		this.advertisingEffect = effect(() => {
+			this.hive.campaign(this)
+		})
 	}
 
 	get debugInfo() {
@@ -174,6 +178,7 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition>() imple
 	}
 
 	deconstruct() {
+		this.advertisingEffect()
 		this.tile.content = new UnBuiltLand(this.tile, 'concrete')
 		for (const gate of this.gates) gate.border.content = undefined
 		this.hive.removeAlveolus(this)
@@ -186,13 +191,6 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition>() imple
 			.filter((c): c is Alveolus => c instanceof Alveolus)
 	}
 	abstract advertise(): void
-
-	/**
-	 * Shortcut to hive.campaign(this)
-	 */
-	campaign(): void {
-		this.hive.campaign(this)
-	}
 
 	/**
 	 * Check if this alveolus has a specific good in stock

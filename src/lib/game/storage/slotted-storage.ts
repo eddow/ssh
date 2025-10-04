@@ -58,13 +58,25 @@ class SlottedAllocation implements AllocationBase {
 				const toPresent = Math.min(use, roomHere)
 				slot.quantity += toPresent
 				slot.allocated -= toPresent
-				if (slot.quantity + slot.allocated === 0) this.storage.slots[i] = undefined
+				if (slot.quantity + slot.allocated === 0) {
+					assert(
+						slot.reserved === 0 && slot.allocated === 0 && slot.quantity === 0,
+						'slot should be empty',
+					)
+					this.storage.slots[i] = undefined
+				}
 			} else {
 				const want = -amount
 				const use = Math.min(want, slot.reserved, slot.quantity)
 				slot.quantity -= use
 				slot.reserved -= use
-				if (slot.quantity + slot.allocated === 0) this.storage.slots[i] = undefined
+				if (slot.quantity + slot.allocated === 0) {
+					assert(
+						slot.reserved === 0 && slot.allocated === 0 && slot.quantity === 0,
+						'slot should be empty',
+					)
+					this.storage.slots[i] = undefined
+				}
 			}
 		}
 	}

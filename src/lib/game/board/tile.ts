@@ -70,7 +70,6 @@ export class Tile extends withInteractive(withGenerator(GameObject)) {
 		if (!AlveolusClass) return false
 		const newAlveolus = new AlveolusClass(this)
 		this.content = newAlveolus
-		newAlveolus.campaign()
 		return true
 	}
 

@@ -1,4 +1,4 @@
-import { computed, ReactiveBase, reactive } from 'mutts/src'
+import { computed, ReactiveBase, reactive, unreactive } from 'mutts/src'
 import type { GoodType } from '$lib/arktype'
 import { assert } from '$lib/debug'
 import { type AxialCoord, findPath, type Positioned, setPop } from '$lib/utils'
@@ -23,7 +23,8 @@ export interface MovingGood {
 export type HiveDemanderQueue = { demanders: Set<Alveolus> }
 export type HiveProviderQueue = { providers: Set<Alveolus> }
 export type HiveQueue = HiveDemanderQueue | HiveProviderQueue
-@reactive
+//@reactive
+@unreactive //('runningCampaign')
 export class Hive extends ReactiveBase {
 	private constructor(public readonly board: HexBoard) {
 		super()
@@ -297,7 +298,6 @@ export class Hive extends ReactiveBase {
 			const storage = this.findNearest(provider, storages, goodType)
 			assert(storage !== undefined, 'Storage found but none reachable')
 			this.createMovement(goodType, provider, storage)
-			this.campaign(storage)
 			return true
 		}
 		if ('providers' in q) {
@@ -328,7 +328,6 @@ export class Hive extends ReactiveBase {
 			const storage = this.findNearest(demander, storages, goodType)
 			assert(storage !== undefined, 'Storage found but none reachable')
 			this.createMovement(goodType, storage, demander)
-			this.campaign(storage)
 			return true
 		}
 		if ('demanders' in q) {
@@ -361,7 +360,6 @@ export class Hive extends ReactiveBase {
 		this.createMovement(goodType, source, demander)
 		queue.demanders.delete(demander)
 		if (queue.demanders.size === 0) this.queues.delete(goodType)
-		this.campaign(demander)
 		return true
 	}
 
@@ -385,12 +383,7 @@ export class Hive extends ReactiveBase {
 		this.createMovement(goodType, provider, source)
 		queue.providers.delete(provider)
 		if (queue.providers.size === 0) this.queues.delete(goodType)
-		this.campaign(provider)
 		return true
-	}
-
-	advertiseAll() {
-		this.campaign(...this.alveoli)
 	}
 
 	/**

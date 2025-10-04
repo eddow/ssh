@@ -59,7 +59,6 @@ class WorkFunctions {
 			.canceled(() => {
 				hopAlloc?.cancel()
 				mg.allocations.target.cancel()
-				mg.demander.campaign()
 				mg.finish()
 			})
 			.finished(() => {
@@ -138,7 +137,6 @@ class WorkFunctions {
 		return new DurationStep(alveolus.workTime, 'work', `transform.${alveolus.name}`)
 			.finished(() => {
 				for (const allocation of allocations) allocation.fulfill()
-				alveolus.campaign()
 			})
 			.canceled(() => {
 				for (const allocation of allocations) allocation.cancel()

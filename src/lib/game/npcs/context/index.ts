@@ -24,10 +24,6 @@ class CharacterContext extends InteractiveContext<Character> {
 	haveRoom(goodType?: GoodType): number {
 		return this[subject].vehicle.hasRoom(goodType)
 	}
-	@contract()
-	advertiseAlveolus() {
-		return this[subject].assignedAlveolus!.campaign()
-	}
 }
 
 const characterContext = protoCtx(CharacterContext, {

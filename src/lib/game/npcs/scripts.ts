@@ -16,7 +16,7 @@ import {
 	overloadContract,
 	registerContract,
 } from '$lib/arktype'
-import { epsilon, objectMap } from '$lib/utils'
+import { axial, epsilon, objectMap } from '$lib/utils'
 import { Positioned, positionRoughly, toAxialCoord } from '../../utils/position'
 import type { GameObject, InteractiveGameObject } from '../object'
 import { gameIsaTypes, gameOperators, lerp } from './utils'
@@ -113,7 +113,7 @@ export class GameContext<Subject extends GameObject> extends GlobalContext {
 	declare [subject]: Subject
 	@contract(Positioned)
 	tileAt(positioned: Positioned) {
-		return this[subject].game.hex.getTile(toAxialCoord(positioned))
+		return this[subject].game.hex.getTile(axial.round(toAxialCoord(positioned)))
 	}
 }
 
