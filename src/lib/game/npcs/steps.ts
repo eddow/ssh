@@ -56,10 +56,13 @@ export class QueueStep<Entity extends ScriptedObject> extends ASingleStep {
 	get type() {
 		return 'idle' as const
 	}
-	// TODO: detect rank & circular waitings
 	// TODO: marche à droite
 	passed = false
-	constructor(waiter: Entity, queue: Entity[]) {
+	constructor(
+		waiter: Entity,
+		queue: Entity[],
+		public target: Positioned,
+	) {
 		super()
 		queue.push(waiter)
 		const waiting = effect(() => {

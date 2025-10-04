@@ -34,7 +34,6 @@ function grabFree(good, place, path = null, punctual = true)
 	plan grab
 		if tile != place then do
 			walk.into path
-	// TODO: find a way to stop the loop if the free-good has been removed in the meantime
 		while tile != place
 			path = find.path(tile, place, punctual)
 		loop

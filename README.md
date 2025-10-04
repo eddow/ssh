@@ -37,8 +37,13 @@ Active WIP. Systems and naming may change (e.g., convey/collect flows). Expect b
 
 # TODO
 
-freeGood.removed -> refactor ✅ (replaced with computed isRemoved property)
-no transit through (full storage?)
-queue circles
-allocate goods moving to storage
+!!! advertise on storage effect!
+- harvesters les resources when out of gatherer's radius
+- storage specific job: defrag
+allocate goods moving to storage when demanding
 Clean alveoli who contain a freeGood
+
+## bugs/deadlocks
+
+- convey -> free good
+- waitForIncoming never resolved

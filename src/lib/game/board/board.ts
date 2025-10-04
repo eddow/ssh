@@ -109,6 +109,57 @@ export class HexBoard extends withContainer(withHittable(GameObject)) {
 		return content?.border ?? new TileBorder(this.game, coord)
 	}
 
+	/**
+	 * Recursively traces the origin of a queue to detect circular dependencies
+	 * @param character The character to trace
+	 * @param visited Array of characters already visited in this trace
+	 * @returns Array of characters forming a circular queue, or null if no circle found
+	 */
+	private traceQueueOrigin(character: Character, visited: Character[] = []): Character[] | null {
+		// If we've already seen this character, we found a circle
+		if (visited.includes(character)) {
+			// Find the start of the circle by finding where this character appears
+			const circleStart = visited.indexOf(character)
+			return visited.slice(circleStart)
+		}
+
+		// Add current character to visited set
+		visited.push(character)
+
+		// Check if this character is queuing
+		if (character.stepExecutor instanceof QueueStep) {
+			const queueStep = character.stepExecutor
+			const target = queueStep.target
+
+			// Find who is currently occupying the target position
+			const targetCoord = toAxialCoord(target)
+			const occupied = this.occupied.get(targetCoord)
+			if (occupied && occupied.length > 0) {
+				const occupant = occupied[0]
+				// If the occupant is also queuing and trying to move somewhere, trace them
+				if (occupant.stepExecutor instanceof QueueStep) {
+					return this.traceQueueOrigin(occupant, visited)
+				}
+			}
+		}
+
+		// No circle found
+		return null
+	}
+
+	/**
+	 * Releases all characters in a circular queue by clearing their stepExecutors
+	 * @param circularQueue Array of characters forming a circular queue
+	 */
+	private releaseCircularQueue(circularQueue: Character[]): void {
+		for (const character of circularQueue) {
+			if (character.stepExecutor instanceof QueueStep) {
+				character.stepExecutor.pass()
+				character.stepExecutor = undefined
+			}
+		}
+	}
+
 	/** Attempts to move a character onto a coordinate. Returns true if successful. */
 	moveCharacter(
 		character: Character,
@@ -135,7 +186,16 @@ export class HexBoard extends withContainer(withHittable(GameObject)) {
 			occupied.push(character)
 			return undefined
 		} else {
-			return new QueueStep(character, occupied)
+			// Before creating a new queue, check for circular dependencies
+			const circularQueue = this.traceQueueOrigin(character)
+			if (circularQueue) {
+				// Release the circular queue instead of adding to it
+				this.releaseCircularQueue(circularQueue)
+				occupied.push(character)
+				return undefined
+			}
+
+			return new QueueStep(character, occupied, toCoord)
 		}
 	}
 

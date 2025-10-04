@@ -20,6 +20,8 @@ import { GcClassed } from './utils'
 interface LocalMovingGood extends MovingGood {
 	from: AxialCoord
 }
+
+// TODO: effect(storage->advertise) & remove manual campaigning
 @unreactive
 export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition>() implements TileContent {
 	public assignedWorker: Character | undefined
