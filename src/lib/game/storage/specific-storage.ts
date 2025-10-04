@@ -1,4 +1,4 @@
-import { computed, reactive, unreactive } from 'mutts/src'
+import { atomic, computed, reactive, unreactive } from 'mutts/src'
 import type { Goods } from '$lib/arktype'
 import { GoodType } from '$lib/arktype'
 import { assert } from '$lib/debug'
@@ -23,6 +23,7 @@ class SpecificAllocation implements AllocationBase {
 		guardAllocation(this, reason)
 	}
 
+	@atomic
 	cancel(): void {
 		if (!isAllocationValid(this)) return
 		allocationEnded(this)
@@ -41,6 +42,7 @@ class SpecificAllocation implements AllocationBase {
 		}
 	}
 
+	@atomic
 	fulfill(): void {
 		if (!isAllocationValid(this)) return
 		allocationEnded(this)
@@ -61,13 +63,12 @@ class SpecificAllocation implements AllocationBase {
 				const use = Math.min(want, curRes, this.storage._goods[goodType] || 0)
 				if (use <= 0) continue
 				this.storage._reserved[goodType] = curRes - use
-				this.storage._goods[goodType] = Math.max(0, (this.storage._goods[goodType] || 0) - use)
+				this.storage._goods[goodType] = (this.storage._goods[goodType] || 0) - use
 			}
 		}
 	}
 }
 
-@reactive
 export class SpecificStorage extends Storage<SpecificAllocation> {
 	public readonly _goods: { [k in GoodType]?: number } = reactive({})
 	public readonly _allocated: { [k in GoodType]?: number } = reactive({})
@@ -79,6 +80,7 @@ export class SpecificStorage extends Storage<SpecificAllocation> {
 		this.maxAmounts = { ...maxAmounts }
 	}
 
+	@computed
 	get allocatedSlots(): boolean {
 		return Object.values(this._allocated).some((qty) => qty > 0)
 	}
@@ -92,9 +94,10 @@ export class SpecificStorage extends Storage<SpecificAllocation> {
 		const maxAmount = this.maxAmounts[goodType] || 0
 		const currentAmount = this._goods[goodType] || 0
 		const allocated = this._allocated[goodType] || 0
-		return Math.max(0, maxAmount - currentAmount - allocated)
+		return maxAmount - currentAmount - allocated
 	}
 
+	@computed
 	get isEmpty(): boolean {
 		return Object.values(this._goods).every((qty) => qty === 0)
 	}
@@ -102,7 +105,7 @@ export class SpecificStorage extends Storage<SpecificAllocation> {
 	addGood(goodType: GoodType, qty: number): number {
 		const maxAmount = this.maxAmounts[goodType] || 0
 		const currentAmount = this._goods[goodType] || 0
-		const canStore = Math.max(0, maxAmount - currentAmount)
+		const canStore = maxAmount - currentAmount
 		const toStore = Math.min(qty, canStore)
 
 		if (toStore > 0) {
@@ -132,7 +135,7 @@ export class SpecificStorage extends Storage<SpecificAllocation> {
 	}
 
 	available(goodType: GoodType): number {
-		return Math.max(0, (this._goods[goodType] || 0) - (this._reserved[goodType] || 0))
+		return (this._goods[goodType] || 0) - (this._reserved[goodType] || 0)
 	}
 
 	renderedGoods(): RenderedGoodSlots {
@@ -178,7 +181,7 @@ export class SpecificStorage extends Storage<SpecificAllocation> {
 		for (const [goodType, qty] of Object.entries(goods) as [GoodType, number][]) {
 			assert(qty && qty > 0, 'qty must be set')
 
-			const available = Math.max(0, (this._goods[goodType] || 0) - (this._reserved[goodType] || 0))
+			const available = (this._goods[goodType] || 0) - (this._reserved[goodType] || 0)
 			const take = Math.min(qty, available)
 			if (take > 0) {
 				this._reserved[goodType] = (this._reserved[goodType] || 0) + take

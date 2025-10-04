@@ -1,6 +1,7 @@
 import { computed } from 'mutts/src'
 import { inputBufferSize, outputBufferSize } from '$assets/constants'
 import type { GoodType } from '$lib/arktype'
+import { traces } from '$lib/debug'
 import type { Job } from '$lib/game/job'
 import { SpecificStorage } from '$lib/game/storage'
 import { Alveolus, multiplyGoodsQty } from '../board/content/alveolus'
@@ -47,11 +48,13 @@ export class TransformAlveolus extends Alveolus {
 		return this.canWork
 	}
 	advertise(): void {
+		traces.advertising?.groupCollapsed(`Advertising ${this.name}`)
 		const action = this.action
 		for (const [gt] of Object.entries(action.inputs))
 			while (this.storage?.hasRoom(gt as GoodType) && this.hive.demand(gt as GoodType, this));
 		for (const [gt] of Object.entries(action.output))
 			while (this.storage?.available(gt as GoodType) && this.hive.provide(gt as GoodType, this));
+		traces.advertising?.groupEnd()
 	}
 	canGive(goodType: GoodType): number {
 		return goodType in this.action.output ? this.storage.available(goodType) : 0

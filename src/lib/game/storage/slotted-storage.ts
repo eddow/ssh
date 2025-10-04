@@ -1,4 +1,4 @@
-import { computed, reactive, unreactive } from 'mutts/src'
+import { atomic, computed, reactive, unreactive } from 'mutts/src'
 import type { Goods, GoodType } from '$lib/arktype'
 import { assert } from '$lib/debug'
 import type { RenderedGoodSlot, RenderedGoodSlots } from './goods-renderer'
@@ -21,6 +21,7 @@ class SlottedAllocation implements AllocationBase {
 		guardAllocation(this, reason)
 	}
 
+	@atomic
 	cancel(): void {
 		if (!isAllocationValid(this)) return
 		allocationEnded(this)
@@ -43,6 +44,7 @@ class SlottedAllocation implements AllocationBase {
 		}
 	}
 
+	@atomic
 	fulfill(): void {
 		if (!isAllocationValid(this)) return
 		allocationEnded(this)
@@ -100,6 +102,7 @@ export class SlottedStorage extends Storage<SlottedAllocation> {
 		this.slots = reactive(Array(maxSlots).fill(undefined))
 	}
 
+	@computed
 	get allocatedSlots(): boolean {
 		return this.slots.some((slot) => slot?.allocated)
 	}
@@ -119,6 +122,7 @@ export class SlottedStorage extends Storage<SlottedAllocation> {
 		return totalCapacity
 	}
 
+	@computed
 	get isEmpty(): boolean {
 		return this.slots.every((slot) => slot === undefined || slot.quantity === 0)
 	}

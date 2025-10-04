@@ -1,4 +1,5 @@
 import type { GoodType } from '$lib/arktype'
+import { traces } from '$lib/debug'
 import { Alveolus } from '../board/content/alveolus'
 import type { Tile } from '../board/tile'
 import { SlottedStorage } from '../storage/slotted-storage'
@@ -29,6 +30,7 @@ export class StorageAlveolus extends Alveolus {
 	}
 
 	advertise() {
+		traces.advertising?.groupCollapsed(`Advertising ${this.name}`)
 		// For storage alveoli, check queues and resolve what it can
 		// Use the public provides and needs getters to know what goods are available
 		for (const goodType of this.hive.provides)
@@ -36,5 +38,6 @@ export class StorageAlveolus extends Alveolus {
 
 		for (const goodType of this.hive.needs)
 			if (this.canGive(goodType)) this.hive.answerNeed(goodType, this)
+		traces.advertising?.groupEnd()
 	}
 }

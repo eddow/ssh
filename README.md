@@ -37,9 +37,8 @@ Active WIP. Systems and naming may change (e.g., convey/collect flows). Expect b
 
 # TODO
 
-!!! advertise on storage effect!
-- harvesters les resources when out of gatherer's radius
-- storage specific job: defrag
+- harvesters resources when out of gatherer's radius
+- slotted-storage specific job: defrag
 allocate goods moving to storage when demanding
 Clean alveoli who contain a freeGood
 

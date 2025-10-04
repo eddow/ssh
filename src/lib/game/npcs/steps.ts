@@ -1,4 +1,4 @@
-import { effect, unreactive } from 'mutts/src'
+import { atomic, effect, unreactive } from 'mutts/src'
 import { activityDurations, ponderingFatigueRecovery } from '$assets/constants'
 import { goods as goodsCatalog } from '$assets/game-content'
 import type { GoodType } from '$lib/arktype'
@@ -28,9 +28,11 @@ export class Finalized {
 		this.#finished.push(finished)
 		return this
 	}
+	@atomic
 	cancel() {
 		for (const callback of [...this.#canceled, ...this.#final]) callback()
 	}
+	@atomic
 	finish() {
 		for (const callback of [...this.#finished, ...this.#final]) callback()
 	}

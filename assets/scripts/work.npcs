@@ -44,7 +44,10 @@ function convey(jobPlan)
 	alveolus = jobPlan.alveolus
 	do while I.keepWorking and alveolus.goodMovements.length
 		work.conveyStep
-		if not alveolus.goodMovements.length and alveolus.incomingGoods then work.waitForIncomingGoods
+		if not alveolus.goodMovements.length and alveolus.incomingGoods then
+			debugger alveolus
+			work.waitForIncomingGoods
+		end if
 	loop
 end function
 

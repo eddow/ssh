@@ -1,4 +1,5 @@
 import { type } from 'arktype'
+import { computed } from 'mutts/src'
 import type { Job } from '$lib/game/job'
 import { toAxialCoord } from '$lib/utils/position'
 import type { Tile } from '../board/tile'
@@ -15,7 +16,7 @@ export class GatherAlveolus extends TransitAlveolus {
 		super(tile, new SlottedStorage(6, 6))
 	}
 
-	//@computed
+	@computed
 	get hasFreeGoodsToGather(): boolean {
 		// Check if there are any free goods in the world that the hive needs
 		const hiveNeeds = Array.from(this.hive.needs)

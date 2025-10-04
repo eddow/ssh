@@ -18,3 +18,7 @@ export const debugInformation = {
 	// Hook here
 	set(_key: string, _value: any) {},
 }
+
+export const traces: Record<string, typeof console | undefined> = {}
+
+traces.advertising = console

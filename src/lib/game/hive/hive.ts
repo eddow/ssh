@@ -1,6 +1,6 @@
 import { computed, ReactiveBase, reactive, unreactive } from 'mutts/src'
 import type { GoodType } from '$lib/arktype'
-import { assert } from '$lib/debug'
+import { assert, traces } from '$lib/debug'
 import { type AxialCoord, findPath, type Positioned, setPop } from '$lib/utils'
 import { AxialKeyMap } from '$lib/utils/mem'
 import { toAxialCoord } from '../../utils/position'
@@ -23,8 +23,8 @@ export interface MovingGood {
 export type HiveDemanderQueue = { demanders: Set<Alveolus> }
 export type HiveProviderQueue = { providers: Set<Alveolus> }
 export type HiveQueue = HiveDemanderQueue | HiveProviderQueue
-//@reactive
-@unreactive //('runningCampaign')
+
+@unreactive
 export class Hive extends ReactiveBase {
 	private constructor(public readonly board: HexBoard) {
 		super()
@@ -47,7 +47,7 @@ export class Hive extends ReactiveBase {
 	}
 	public name?: string
 	public readonly alveoli = new Set<Alveolus>()
-	private readonly queues: Map<GoodType, HiveQueue> = new Map()
+	private readonly queues: Map<GoodType, HiveQueue> = reactive(new Map())
 
 	// Campaign management
 	private runningCampaign: { queue: Set<Alveolus>; done: Set<Alveolus> } | undefined
@@ -196,6 +196,7 @@ export class Hive extends ReactiveBase {
 		return [...notMeGates(border.tile.a), ...notMeGates(border.tile.b)]
 	}
 	//#region Needy / events
+	@computed
 	get needs() {
 		const needsSet = new Set<GoodType>()
 		for (const [good, queue] of this.queues) {
@@ -204,6 +205,7 @@ export class Hive extends ReactiveBase {
 		return needsSet
 	}
 
+	@computed
 	get provides() {
 		const providesSet = new Set<GoodType>()
 		for (const [good, queue] of this.queues) {
@@ -211,6 +213,7 @@ export class Hive extends ReactiveBase {
 		}
 		return providesSet
 	}
+
 	movingGoods = reactive(new AxialKeyMap<MovingGood[]>())
 	storageAt(coord: Positioned): Storage<any> | undefined {
 		if (isTileCoord(toAxialCoord(coord))) {
@@ -283,25 +286,31 @@ export class Hive extends ReactiveBase {
 	 * @returns true if a movement was created, false otherwise
 	 */
 	provide(goodType: GoodType, provider: Alveolus): boolean {
+		traces.advertising?.log(`Providing ${goodType}: ${provider.name}`)
 		const q = this.getQueue(goodType)
+		traces.advertising?.log(`Queue for ${goodType}:`, q)
 		if (!q) {
 			// If no demander, choose the nearest storage
 			const storages = new Set<Alveolus>()
-			for (const alveolus of this.alveoli)
-				if (alveolus.canTake(goodType) > 0) storages.add(alveolus)
+			for (const alveolus of this.alveoli) if (alveolus.canTake(goodType)) storages.add(alveolus)
 			if (storages.size === 0) {
 				this.queues.set(goodType, { providers: new Set([provider]) })
 				// No storage found, we have no place to put the good
 				// TODO: show the building in "overflowing" flag
+				traces.advertising?.log(`No storage found for ${goodType}, adding to queue`)
 				return false
 			}
 			const storage = this.findNearest(provider, storages, goodType)
 			assert(storage !== undefined, 'Storage found but none reachable')
+			traces.advertising?.log(
+				`Creating movement for ${goodType}: ${provider.name} -> ${storage.name}`,
+			)
 			this.createMovement(goodType, provider, storage)
 			return true
 		}
 		if ('providers' in q) {
 			q.providers.add(provider)
+			traces.advertising?.log(`Adding ${provider.name} to queue for ${goodType}`)
 			return false
 		}
 		assert('demanders' in q, 'Providers are present but none reachable')
@@ -315,6 +324,7 @@ export class Hive extends ReactiveBase {
 	 * @returns true if a movement was created, false otherwise
 	 */
 	demand(goodType: GoodType, demander: Alveolus): boolean {
+		traces.advertising?.log(`Demanding ${goodType}: ${demander.name}`)
 		const q = this.getQueue(goodType)
 		if (!q) {
 			// TODO: Look in the moving goods towards a storage
@@ -323,15 +333,20 @@ export class Hive extends ReactiveBase {
 			for (const alveolus of this.alveoli) if (alveolus.canGive(goodType)) storages.add(alveolus)
 			if (storages.size === 0) {
 				this.queues.set(goodType, { demanders: new Set([demander]) })
+				traces.advertising?.log(`No storage found for ${goodType}, adding to queue`)
 				return false
 			}
 			const storage = this.findNearest(demander, storages, goodType)
 			assert(storage !== undefined, 'Storage found but none reachable')
+			traces.advertising?.log(
+				`Creating movement for ${goodType}: ${storage.name} -> ${demander.name}`,
+			)
 			this.createMovement(goodType, storage, demander)
 			return true
 		}
 		if ('demanders' in q) {
 			q.demanders.add(demander)
+			traces.advertising?.log(`Adding ${demander.name} to queue for ${goodType}`)
 			return false
 		}
 
@@ -347,6 +362,7 @@ export class Hive extends ReactiveBase {
 	 * @returns true if a movement was created, false otherwise
 	 */
 	public answerNeed(goodType: GoodType, source: Alveolus): boolean {
+		traces.advertising?.log(`Answering need ${goodType}: ${source.name}`)
 		const queue = this.getQueue(goodType)
 		if (!queue || !('demanders' in queue) || queue.demanders.size === 0) {
 			return false
@@ -357,6 +373,7 @@ export class Hive extends ReactiveBase {
 			return false
 		}
 
+		traces.advertising?.log(`Creating movement for ${goodType}: ${source.name} -> ${demander.name}`)
 		this.createMovement(goodType, source, demander)
 		queue.demanders.delete(demander)
 		if (queue.demanders.size === 0) this.queues.delete(goodType)
@@ -370,6 +387,7 @@ export class Hive extends ReactiveBase {
 	 * @returns true if a movement was created, false otherwise
 	 */
 	public answerProvision(goodType: GoodType, source: Alveolus): boolean {
+		traces.advertising?.log(`Answering provision ${goodType}: ${source.name}`)
 		const queue = this.getQueue(goodType)
 		if (!queue || !('providers' in queue) || queue.providers.size === 0) {
 			return false
@@ -380,6 +398,7 @@ export class Hive extends ReactiveBase {
 			return false
 		}
 
+		traces.advertising?.log(`Creating movement for ${goodType}: ${provider.name} -> ${source.name}`)
 		this.createMovement(goodType, provider, source)
 		queue.providers.delete(provider)
 		if (queue.providers.size === 0) this.queues.delete(goodType)

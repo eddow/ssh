@@ -67,8 +67,8 @@ export function withScripted<T extends new (...args: any[]) => TickedGameObject>
 				if (remaining !== undefined) {
 					this.stepExecutor = undefined
 					this.nextStep()
-					const newType = this.stepExecutor!?.type
-					if (uselessStepExecutor === newType) throw new Error(`Useless step executor: ${newType}`)
+					/*const newType = this.stepExecutor!?.type
+					if (uselessStepExecutor === newType) throw new Error(`Useless step executor: ${newType}`)*/
 				}
 			}
 		}

@@ -1,4 +1,4 @@
-import { effect, reactive, type ScopedCallback, unreactive } from 'mutts/src'
+import { atomic, effect, reactive, type ScopedCallback, unreactive } from 'mutts/src'
 import { Container, Sprite } from 'pixi.js'
 import { goods } from '$assets/game-content'
 import type { GoodType } from '$lib/arktype'
@@ -29,13 +29,14 @@ class FreeGoodAllocation {
 		guardAllocation(this, reason)
 	}
 
+	@atomic
 	cancel(): void {
 		if (!isAllocationValid(this)) return
 		allocationEnded(this)
 		invalidateAllocation(this)
 		this.freeGood.allocated = false
 	}
-
+	@atomic
 	fulfill(): void {
 		if (!isAllocationValid(this)) return
 		allocationEnded(this)
