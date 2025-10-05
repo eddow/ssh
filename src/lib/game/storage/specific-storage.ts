@@ -102,6 +102,7 @@ export class SpecificStorage extends Storage<SpecificAllocation> {
 		return Object.values(this._goods).every((qty) => qty === 0)
 	}
 
+	@atomic
 	addGood(goodType: GoodType, qty: number): number {
 		const maxAmount = this.maxAmounts[goodType] || 0
 		const currentAmount = this._goods[goodType] || 0
@@ -114,7 +115,7 @@ export class SpecificStorage extends Storage<SpecificAllocation> {
 
 		return toStore
 	}
-
+	@atomic
 	removeGood(goodType: GoodType, qty: number): number {
 		const currentAmount = this._goods[goodType] || 0
 		const toRemove = Math.min(qty, currentAmount)
@@ -150,7 +151,7 @@ export class SpecificStorage extends Storage<SpecificAllocation> {
 		}
 		return { slots, assumedMaxSlots: Object.keys(this.maxAmounts).length }
 	}
-
+	@atomic
 	allocate(goods: Goods, reason: any): SpecificAllocation {
 		const actualGoods: Goods = {}
 		let hasAnyAllocation = false
@@ -174,6 +175,7 @@ export class SpecificStorage extends Storage<SpecificAllocation> {
 		return new SpecificAllocation(this, actualGoods, reason)
 	}
 
+	@atomic
 	reserve(goods: Goods, reason: any): SpecificAllocation {
 		const actualGoods: Goods = {}
 		let hasAnyReservation = false

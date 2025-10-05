@@ -126,7 +126,7 @@ export class SlottedStorage extends Storage<SlottedAllocation> {
 	get isEmpty(): boolean {
 		return this.slots.every((slot) => slot === undefined || slot.quantity === 0)
 	}
-
+	@atomic
 	addGood(goodType: GoodType, qty: number): number {
 		let remaining = qty
 
@@ -155,6 +155,7 @@ export class SlottedStorage extends Storage<SlottedAllocation> {
 		return qty - remaining
 	}
 
+	@atomic
 	removeGood(goodType: GoodType, qty: number): number {
 		let remaining = qty
 
@@ -196,6 +197,7 @@ export class SlottedStorage extends Storage<SlottedAllocation> {
 		return total
 	}
 
+	@atomic
 	allocate(goods: Goods, reason: any): SlottedAllocation {
 		const alloc: number[] = Array(this.slots.length).fill(0)
 		let hasAnyAllocation = false
@@ -237,6 +239,7 @@ export class SlottedStorage extends Storage<SlottedAllocation> {
 		return new SlottedAllocation(this, alloc, reason)
 	}
 
+	@atomic
 	reserve(goods: Goods, reason: any): SlottedAllocation {
 		const alloc: number[] = Array(this.slots.length).fill(0)
 		let hasAnyReservation = false

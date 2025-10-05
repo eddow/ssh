@@ -1,11 +1,11 @@
 function dropStored(goods, place, path = null, punctual = true)
 	drop = inventory.planDropStored(goods, place)
 	plan drop
-		if not path then path = find.path(tile, place, punctual)
+		if not path then path = find.path(place, punctual)
 		if tile != place then do
 			walk.into path
 		while tile != place
-			path = find.path(tile, place, punctual)
+			path = find.path(place, punctual)
 		loop
 		if not punctual then walk.enter
 		inventory.effectuate drop
@@ -13,13 +13,13 @@ function dropStored(goods, place, path = null, punctual = true)
 end function
 
 function grabStored(goods, place, path = null, punctual = true)
-	if not path then path = find.path(tile, place, punctual)
+	if not path then path = find.path(place, punctual)
 	grab = inventory.planGrabStored(goods, place)
 	plan grab
 		if tile != place then do
 			walk.into path
 		while tile != place
-			path = find.path(tile, place, punctual)
+			path = find.path(place, punctual)
 		loop
 		if not punctual then walk.enter
 		inventory.effectuate grab
@@ -27,13 +27,13 @@ function grabStored(goods, place, path = null, punctual = true)
 end function
 
 function grabFree(good, place, path = null, punctual = true)
-	if not path then path = find.path(tile, place, punctual)
+	if not path then path = find.path(place, punctual)
 	grab = inventory.planGrabFree(good, place)
 	plan grab
 		if tile != place then do
 			walk.into path
 		while tile != place
-			path = find.path(tile, place, punctual)
+			path = find.path(place, punctual)
 		loop
 		if not punctual then walk.enter
 		inventory.effectuate grab

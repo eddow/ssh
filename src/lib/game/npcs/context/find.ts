@@ -11,7 +11,7 @@ import { subject } from '../scripts'
 
 class FindFunctions {
 	declare [subject]: Character
-	@contract(Positioned, 'boolean')
+	@contract(Positioned, 'boolean?')
 	path(to: Positioned, punctual: boolean = true) {
 		return this[subject].game.hex.findPathForCharacter(
 			toAxialCoord(this[subject].tile.position),
@@ -144,38 +144,42 @@ class FindFunctions {
 		}
 	}
 	@contract(GatherAlveolusArkType, 'number')
-	gatherables(gatherer: GatherAlveolus, maxRadius: number) {
-		const {
-			hex: { freeGoods },
-		} = this[subject].game
-		const center = toAxialCoord(gatherer.tile)
+	gatherables(gatherer: GatherAlveolus, maxWalkTime: number) {
+		const { hex } = this[subject].game
+		const start = toAxialCoord(this[subject].tile.position)
+		const selectableGoods = Array.from(gatherer.hive.needs).filter((good) =>
+			this[subject].vehicle.hasRoom(good),
+		)
+		if (!selectableGoods.length) return false as const
+		// Count all goods within walk time using findNearest exploration
+		const goodCounts = Object.fromEntries(selectableGoods.map((good) => [good, 0])) as Partial<
+			Record<GoodType, number>
+		>
 
-		// Count all goods within the radius
-		const goodCounts = new Map<GoodType, number>()
-		for (const coord of axial.allTiles(center, maxRadius)) {
-			const goodsAtTile = freeGoods.getGoodsAt(coord)
+		// Custom exploration function that counts goods but never returns true
+		const exploreForGoods = (pos: Positioned): boolean => {
+			// Count goods at this tile
+			const goodsAtTile = hex.freeGoods.getGoodsAt(pos)
 			for (const good of goodsAtTile) {
-				if (!good.allocated && gatherer.hive.needs.has(good.goodType)) {
-					const currentCount = goodCounts.get(good.goodType) || 0
-					goodCounts.set(good.goodType, currentCount + 1)
-				}
+				if (!good.allocated && good.goodType in goodCounts) goodCounts[good.goodType]!++
 			}
+
+			// Never return true - we just want to explore and count
+			return false
 		}
 
-		// Filter by hive needs and vehicle capacity, then sort by quantity (most abundant first)
-		const availableGoods = Array.from(gatherer.hive.needs)
-			.filter((good) => !!this[subject].vehicle.hasRoom(good))
-			.map((good) => ({ good, count: goodCounts.get(good) || 0 }))
-			.filter(({ count }) => count > 0)
-			.sort((a, b) => b.count - a.count)
+		// Explore all tiles within walk time
+		hex.findNearest(start, exploreForGoods, maxWalkTime, false)
 
-		if (availableGoods.length === 0) return false as const
+		// Find the good with the maximum count
+		const targetGood = Object.entries(goodCounts).reduce(
+			(max, [good, count]) => (count > max.count ? { good: good as GoodType, count } : max),
+			{ good: null as GoodType | null, count: 0 },
+		).good
 
-		// Take the most abundant good that the vehicle can carry
-		const targetGood = availableGoods[0].good
-		const start = toAxialCoord(this[subject].tile.position)
-		const path = freeGoods.findNearestGoods(start, center, [targetGood], maxRadius)
-		if (!path) return false as const
+		if (!targetGood) return false as const
+
+		const path = hex.freeGoods.findNearestGoods(start, start, [targetGood], maxWalkTime)
 		return path
 	}
 }

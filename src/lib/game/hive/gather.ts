@@ -22,7 +22,7 @@ export class GatherAlveolus extends TransitAlveolus {
 		const hiveNeeds = Array.from(this.hive.needs)
 		if (hiveNeeds.length === 0) return false
 
-		// Use FreeGoods.findNearestGoods to check if there are any free goods available within radius
+		// Use FreeGoods.findNearestGoods to check if there are any free goods available within walk time
 		const nearestGoods = this.tile.game.hex.freeGoods.findNearestGoods(
 			toAxialCoord(this.tile.position),
 			toAxialCoord(this.tile.position), // Center is the same as start for gather

@@ -1,3 +1,4 @@
+import { type } from 'arktype'
 import { computed } from 'mutts/src'
 import { outputBufferSize } from '$assets/constants'
 import type { GoodType } from '$lib/arktype'
@@ -38,15 +39,11 @@ export class HarvestAlveolus extends TransitAlveolus {
 			0,
 		)
 	}
-
-	/**
-	 * Used by the NPCS to determine whether to gather or let the goods outside
-	 * @returns true if the alveolus can gather resources
-	 */
-	get gather(): boolean {
-		return this.canStoreInHarvester && !this.hiveHasCollector
+	get keepWorking(): boolean {
+		return this.storage.canStoreAll(this.action.output)
 	}
 	alveolusSpecificJob(): Job | undefined {
+		if (!this.keepWorking) return undefined
 		const nearestDeposit = this.tile.game.hex.findNearest(
 			toAxialCoord(this.tile.position),
 			(coord: Positioned) => {
@@ -66,3 +63,5 @@ export class HarvestAlveolus extends TransitAlveolus {
 		}
 	}
 }
+
+export const HarvestAlveolusArkType = type.instanceOf(HarvestAlveolus)

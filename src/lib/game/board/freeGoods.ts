@@ -3,7 +3,7 @@ import { Container, Sprite } from 'pixi.js'
 import { goods } from '$assets/game-content'
 import type { GoodType } from '$lib/arktype'
 import { assert } from '$lib/debug'
-import { axial, epsilon } from '$lib/utils'
+import { epsilon } from '$lib/utils'
 import { AxialKeyMap } from '$lib/utils/mem'
 import {
 	axialDistance,
@@ -148,9 +148,9 @@ export class FreeGoods extends withTicked(withGenerator(GameObject)) {
 
 	findNearestGoods(
 		start: Positioned,
-		center: Positioned,
+		_center: Positioned,
 		goodTypes: GoodType[],
-		maxRadius: number,
+		maxWalkTime: number,
 	): { goodType: GoodType; path: Positioned[] } | undefined {
 		const path = this.game.hex.findNearest(
 			start,
@@ -158,11 +158,7 @@ export class FreeGoods extends withTicked(withGenerator(GameObject)) {
 				const goodsList = this.getGoodsAt(coord)
 				return goodsList.some((g) => goodTypes.includes(g.goodType) && !g.allocated)
 			},
-			(coord: Positioned) => {
-				// Stop condition: check if still within radius from center
-				const distance = axial.distance(toAxialCoord(coord), toAxialCoord(center))
-				return distance > maxRadius
-			},
+			maxWalkTime, // Use walk time directly as stop condition
 		)
 
 		if (path) {

@@ -12,13 +12,6 @@ export function defined<T>(value: T | undefined, message = 'Value is defined'): 
 	return value
 }
 
-export function complete<T>(value: Partial<T>): asserts value is T {}
-
-export const debugInformation = {
-	// Hook here
-	set(_key: string, _value: any) {},
-}
-
 export const traces: Record<string, typeof console | undefined> = {}
 
-traces.advertising = console
+//traces.advertising = console

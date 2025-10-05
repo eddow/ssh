@@ -172,6 +172,8 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition>() imple
 
 	private conveyJob(): Job | undefined {
 		// Provide a convey job only when there are pass-through movements via borders
+		// TODO: 2 "queued" movement goods (one from a->B, one from B->A) or a larger circle should be untangled
+		// TODO: the chosen movement should be random, not arbitrary
 		return this.goodMovements.length > 0
 			? ({ type: 'convey', fatigue: this.getFatigueCost(), urgency: 2 } as Job)
 			: undefined

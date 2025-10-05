@@ -1,7 +1,9 @@
 import * as gameContent from '$assets/game-content'
 import type { CharacterContract } from '$assets/scripts/contracts'
 import { contract, GoodType } from '$lib/arktype'
+import { type HarvestAlveolus, HarvestAlveolusArkType } from '$lib/game/hive/harvest'
 import { objectMap } from '$lib/utils'
+import { toAxialCoord } from '$lib/utils/position'
 import type { Character } from '../../population/character'
 import { InteractiveContext, loadNpcScripts, protoCtx, subject } from '../scripts'
 
@@ -23,6 +25,35 @@ class CharacterContext extends InteractiveContext<Character> {
 	@contract(GoodType.optional())
 	haveRoom(goodType?: GoodType): number {
 		return this[subject].vehicle.hasRoom(goodType)
+	}
+	@contract(HarvestAlveolusArkType)
+	isGatherable(harvestAlveolus: HarvestAlveolus) {
+		// TODO: check all gatherers collected by harvestAlveolus - even outside the hive
+		const gatherers = harvestAlveolus.hive.byActionType.gather
+		if (!gatherers || gatherers.length === 0) return false
+
+		// Get the goods produced by this harvest alveolus
+		const producedGoods = Object.keys(harvestAlveolus.action.output) as GoodType[]
+
+		// Check if any gatherer can reach this position and gather the produced goods
+		const currentPos = this[subject].tile.position
+
+		return gatherers.some((gatherer) => {
+			// Check if the gatherer can reach this position within its radius (walk time)
+			const path = this[subject].game.hex.findPathForCharacter(
+				toAxialCoord(gatherer.tile.position),
+				toAxialCoord(currentPos),
+				this[subject],
+				(gatherer.action as Ssh.GatherAction).radius,
+				false,
+			)
+
+			// If no path exists within the radius, this gatherer can't reach us
+			if (!path) return false
+
+			// Check if the hive needs any of the produced goods
+			return producedGoods.some((good) => harvestAlveolus.hive.needs.has(good))
+		})
 	}
 }
 
