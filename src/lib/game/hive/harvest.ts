@@ -6,9 +6,9 @@ import type { Job } from '$lib/game/job'
 import { SpecificStorage } from '$lib/game/storage'
 import { axialDistance, type Positioned, toAxialCoord } from '../../utils/position'
 import { UnBuiltLand } from '../board'
-import { multiplyGoodsQty } from '../board/content/alveolus'
 import type { Tile } from '../board/tile'
 import { TransitAlveolus } from './transit'
+import { multiplyGoodsQty } from '../board/content/utils'
 export class HarvestAlveolus extends TransitAlveolus {
 	declare action: Ssh.HarvestingAction
 	constructor(tile: Tile) {

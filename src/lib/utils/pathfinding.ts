@@ -3,8 +3,8 @@ import type { AxialCoord, AxialKey } from './axial'
 import { axial } from './axial'
 import { AxialKeyMap, HeapMin } from './mem'
 
-export type GetNeighbors = (coord: Positioned) => (NeighborInfo | AxialCoord)[]
-export type Scoring<T> = (coord: Positioned) => T | false
+export type GetNeighbors = (coord: AxialCoord) => (NeighborInfo | AxialCoord)[]
+export type Scoring<T> = (coord: AxialCoord) => T | false
 export interface NeighborInfo {
 	coord: AxialCoord
 	walkTime: number

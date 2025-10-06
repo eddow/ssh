@@ -4,7 +4,8 @@ import type { GoodType } from '$lib/arktype'
 import { traces } from '$lib/debug'
 import type { Job } from '$lib/game/job'
 import { SpecificStorage } from '$lib/game/storage'
-import { Alveolus, multiplyGoodsQty } from '../board/content/alveolus'
+import { Alveolus } from '../board/content/alveolus'
+import { multiplyGoodsQty } from '../board/content/utils'
 import type { Tile } from '../board/tile'
 
 export class TransformAlveolus extends Alveolus {

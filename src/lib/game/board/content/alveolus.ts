@@ -213,10 +213,5 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition>() imple
 gameIsaTypes.alveolus = (value: any) => {
 	return value instanceof Alveolus
 }
-export function multiplyGoodsQty(record: Partial<Record<GoodType, number>>, multiplier: number) {
-	return Object.fromEntries(
-		Object.entries(record).map(([goodType, quantity]) => [goodType, quantity * multiplier]),
-	)
-}
 
 export const AlveolusArkType = type.instanceOf(Alveolus)

@@ -1,3 +1,5 @@
+import type { GoodType } from '$lib/arktype'
+
 type Ctor<T extends object = any> = abstract new (...args: any[]) => T
 
 export function GcClass<BaseCtor extends Ctor<any>>(
@@ -50,4 +52,10 @@ export function GcClassed<T extends object>() {
 	} as new (
 		...args: any[]
 	) => T & { readonly name: string }
+}
+
+export function multiplyGoodsQty(record: Partial<Record<GoodType, number>>, multiplier: number) {
+	return Object.fromEntries(
+		Object.entries(record).map(([goodType, quantity]) => [goodType, quantity * multiplier]),
+	)
 }
