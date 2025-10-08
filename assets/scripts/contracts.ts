@@ -1,5 +1,6 @@
 import { type ContractType, Goods, GoodType } from '$lib/arktype'
 import { TileArkType } from '$lib/game/board/tile'
+import { WorkPlan } from '$lib/game/npcs/context/plan'
 import { Position, Positioned } from '$lib/utils/position'
 export const CharacterContract = {
 	walk: {
@@ -18,12 +19,13 @@ export const CharacterContract = {
 		wander: [],
 	},
 	work: {
-		// It's well known, it's a jobPlan
-		goWork: ['unknown', Position.array()],
-		harvest: ['unknown'],
-		convey: ['unknown'],
-		gather: ['unknown'],
-		transform: ['unknown'],
+		goWork: [WorkPlan, Position.array()],
+		harvest: [WorkPlan],
+		convey: [WorkPlan],
+		offload: [WorkPlan],
+		gather: [WorkPlan],
+		transform: [WorkPlan],
+		construct: [WorkPlan],
 	},
 } as const
 

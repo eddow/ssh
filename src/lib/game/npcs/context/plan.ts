@@ -1,10 +1,14 @@
+import { type } from 'arktype'
 import { effect } from 'mutts/src'
-import { contract, type Goods, type GoodType } from '$lib/arktype'
+import { contract, Goods, GoodType } from '$lib/arktype'
 import { assert } from '$lib/debug'
-import { type Alveolus, type HexBoard, isTileCoord } from '$lib/game/board'
+import { type HexBoard, isTileCoord } from '$lib/game/board'
+import { Alveolus } from '$lib/game/board/content/alveolus'
+import { TileContent } from '$lib/game/board/content/content'
+import { JobType } from '$lib/game/job'
 import type { Character } from '$lib/game/population/character'
 import type { AllocationBase } from '$lib/game/storage'
-import { type AxialCoord, type Positioned, toAxialCoord } from '$lib/utils'
+import { Position, type Positioned, toAxialCoord } from '$lib/utils'
 import { subject } from '../scripts'
 // plans should be unreactive
 export interface TransferPlan<T extends AllocationBase = AllocationBase> {
@@ -28,16 +32,37 @@ export interface PickupPlan<T extends AllocationBase = AllocationBase> {
 
 export interface WorkPlan {
 	readonly type: 'work'
-	readonly jobType: string
-	readonly alveolus: Alveolus
-	readonly path: AxialCoord[]
+	readonly jobType: typeof JobType.infer
+	readonly tileContent: TileContent
 }
+export type Plan = TransferPlan | PickupPlan | WorkPlan
+
+// ArkType schemas for plans (use distinct names to avoid redeclarations)
+export const TransferPlan = type.object({
+	type: type.enumerated('transfer'),
+	description: type.enumerated('grab', 'drop'),
+	goods: Goods,
+	target: Position.optional(),
+})
+
+export const PickupPlan = type.object({
+	type: type.enumerated('pickup'),
+	goodType: GoodType,
+	target: Position,
+})
+
+export const WorkPlan = type.object({
+	type: type.enumerated('work'),
+	jobType: JobType,
+	tileContent: TileContent,
+})
+
+export const Plan = type.or(TransferPlan, PickupPlan, WorkPlan)
 
 function getContentFromPosition(hex: HexBoard, position: Positioned) {
 	const coord = toAxialCoord(position)
 	return isTileCoord(coord) ? hex.getTileContent(coord) : hex.getBorderContent(coord)
 }
-export type Plan = TransferPlan | PickupPlan | WorkPlan
 
 // Plan handler interface
 interface PlanHandler<T extends Plan> {
@@ -162,11 +187,12 @@ const pickupPlanHandler: PlanHandler<PickupPlan> = {
 // Work plan handler
 const workPlanHandler: PlanHandler<WorkPlan> = {
 	begin(plan: WorkPlan, character: Character) {
-		const { alveolus } = plan
-
-		// Assign worker to alveolus
-		alveolus.assignedWorker = character
-		character.assignedAlveolus = alveolus
+		const { tileContent } = plan
+		// Assign worker only for alveoli
+		if (tileContent instanceof Alveolus) {
+			tileContent.assignedWorker = character
+			character.assignedAlveolus = tileContent
+		}
 
 		// Set the assigned worker in the plan
 		Object.assign(plan, {
@@ -175,8 +201,10 @@ const workPlanHandler: PlanHandler<WorkPlan> = {
 	},
 
 	finally(plan: WorkPlan, character: Character) {
-		plan.alveolus.assignedWorker = undefined
-		character.assignedAlveolus = undefined
+		if (plan.tileContent instanceof Alveolus) {
+			plan.tileContent.assignedWorker = undefined
+			character.assignedAlveolus = undefined
+		}
 	},
 }
 

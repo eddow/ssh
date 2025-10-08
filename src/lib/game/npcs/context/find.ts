@@ -1,6 +1,7 @@
 import { maxWalkTime } from '$assets/constants'
 import { goods as goodsCatalog } from '$assets/game-content'
 import { contract, type GoodType } from '$lib/arktype'
+import { type EngineerAlveolus, EngineerAlveolusArkType } from '$lib/game/hive/engineer'
 import { type GatherAlveolus, GatherAlveolusArkType } from '$lib/game/hive/gather'
 import type { Character } from '$lib/game/population/character'
 import { type AxialCoord, axial } from '$lib/utils'
@@ -71,7 +72,23 @@ class FindFunctions {
 	deposit(deposit: string) {
 		const { hex } = this[subject].game
 		const start = toAxialCoord(this[subject].tile.position)
-		const path = hex.findNearestForCharacter(
+		// 1) Prefer deposits that are part of a project (project tiles take priority)
+		const pathInProject = hex.findNearestForCharacter(
+			start,
+			this[subject],
+			(coord) => {
+				const tile = hex.getTile(coord)
+				if (!(tile?.content instanceof UnBuiltLand)) return false
+				if (tile.content.deposit?.name !== deposit) return false
+				return !!tile.project
+			},
+			maxWalkTime,
+			false,
+		)
+		if (pathInProject && pathInProject.length) return pathInProject
+
+		// 2) Fallback to any matching deposit
+		const pathAny = hex.findNearestForCharacter(
 			start,
 			this[subject],
 			(coord) => {
@@ -81,8 +98,8 @@ class FindFunctions {
 			maxWalkTime,
 			false,
 		)
-		if (!path || path.length === 0) return false as const
-		return path
+		if (!pathAny || pathAny.length === 0) return false as const
+		return pathAny
 	}
 
 	@contract()
@@ -181,6 +198,32 @@ class FindFunctions {
 
 		const path = hex.freeGoods.findNearestGoods(start, start, [targetGood], maxWalkTime)
 		return path
+	}
+
+	@contract(EngineerAlveolusArkType)
+	buildable(engineer: EngineerAlveolus) {
+		return engineer.nextSite
+	}
+
+	@contract()
+	freeSpot() {
+		const { hex } = this[subject].game
+		const start = toAxialCoord(this[subject].tile.position)
+		// Use findBest with a cost function: walkTime * crowding
+		const result = hex.findBestForCharacter(
+			start,
+			this[subject],
+			(coord) => {
+				const tile = hex.getTile(coord)
+				if (!(tile?.content instanceof UnBuiltLand) || tile.zone || tile.project) return false
+				return 1 / (hex.freeGoods.getGoodsAt(coord).length + 1)
+			},
+			(_coord, walkTime) => walkTime > maxWalkTime,
+			1, // best possible score (minimum cost => score 0 when dist*crowd == 0)
+			true,
+		)
+		if (!result || result.length === 0) return false as const
+		return result
 	}
 }
 

@@ -31,6 +31,7 @@ export class UnBuiltLand extends withTicked(GameObject) implements TileContent {
 	) {
 		const tileCoord = toAxialCoord(tile.position)
 		super(tile.board.game, `unbuilt-${tileCoord.q}-${tileCoord.r}`)
+		tile.content = this
 	}
 
 	update(deltaTime: number) {

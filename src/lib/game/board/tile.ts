@@ -13,11 +13,15 @@ import {
 	toWorldCoord,
 } from '../../utils/position'
 import { alveolusClass } from '../hive'
+import type { Job } from '../job'
 import { gameIsaTypes } from '../npcs/utils'
 import { GameObject, withGenerator, withInteractive } from '../object'
 import type { HexBoard } from './board'
 import type { TileBorder } from './border/border'
+import { Alveolus } from './content/alveolus'
 import type { TileContent } from './content/content'
+import type { Project } from './project'
+import type { Zone } from './zone'
 
 @unreactive
 export class Tile extends withInteractive(withGenerator(GameObject)) {
@@ -55,21 +59,63 @@ export class Tile extends withInteractive(withGenerator(GameObject)) {
 		return {
 			position: this.position,
 			content: this.content?.debugInfo,
+			zone: this.zone,
+			project: this.project?.name,
+		}
+	}
+
+	// Tile-level job offering
+	getJob(): Job | undefined {
+		// Offload if there are free goods on tile and it's a project/zone/alveolus tile
+		const coord = toAxialCoord(this.position)
+		const hasFreeGoods = this.board.freeGoods.getGoodsAt(coord).length > 0
+		const isSpecial = !!this.project || !!this.zone || this.content instanceof Alveolus
+		if (hasFreeGoods && isSpecial) {
+			return { type: 'offload', fatigue: 1, urgency: 10 }
+		}
+		// Otherwise delegate to alveolus if present
+		if (this.content instanceof Alveolus) return this.content.getJob()
+	}
+
+	// Zone getter/setter
+	get zone(): Zone | undefined {
+		return this.board.zoneManager.getZone(toAxialCoord(this.position))
+	}
+
+	set zone(zone: Zone | undefined) {
+		if (zone === undefined) {
+			this.board.zoneManager.removeZone(toAxialCoord(this.position))
+		} else {
+			this.board.zoneManager.setZone(toAxialCoord(this.position), zone)
+		}
+	}
+
+	// Project getter/setter
+	get project(): Project | undefined {
+		return this.board.projectManager.getProject(toAxialCoord(this.position))
+	}
+
+	set project(project: Project | undefined) {
+		if (project === undefined) {
+			this.board.projectManager.removeProject(toAxialCoord(this.position))
+		} else {
+			this.board.projectManager.setProject(toAxialCoord(this.position), project)
 		}
 	}
 
 	canInteract(action: string): boolean {
 		return this.content?.canInteract?.(action) ?? false
 	}
-
+	//TODO: ->constructionSite
 	build(alveolusType: AlveolusType): boolean {
 		if (!this.canInteract(`build:${alveolusType}`)) {
 			return false
 		}
 		const AlveolusClass = alveolusClass[alveolusType]
 		if (!AlveolusClass) return false
-		const newAlveolus = new AlveolusClass(this)
-		this.content = newAlveolus
+		/* Affectation to content is done in the constructor of the alveolus
+		this.content = */ new AlveolusClass(this)
+
 		return true
 	}
 
@@ -146,7 +192,16 @@ export class Tile extends withInteractive(withGenerator(GameObject)) {
 				tileSprite.tint = 0xaaaaff
 				brightnessFilter.brightness(1.2, false)
 			} else {
-				tileSprite.tint = 0xffffff
+				let tint = 0xffffff
+				// Priority: project > zone
+				if (this.project) {
+					tint = 0xffaaaa // reddish for tiles with a project
+				} else if (this.zone === 'residential') {
+					tint = 0xaaffaa // greenish for residential zone
+				} else if (this.zone === 'harvest') {
+					tint = 0xffffaa // yellowish for harvest zone
+				}
+				tileSprite.tint = tint
 				brightnessFilter.brightness(1, false)
 			}
 		})

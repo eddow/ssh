@@ -75,6 +75,8 @@ export const alveoli = {
 		workTime: 3,
 		sprites: ['chopper'],
 		icon: 'chopper',
+		// No wood/plank cost for the wood-chopper itself
+		constructionCost: { stone: 2 },
 	},
 	stonecutter: {
 		preparationTime: 3,
@@ -82,6 +84,8 @@ export const alveoli = {
 		workTime: 4,
 		sprites: ['cutter'],
 		icon: 'cutter',
+		// No stone cost for the stone cutter
+		constructionCost: { wood: 2, planks: 1 },
 	},
 	sawmill: {
 		preparationTime: 1,
@@ -89,6 +93,8 @@ export const alveoli = {
 		workTime: 2,
 		sprites: ['sawmill'],
 		icon: 'sawmill',
+		// No planks cost for the sawmill
+		constructionCost: { wood: 3, stone: 2 },
 	},
 	storage: {
 		preparationTime: 1,
@@ -96,6 +102,7 @@ export const alveoli = {
 		workTime: 0,
 		sprites: ['store'],
 		icon: 'store',
+		constructionCost: { wood: 2, planks: 2, stone: 1 },
 	},
 	gather: {
 		preparationTime: 1,
@@ -103,6 +110,24 @@ export const alveoli = {
 		workTime: 2,
 		sprites: ['transit'],
 		icon: 'transit',
+		constructionCost: { wood: 1, planks: 1, stone: 1 },
+	},
+	building: {
+		preparationTime: 1,
+		action: { type: 'build', target: 'sawmill' },
+		workTime: 2,
+		sprites: ['construction'],
+		icon: 'construction',
+		// Building itself doesn't need extra cost; it gathers for target
+		constructionCost: {},
+	},
+	engineer: {
+		preparationTime: 1,
+		action: { type: 'engineer', radius: 6 },
+		workTime: 2,
+		sprites: ['engineer'],
+		icon: 'engineer',
+		constructionCost: { wood: 1, stone: 1 },
 	},
 } as const satisfies Record<string, Ssh.AlveolusDefinition>
 

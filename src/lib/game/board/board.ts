@@ -23,7 +23,9 @@ import type { Character } from '../population/character'
 import { TileBorder, type TileBorderContent } from './border/border'
 import type { TileContent } from './content/content'
 import { FreeGoods } from './freeGoods'
+import { ProjectManager } from './project'
 import { Tile } from './tile'
+import { ZoneManager } from './zone'
 
 export function isTileCoord(coord: AxialCoord): boolean {
 	return isInteger(coord.q) && isInteger(coord.r)
@@ -35,6 +37,8 @@ export class HexBoard extends withContainer(withHittable(GameObject)) {
 	// Will contain goods when perhaps destroying a building (war-like destruction), killing a character,
 	// stopping (or making) a transit, etc.
 	readonly freeGoods: FreeGoods
+	readonly zoneManager: ZoneManager
+	readonly projectManager: ProjectManager
 
 	constructor(
 		public game: Game,
@@ -42,6 +46,8 @@ export class HexBoard extends withContainer(withHittable(GameObject)) {
 	) {
 		super(game)
 		this.freeGoods = new FreeGoods(game)
+		this.zoneManager = new ZoneManager()
+		this.projectManager = new ProjectManager()
 		this.zIndex = -1
 	}
 

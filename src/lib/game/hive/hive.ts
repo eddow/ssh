@@ -191,7 +191,7 @@ export class Hive extends ReactiveBase {
 		// Get a border's neighbors - find tileA's and tileB's borders who are gates but not me
 		const border = this.board.getBorder(ref)!
 		function notMeGates(tile: Tile) {
-			return tile.content instanceof Alveolus && tile.content.conveyor ? [tile.position] : []
+			return tile.content instanceof Alveolus ? [tile.position] : []
 		}
 		return [...notMeGates(border.tile.a), ...notMeGates(border.tile.b)]
 	}

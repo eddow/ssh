@@ -31,9 +31,7 @@ export class TransformAlveolus extends Alveolus {
 				return (this.storage.available(goodType as GoodType) || 0) >= (required as number)
 			}) &&
 			// If we have all the room for the outputs
-			Object.entries(this.action.output || {}).every(([goodType, required]) => {
-				return (this.storage.hasRoom(goodType as GoodType) || 0) >= (required as number)
-			})
+			this.storage.canStoreAll(this.action.output)
 		)
 	}
 	alveolusSpecificJob(): Job | undefined {

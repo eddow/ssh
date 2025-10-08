@@ -28,15 +28,14 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition>() imple
 	public tile: Tile
 	public declare hive: Hive
 	public storage: Storage<any>
-	// Configurable properties
-	public walkway: boolean = true
-	public conveyor: boolean = true
+	// Configurable properties removed - walkway and conveyor are no longer used
 	private advertisingEffect: ScopedCallback
 
 	constructor(tile: Tile, storage: Storage<any>) {
 		super()
 		this.storage = storage
 		this.tile = tile
+		tile.content = this
 
 		const hive = Hive.for(tile)
 		// Only create gates between two alveoli
@@ -60,7 +59,7 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition>() imple
 		return {}
 	}
 	get walkTime() {
-		return this.walkway ? 1 : Number.POSITIVE_INFINITY
+		return 1
 	}
 	get background() {
 		return 'concrete'
@@ -113,6 +112,7 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition>() imple
 	alveolusSpecificJob?(): Job | undefined
 
 	getJob(): Job | undefined {
+		// TODO: cleaning job (also unbuild marked tile) -> unburden
 		if (this.assignedWorker) return undefined
 		// Don't provide jobs if the alveolus is burdened by FreeGoods
 		if (this.isBurdened) return undefined

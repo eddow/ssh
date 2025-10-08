@@ -32,6 +32,14 @@ declare namespace Ssh {
 		type: 'gather'
 		radius: number
 	}
+	interface BuildAction {
+		type: 'build'
+		target: string
+	}
+	interface EngineerAction {
+		type: 'engineer'
+		radius: number
+	}
 	interface SlottedStorageAction {
 		type: 'storage'
 		capacity: number
@@ -45,6 +53,8 @@ declare namespace Ssh {
 		| HarvestingAction
 		| TransformationAction
 		| GatherAction
+		| BuildAction
+		| EngineerAction
 		| SlottedStorageAction
 		| SpecificStorageAction
 
@@ -54,6 +64,7 @@ declare namespace Ssh {
 		workTime: number
 		icon: Sprite
 		sprites: Sprite[]
+		constructionCost: Record<string, number>
 	}
 	interface GoodsDefinition {
 		feedingValue?: number

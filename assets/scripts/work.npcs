@@ -9,7 +9,7 @@ function goWork(jobPlan, path)
 			if not path then error "No path found to alveolus"
 		loop
 		walk.enter
-		work.prepare
+		work.prepare jobPlan
 		// TODO: understand why `work[job](alveolus)` doesn't work/yield
 		work[jobPlan.jobType] jobPlan
 	end plan
@@ -31,6 +31,16 @@ function harvest(jobPlan)
 			inventory.dropStored I.vehicle.stock, alveolus.tile
 		end if
 	loop
+end function
+
+function offload(jobPlan)
+	// Offload: empty inventory as free goods to a safe nearby tile
+	// 1) Find best free spot (avoids zones, projects, alveoli; cost: walkTime * crowding)
+	where = find.freeSpot()
+	if not where then return false
+	// 2) Go there and drop all free goods
+	walk.into where
+	inventory.dropAllFree
 end function
 
 function transform(jobPlan)
@@ -68,4 +78,15 @@ function gather(jobPlan)
 	loop
 end function
 
-return { goWork, harvest, transform, convey, gather }
+function construct(jobPlan)
+    alveolus = jobPlan.alveolus
+    do while I.keepWorking and alveolus.keepWorking
+        path = find.buildable(alveolus)
+        if not path then return false
+        walk.until path
+        walk.enter
+        work.constructionStep
+    loop
+end function
+
+return { goWork, harvest, transform, convey, gather, construct }

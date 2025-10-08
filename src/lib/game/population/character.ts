@@ -8,7 +8,7 @@ import { assert } from '$lib/debug'
 import { mrg } from '$lib/globals.svelte'
 import { type AxialCoord, axial, maxBy, type Positioned } from '$lib/utils'
 import { axialDistance, type Position, toAxialCoord, toWorldCoord } from '../../utils/position'
-import { Alveolus } from '../board/content/alveolus'
+import type { Alveolus } from '../board/content/alveolus'
 import type { Tile } from '../board/tile'
 import type { Game } from '../game'
 import { bestPossibleJobScore, calculateJobScore, type Job } from '../job'
@@ -85,9 +85,9 @@ export class Character extends withInteractive(
 
 		// Score function: evaluates how good a job is at a given coordinate
 		const scoreJob = (coord: Positioned): number | false => {
-			const content = this.game.hex.getTile(coord)?.content
-			if (!(content instanceof Alveolus)) return false
-			const job = content.getJob()
+			const tile = this.game.hex.getTile(coord)
+			if (!tile) return false
+			const job = tile.getJob?.()
 			return job ? calculateJobScore(this, job) : false
 		}
 
@@ -105,8 +105,8 @@ export class Character extends withInteractive(
 
 		const targetCoord = path[path.length - 1]
 		const targetTile = this.game.hex.getTile(targetCoord)!
-		const jobProvider = targetTile.content as Alveolus
-		const job = jobProvider.getJob() as Job
+		const job = targetTile.getJob() as Job
+		const jobProvider = targetTile.content
 		this.log('character.beginJob', job.type)
 
 		// Create and return the work plan - the plan lifecycle will handle state management
@@ -114,7 +114,7 @@ export class Character extends withInteractive(
 			{
 				type: 'work',
 				jobType: job.type,
-				alveolus: jobProvider,
+				tileContent: jobProvider,
 			},
 			path,
 		)

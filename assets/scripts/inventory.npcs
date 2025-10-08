@@ -41,6 +41,9 @@ function grabFree(good, place, path = null, punctual = true)
 end function
 
 function dropAllFree()
+	where = find.freeSpot()
+	if not where then return false
+	walk.into where
 	do
 		good = keys(I.vehicle.stock)[0]
 	while good

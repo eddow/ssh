@@ -1,7 +1,8 @@
+import { type } from 'arktype'
 import type { ContainerChild } from 'pixi.js'
 import type { Game } from '$lib/game'
-import type { Storage } from '../../storage'
-import type { Tile } from '../tile'
+import { Storage } from '../../storage'
+import { type Tile, TileArkType } from '../tile'
 
 export interface TileContent {
 	readonly tile: Tile
@@ -26,3 +27,12 @@ export interface TileContent {
 	 */
 	canInteract?(action: string): boolean
 }
+
+export const TileContent = type.object({
+	tile: TileArkType,
+	name: type.string.optional(),
+	debugInfo: type.object({}),
+	walkTime: type.number,
+	background: type.string,
+	storage: type.instanceOf(Storage).optional(),
+})

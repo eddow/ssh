@@ -154,7 +154,7 @@ describe.each([
 		})
 
 		it('should reserve goods correctly', () => {
-			const reservation = storage.reserve({ wood: 3 }, 'test')
+			const _reservation = storage.reserve({ wood: 3 }, 'test')
 			expect(storage.available('wood')).toBe(7)
 			expect(storage.stock).toEqual({ wood: 10, stone: 5 })
 		})

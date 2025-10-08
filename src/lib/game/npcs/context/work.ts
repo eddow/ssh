@@ -1,28 +1,33 @@
 import { contract, type Goods, type GoodType } from '$lib/arktype'
 import { assert } from '$lib/debug'
+import { AlveolusArkType } from '$lib/game/board'
+import { UnBuiltLand } from '$lib/game/board/content/unbuilt-land'
+import { alveolusClass } from '$lib/game/hive'
+import { BuildAlveolus } from '$lib/game/hive/build'
+import type { TransformAlveolus } from '$lib/game/hive/transform'
 import type { Character } from '$lib/game/population/character'
 import type { AllocationBase } from '$lib/game/storage'
 import { axial } from '$lib/utils'
-import { AlveolusArkType } from '../../board'
-import { UnBuiltLand } from '../../board/content/unbuilt-land'
-import type { TransformAlveolus } from '../../hive/transform'
 import { subject } from '../scripts'
 import { DurationStep, MoveToStep, WaitForPredicateStep } from '../steps'
+import { WorkPlan } from '.'
 
 class WorkFunctions {
 	declare [subject]: Character
-	@contract()
+	@contract(WorkPlan)
 	// TODO: specific cases for `convey`: preparationTime, assignedConveyor, ... ?
-	prepare() {
+	prepare(workPlan: WorkPlan) {
 		assert(
 			this[subject].assignedAlveolus?.preparationTime,
 			'assignedAlveolus must be set and have a preparationTime',
 		)
-		return new DurationStep(
-			this[subject].assignedAlveolus!.preparationTime,
-			'work',
-			`prepare.${this[subject].assignedAlveolus!.name}`,
-		)
+		return workPlan.jobType !== 'convey'
+			? new DurationStep(
+					this[subject].assignedAlveolus!.preparationTime,
+					'work',
+					`prepare.${workPlan.jobType}`,
+				)
+			: undefined
 	}
 	@contract()
 	waitForIncomingGoods() {
@@ -141,6 +146,21 @@ class WorkFunctions {
 			.canceled(() => {
 				for (const allocation of allocations) allocation.cancel()
 			})
+	}
+	@contract()
+	constructionStep() {
+		// Character must already be on the construction site tile
+		const content = this[subject].tile.content
+		assert(content instanceof BuildAlveolus, 'Tile must be a BuildAlveolus')
+		const site = content as BuildAlveolus
+		assert(site.isReady, 'Construction site must be ready')
+		const targetType = site.action.target as keyof typeof alveolusClass
+		const TargetClass = alveolusClass[targetType]
+		assert(TargetClass, 'Target alveolus class must exist')
+		return new DurationStep(site.workTime, 'work', `construct.${targetType}`).finished(() => {
+			// Replace the tile content with the target alveolus
+			site.tile.content = new TargetClass(site.tile)
+		})
 	}
 }
 

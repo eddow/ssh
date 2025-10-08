@@ -16,7 +16,7 @@ import { WalkFunctions } from './walk'
 import { WorkFunctions } from './work'
 
 // Re-export TransferPlan for external use
-export type { PickupPlan as GatherPlan, Plan, TransferPlan, WorkPlan } from './plan'
+export { PickupPlan as GatherPlan, Plan, TransferPlan, WorkPlan } from './plan'
 
 class CharacterContext extends InteractiveContext<Character> {
 	get I() {
@@ -28,6 +28,8 @@ class CharacterContext extends InteractiveContext<Character> {
 	}
 	@contract(HarvestAlveolusArkType)
 	isGatherable(harvestAlveolus: HarvestAlveolus) {
+		// If current tile is part of a project, do not gather here
+		if (this[subject].tile.project) return false
 		// TODO: check all gatherers collected by harvestAlveolus - even outside the hive
 		const gatherers = harvestAlveolus.hive.byActionType.gather
 		if (!gatherers || gatherers.length === 0) return false

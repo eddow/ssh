@@ -25,7 +25,7 @@ class Games extends Eventful<GamedEvents> {
 			const game = new Game(
 				{
 					boardSize: 12,
-					terrainSeed: 12345,
+					terrainSeed: 23,
 					characterCount: 3,
 					characterRadius: 5,
 				},
