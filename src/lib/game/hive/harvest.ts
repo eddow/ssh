@@ -8,6 +8,7 @@ import { axialDistance, type Positioned, toAxialCoord } from '../../utils/positi
 import { UnBuiltLand } from '../board'
 import { multiplyGoodsQty } from '../board/content/utils'
 import type { Tile } from '../board/tile'
+import { BuildAlveolus } from './build'
 import { TransitAlveolus } from './transit'
 export class HarvestAlveolus extends TransitAlveolus {
 	declare action: Ssh.HarvestingAction
@@ -44,6 +45,34 @@ export class HarvestAlveolus extends TransitAlveolus {
 	}
 	alveolusSpecificJob(): Job | undefined {
 		if (!this.keepWorking) return undefined
+		// TODO: Give specifications of the job (like the deposit found) in the job description ?
+		// First, try to find a deposit on a construction site tile (highest priority)
+		const constructionDeposit = this.tile.game.hex.findNearest(
+			toAxialCoord(this.tile.position),
+			(coord: Positioned) => {
+				const tile = this.tile.game.hex.getTile(coord)
+				// Check if there's a BuildAlveolus on a neighboring tile waiting for this tile to be cleared
+				return (
+					tile?.content instanceof UnBuiltLand &&
+					tile.content.deposit?.name === this.action.deposit &&
+					tile.neighborTiles.some((neighbor) => neighbor.content instanceof BuildAlveolus)
+				)
+			},
+			6,
+		)
+
+		// If found, prioritize it with higher urgency
+		if (constructionDeposit) {
+			const constructionDepositCoord = constructionDeposit[constructionDeposit.length - 1]
+			return {
+				type: 'harvest',
+				fatigue:
+					this.getFatigueCost() + axialDistance(this.tile.position, constructionDepositCoord) * 2,
+				urgency: 3, // High urgency for construction site clearing
+			}
+		}
+
+		// Otherwise, find any deposit of the right type
 		const nearestDeposit = this.tile.game.hex.findNearest(
 			toAxialCoord(this.tile.position),
 			(coord: Positioned) => {

@@ -1,8 +1,8 @@
-import { atomic, effect, unreactive } from 'mutts/src'
+import { atomic, unreactive } from 'mutts/src'
 import { activityDurations, ponderingFatigueRecovery } from '$assets/constants'
 import { goods as goodsCatalog } from '$assets/game-content'
 import type { GoodType } from '$lib/arktype'
-import { assert } from '$lib/debug'
+import { assert, namedEffect } from '$lib/debug'
 import { casing } from '$lib/utils'
 import type { Position, Positioned } from '../../utils/position'
 import type { Character } from '../population'
@@ -67,7 +67,7 @@ export class QueueStep<Entity extends ScriptedObject> extends ASingleStep {
 	) {
 		super()
 		queue.push(waiter)
-		const waiting = effect(() => {
+		const waiting = namedEffect('queue.wait', () => {
 			if (queue[0] === waiter) {
 				this.finish()
 				this.passed = true
@@ -157,7 +157,7 @@ export class WaitForPredicateStep extends ASingleStep {
 		predicate: () => boolean,
 	) {
 		super()
-		const stop = effect(() => {
+		const stop = namedEffect('waitForPredicate', () => {
 			if (predicate()) {
 				this.passed = true
 				this.finish()

@@ -94,9 +94,11 @@ export class Game extends Eventful<GameEvents> {
 	}
 	public gameView?: GameView
 	public stage: Container
-	public backgroundLayer: Container
-	public objectLayer: Container
-	public effectLayer: Container
+	public groundLayer: Container
+	public alveoliLayer: Container
+	public storedGoodsLayer: Container
+	public freeGoodsLayer: Container
+	public charactersLayer: Container
 	public resources: Record<string, Texture | Spritesheet> = null!
 	public readonly population: Population
 	getTexture(spec: Ssh.Sprite): Texture {
@@ -170,21 +172,28 @@ export class Game extends Eventful<GameEvents> {
 		this.ticker = new Ticker()
 		this.loaded = this.load()
 
-		// Create layer structure
+		// Create layer structure (bottom to top)
 		this.stage = new Container()
-		this.backgroundLayer = new Container()
-		this.objectLayer = new Container()
-		this.effectLayer = new Container()
+		this.groundLayer = new Container()
+		this.alveoliLayer = new Container()
+		this.storedGoodsLayer = new Container()
+		this.freeGoodsLayer = new Container()
+		this.charactersLayer = new Container()
 
-		// Disable sorting for background layer (tiles stay in fixed order)
-		this.backgroundLayer.sortableChildren = false
-		// Enable sorting for object layer (objects sort by Y position)
-		this.objectLayer.sortableChildren = true
+		// Disable sorting for ground layer (tiles stay in fixed order)
+		this.groundLayer.sortableChildren = false
+		// Other layers can have sorting enabled if needed
+		this.alveoliLayer.sortableChildren = false
+		this.storedGoodsLayer.sortableChildren = false
+		this.freeGoodsLayer.sortableChildren = false
+		this.charactersLayer.sortableChildren = true
 
-		// Add layers to stage
-		this.stage.addChild(this.backgroundLayer)
-		this.stage.addChild(this.objectLayer)
-		this.stage.addChild(this.effectLayer)
+		// Add layers to stage in order (bottom to top)
+		this.stage.addChild(this.groundLayer)
+		this.stage.addChild(this.alveoliLayer)
+		this.stage.addChild(this.storedGoodsLayer)
+		this.stage.addChild(this.freeGoodsLayer)
+		this.stage.addChild(this.charactersLayer)
 
 		// Create hex board
 		this.hex = new HexBoard(this)
@@ -300,12 +309,12 @@ export class Game extends Eventful<GameEvents> {
 				const AlveolusCtor = alveolusClass[a.alveolus as keyof typeof alveolusClass]
 				if (!AlveolusCtor) continue
 				const alv = new AlveolusCtor(tile)
+				tile.content = alv
 				hiveInstance = alv.hive
 				alv.hive.name = hive.name
 				if (a.goods)
 					for (const [good, qty] of Object.entries(a.goods))
 						alv.storage?.addGood(good as GoodType, qty)
-				tile.content = alv
 				tile.asGenerated = false
 			}
 			assert(hiveInstance, 'Alveolus building on load')

@@ -114,7 +114,7 @@ export class SlottedStorage extends Storage<SlottedAllocation> {
 				totalCapacity += this.maxQuantityPerSlot
 				continue
 			}
-			if (!goodType || slot.goodType === goodType) {
+			if (slot.goodType === goodType) {
 				const freeInSlot = this.maxQuantityPerSlot - slot.quantity - slot.allocated
 				totalCapacity += Math.max(0, freeInSlot)
 			}

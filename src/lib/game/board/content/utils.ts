@@ -1,13 +1,15 @@
 import type { GoodType } from '$lib/arktype'
 
-type Ctor<T extends object = any> = abstract new (...args: any[]) => T
+type Ctor<T extends object = any> = new (...args: any[]) => T
 
 export function GcClass<BaseCtor extends Ctor<any>>(
-	Base: (def: any) => BaseCtor,
+	Base: (def: any) => BaseCtor | undefined,
 	name: string,
 	def: any,
-): BaseCtor {
-	class Sub extends (Base(def) as Ctor) {
+): BaseCtor | undefined {
+	const BaseClass = Base(def)
+	if (!BaseClass) return undefined
+	class Sub extends BaseClass {
 		static resourceName = name
 	}
 	Object.defineProperties(Sub, { name: { value: `${Base.name}<${name}>` } })
@@ -33,7 +35,7 @@ export function GcClass<BaseCtor extends Ctor<any>>(
 export function GcClasses<
 	BaseCtor extends Ctor<any>,
 	Entries extends Record<string, any> = Record<string, any>,
->(Base: (def: any) => BaseCtor, entries: Entries) {
+>(Base: (def: any) => BaseCtor | undefined, entries: Entries) {
 	return Object.fromEntries(
 		Object.entries(entries).map(([name, def]) => [name, GcClass(Base, name, def)]),
 	) as { [K in keyof Entries]: BaseCtor & Entries[K] }

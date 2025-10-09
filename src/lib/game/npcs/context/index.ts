@@ -28,8 +28,6 @@ class CharacterContext extends InteractiveContext<Character> {
 	}
 	@contract(HarvestAlveolusArkType)
 	isGatherable(harvestAlveolus: HarvestAlveolus) {
-		// If current tile is part of a project, do not gather here
-		if (this[subject].tile.project) return false
 		// TODO: check all gatherers collected by harvestAlveolus - even outside the hive
 		const gatherers = harvestAlveolus.hive.byActionType.gather
 		if (!gatherers || gatherers.length === 0) return false

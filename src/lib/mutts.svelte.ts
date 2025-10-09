@@ -1,5 +1,6 @@
 import { watch } from 'mutts/src'
 import { untrack } from 'svelte'
+import { nf } from './debug'
 /**
  * Converts a Mutts reactive object/array to a Svelte reactive object/array.
  *
@@ -20,13 +21,13 @@ export function p2s<T extends object | any[] | undefined>(getter: () => T): () =
 	$effect(() => {
 		const unwatch = watch(
 			getter,
-			(newVal: T) => {
+			nf('p2s', (newVal: T) => {
 				// Use untrack to prevent the state updates from triggering effects
 				untrack(() => {
 					value = newVal
 					initialized = true
 				})
-			},
+			}),
 			{ immediate: true },
 		)
 

@@ -1,8 +1,9 @@
 import { type } from 'arktype'
-import { computed, effect, unreactive, watch } from 'mutts/src'
+import { computed, unreactive, watch } from 'mutts/src'
 import { ColorMatrixFilter, Container, Graphics, Point, TilingSprite } from 'pixi.js'
 
 import type { AlveolusType } from '$lib/arktype'
+import { namedEffect } from '$lib/debug'
 import { mrg } from '$lib/globals.svelte'
 import { type AxialCoord, axial, type NeighborInfo, tileSize } from '$lib/utils'
 import {
@@ -12,7 +13,8 @@ import {
 	toAxialCoord,
 	toWorldCoord,
 } from '../../utils/position'
-import { alveolusClass } from '../hive'
+import { Hive } from '../hive'
+import { BuildAlveolus } from '../hive/build'
 import type { Job } from '../job'
 import { gameIsaTypes } from '../npcs/utils'
 import { GameObject, withGenerator, withInteractive } from '../object'
@@ -21,7 +23,6 @@ import type { TileBorder } from './border/border'
 import { Alveolus } from './content/alveolus'
 import type { TileContent } from './content/content'
 import type { FreeGood } from './freeGoods'
-import type { Project } from './project'
 import type { Zone } from './zone'
 
 @unreactive
@@ -37,6 +38,16 @@ export class Tile extends withInteractive(withGenerator(GameObject)) {
 		this.board.setTileContent(toAxialCoord(this.position), content)
 		// Mark as modified from generation when content changes
 		this.asGenerated = false
+
+		// If content is an Alveolus, handle hive attachment
+		if (content instanceof Alveolus) {
+			const hive = Hive.for(this)
+			hive.attach(content)
+			// Start advertising to the hive
+			content.advertisingEffect = namedEffect('tile.campaign', () => {
+				hive.campaign(content)
+			})
+		}
 	}
 	constructor(
 		public readonly board: HexBoard,
@@ -61,15 +72,14 @@ export class Tile extends withInteractive(withGenerator(GameObject)) {
 			position: this.position,
 			content: this.content?.debugInfo,
 			zone: this.zone,
-			project: this.project?.name,
 		}
 	}
 
 	// Tile-level job offering
 	getJob(): Job | undefined {
-		// Offload if there are free goods on tile and it's a project/zone/alveolus tile
+		// Offload if there are free goods on tile and it's a zone/alveolus tile
 		const hasFreeGoods = this.availableGoods.length > 0
-		const isSpecial = !!this.project || !!this.zone || this.content instanceof Alveolus
+		const isSpecial = !!this.zone || this.content instanceof Alveolus
 		if (hasFreeGoods && isSpecial) {
 			return { type: 'offload', fatigue: 1, urgency: 10 }
 		}
@@ -90,32 +100,46 @@ export class Tile extends withInteractive(withGenerator(GameObject)) {
 		}
 	}
 
-	// Project getter/setter
-	get project(): Project | undefined {
-		return this.board.projectManager.getProject(toAxialCoord(this.position))
-	}
-
-	set project(project: Project | undefined) {
-		if (project === undefined) {
-			this.board.projectManager.removeProject(toAxialCoord(this.position))
-		} else {
-			this.board.projectManager.setProject(toAxialCoord(this.position), project)
-		}
-	}
-
 	canInteract(action: string): boolean {
 		return this.content?.canInteract?.(action) ?? false
 	}
-	//TODO: ->constructionSite
+
+	/**
+	 * Check if tile is clear of obstacles (no deposits, no free goods)
+	 */
+	get isClear(): boolean {
+		const coord = toAxialCoord(this.position)
+		const content = this.board.getTileContent(coord)
+
+		// If this is a BuildAlveolus, check the underlying land's deposit
+		if (content instanceof BuildAlveolus) {
+			const underlyingLand = content.underlyingLand
+			if (underlyingLand && 'deposit' in underlyingLand && underlyingLand.deposit) {
+				return false
+			}
+		}
+		// Otherwise check content directly for deposit
+		else if (content && 'deposit' in content && content.deposit) {
+			return false
+		}
+
+		// Check if there are free goods
+		const freeGoods = this.board.freeGoods.getGoodsAt(coord)
+		if (freeGoods.length > 0) {
+			return false
+		}
+
+		return true
+	}
+
 	build(alveolusType: AlveolusType): boolean {
+		// Check if content can be built on
 		if (!this.canInteract(`build:${alveolusType}`)) {
 			return false
 		}
-		const AlveolusClass = alveolusClass[alveolusType]
-		if (!AlveolusClass) return false
-		/* Affectation to content is done in the constructor of the alveolus
-		this.content = */ new AlveolusClass(this)
 
+		// Create BuildAlveolus directly - it will be blocked until tile is clear
+		this.content = new BuildAlveolus(this, alveolusType)
 		return true
 	}
 
@@ -170,33 +194,27 @@ export class Tile extends withInteractive(withGenerator(GameObject)) {
 		tileSprite.filters = [brightnessFilter]
 
 		tileContainer.addChild(tileSprite, mask)
-		game.backgroundLayer.addChild(tileContainer)
+		game.groundLayer.addChild(tileContainer)
+
+		// Watch for content changes and render content
 		const cleanup = watch(
 			() => this.content,
 			(content) => {
 				if (!content) return
-				const fg = new Container()
-				const { x, y } = toWorldCoord(position)
-				fg.position.set(x, y)
-				game.objectLayer.addChild(fg)
-				fg.addChild(content.render(game))
-				return () => {
-					fg.destroy()
-					game.objectLayer.removeChild(fg)
-				}
+				// content.render now returns a cleanup function instead of a Container
+				return content.render(game)
 			},
 			{ immediate: true },
 		)
-		const mouseoverEffect = effect(() => {
+
+		const mouseoverEffect = namedEffect('tile.mouseover', () => {
 			if (mrg.hoveredObject === this) {
 				tileSprite.tint = 0xaaaaff
 				brightnessFilter.brightness(1.2, false)
 			} else {
 				let tint = 0xffffff
-				// Priority: project > zone
-				if (this.project) {
-					tint = 0xffaaaa // reddish for tiles with a project
-				} else if (this.zone === 'residential') {
+				// Priority: construction site > zone
+				if (this.zone === 'residential') {
 					tint = 0xaaffaa // greenish for residential zone
 				} else if (this.zone === 'harvest') {
 					tint = 0xffffaa // yellowish for harvest zone
@@ -205,12 +223,12 @@ export class Tile extends withInteractive(withGenerator(GameObject)) {
 				brightnessFilter.brightness(1, false)
 			}
 		})
-		this.game.backgroundLayer.addChild(tileContainer)
+
 		return () => {
 			cleanup()
 			mouseoverEffect()
 			tileContainer.destroy({ children: false })
-			this.game.backgroundLayer.removeChild(tileContainer)
+			this.game.groundLayer.removeChild(tileContainer)
 		}
 	}
 	@computed

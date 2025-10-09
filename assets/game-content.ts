@@ -112,13 +112,6 @@ export const alveoli = {
 		icon: 'transit',
 		constructionCost: { wood: 1, planks: 1, stone: 1 },
 	},
-	building: {
-		preparationTime: 1,
-		action: { type: 'build', target: 'sawmill' },
-		workTime: 2,
-		sprites: ['construction'],
-		icon: 'construction',
-	},
 	engineer: {
 		preparationTime: 1,
 		action: { type: 'engineer', radius: 6 },

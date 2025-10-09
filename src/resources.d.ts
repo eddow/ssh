@@ -32,10 +32,6 @@ declare namespace Ssh {
 		type: 'gather'
 		radius: number
 	}
-	interface BuildAction {
-		type: 'build'
-		target: string
-	}
 	interface EngineerAction {
 		type: 'engineer'
 		radius: number
@@ -53,7 +49,6 @@ declare namespace Ssh {
 		| HarvestingAction
 		| TransformationAction
 		| GatherAction
-		| BuildAction
 		| EngineerAction
 		| SlottedStorageAction
 		| SpecificStorageAction

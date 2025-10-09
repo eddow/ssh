@@ -1,6 +1,5 @@
 import { type } from 'arktype'
 import { watch } from 'mutts/src'
-import { Container } from 'pixi.js'
 import type { Game } from '$lib/game/game'
 import { GameObject, withGenerator } from '$lib/game/object'
 import type { Storage } from '$lib/game/storage'
@@ -45,47 +44,33 @@ export class TileBorder extends withGenerator(GameObject) {
 		const tileAWorld = toWorldCoord(this.tile.a.position)
 		const tileBWorld = toWorldCoord(this.tile.b.position)
 
-		// Calculate relative position of tile A from the border center
+		// Calculate border center position
 		const borderCenter = {
 			x: (tileAWorld.x + tileBWorld.x) / 2,
 			y: (tileAWorld.y + tileBWorld.y) / 2,
 		}
 
+		// Calculate relative position of tile A from the border center
 		const alveolusCenter = {
 			x: tileAWorld.x - borderCenter.x,
 			y: tileAWorld.y - borderCenter.y,
 		}
 
-		// Create container at border center and add to object layer
-		const container = new Container()
-		container.position.set(borderCenter.x, borderCenter.y)
-		this.game.objectLayer.addChild(container)
-
-		const cleanup = watch(
+		// Watch for content changes and render border goods
+		return watch(
 			() => this.content,
 			(content) => {
 				if (!content) return
-				const goodsContainer = renderBorderGoods(
+				return renderBorderGoods(
 					this.game,
 					tileSize,
 					() => content.renderedGoods(),
+					borderCenter,
 					alveolusCenter,
 				)
-				container.addChild(goodsContainer)
-				return () => {
-					container.removeChild(goodsContainer)
-					goodsContainer.destroy()
-				}
 			},
 			{ immediate: true },
 		)
-
-		// Return cleanup function
-		return () => {
-			cleanup()
-			this.game.objectLayer.removeChild(container)
-			container.destroy({ children: false })
-		}
 	}
 }
 

@@ -1,10 +1,10 @@
 import { type } from 'arktype'
-import { effect, reactive, type ScopedCallback } from 'mutts/src'
+import { reactive, type ScopedCallback } from 'mutts/src'
 import { ColorMatrixFilter, Sprite } from 'pixi.js'
 import { characterEvolutionRates, characterTriggerLevels, maxWalkTime } from '$assets/constants'
 import { goods as goodsCatalog } from '$assets/game-content'
 import type { GoodType } from '$lib/arktype'
-import { assert } from '$lib/debug'
+import { assert, namedEffect } from '$lib/debug'
 import { mrg } from '$lib/globals.svelte'
 import { type AxialCoord, axial, maxBy, type Positioned } from '$lib/utils'
 import { axialDistance, type Position, toAxialCoord, toWorldCoord } from '../../utils/position'
@@ -204,7 +204,7 @@ export class Character extends withInteractive(
 		// Hover highlight similar to tiles
 		const brightnessFilter = new ColorMatrixFilter()
 		characterSprite.filters = [brightnessFilter]
-		const mouseoverEffect = effect(() => {
+		const mouseoverEffect = namedEffect('character.mouseover', () => {
 			if (mrg.hoveredObject === this) {
 				characterSprite.tint = 0xaaaaff
 				brightnessFilter.brightness(1.2, false)
@@ -213,19 +213,19 @@ export class Character extends withInteractive(
 				brightnessFilter.brightness(1, false)
 			}
 		})
-		effect(() => {
+		namedEffect('character.position', () => {
 			const { x, y } = toWorldCoord(this.position)
 			characterSprite.position.set(x, y)
 		})
 
-		// Add to object layer
-		game.objectLayer.addChild(characterSprite)
+		// Add to characters layer
+		game.charactersLayer.addChild(characterSprite)
 
 		// Return cleanup function
 		return () => {
 			mouseoverEffect()
 			characterSprite.destroy()
-			game.objectLayer.removeChild(characterSprite)
+			game.charactersLayer.removeChild(characterSprite)
 		}
 	}
 }

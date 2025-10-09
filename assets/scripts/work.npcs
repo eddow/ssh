@@ -2,16 +2,15 @@ function goWork(jobPlan, path)
 	target = jobPlan.target
 	plan jobPlan
 		inventory.dropAllFree
-		if target isa alveolus then
-			if tile != target.tile then do
-				walk.until path
-			while tile != target.tile
-				path = find.path(target.tile, false)
-				if not path then error "No path found to target"
-			loop
-			walk.enter
-			work.prepare jobPlan
-		end if
+		if tile != target.tile then do
+			walk.until path
+		while tile != target.tile
+			path = find.path(target.tile, false)
+			if not path then error "No path found to target"
+		loop
+		walk.enter
+
+		work.prepare jobPlan
 		// TODO: understand why `work[job](alveolus)` doesn't work/yield
 		work[jobPlan.jobType] jobPlan
 	end plan
@@ -56,11 +55,9 @@ end function
 function gather(jobPlan)
 	alveolus = jobPlan.target
 	do while I.keepWorking and alveolus.keepWorking
-		log "gathering"
 		do
 			gatherable = find.gatherables(alveolus, alveolus.action.radius)
 		while gatherable
-			log "gather:", gatherable
 			good = gatherable.goodType
 			path = gatherable.path
 			inventory.grabFree good, path[path.length - 1], path

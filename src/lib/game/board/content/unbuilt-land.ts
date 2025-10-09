@@ -1,11 +1,12 @@
-import { effect, unreactive } from 'mutts/src'
-import { Container, type ContainerChild, Sprite } from 'pixi.js'
+import { type ScopedCallback, unreactive } from 'mutts/src'
+import { Sprite } from 'pixi.js'
 import { deposits } from '$assets/game-content'
 import type { TerrainType } from '$lib/arktype'
+import { namedEffect } from '$lib/debug'
 import type { Game } from '$lib/game/game'
 import { tileSize } from '$lib/utils'
 import { fastPoissonRandom } from '$lib/utils/poisson'
-import { toAxialCoord } from '$lib/utils/position'
+import { toAxialCoord, toWorldCoord } from '$lib/utils/position'
 import { withTicked } from '../../object'
 import type { Tile } from '../tile'
 import { TileContent } from './content'
@@ -91,11 +92,11 @@ export class UnBuiltLand extends withTicked(TileContent) {
 	get background() {
 		return `terrain-${this.terrain}`
 	}
-	render(game: Game): ContainerChild {
+	render(game: Game): ScopedCallback | undefined {
 		const size = tileSize
-		const root = new Container()
+		const worldPos = toWorldCoord(this.tile.position)
 
-		effect(() => {
+		return namedEffect('unbuilt.render', () => {
 			// Deposit sprite if any
 			if (this.deposit?.sprites?.[0]) {
 				const sprite = new Sprite(game.getTexture(this.deposit.sprites[0]))
@@ -103,25 +104,20 @@ export class UnBuiltLand extends withTicked(TileContent) {
 				const scale = Math.max(sprite.width, sprite.height) / (size * 1)
 				sprite.scale.set(1 / scale)
 				sprite.anchor.set(0.5)
-				root.addChild(sprite)
-				return () => sprite.destroy()
+				sprite.position.set(worldPos.x, worldPos.y)
+				game.alveoliLayer.addChild(sprite)
+
+				return () => {
+					game.alveoliLayer.removeChild(sprite)
+					sprite.destroy()
+				}
 			}
 		})
-
-		return root
 	}
 
 	canInteract(action: string): boolean {
 		// UnBuiltLand can accept building actions
 		if (action.startsWith('build:')) {
-			// Can't build if there's a deposit
-			if (this.deposit) return false
-
-			// Can't build if there are FreeGoods on the tile (burdened tile)
-			const coord = toAxialCoord(this.tile.position)
-			const freeGoods = this.tile.board.freeGoods.getGoodsAt(coord)
-			if (freeGoods.length > 0) return false
-
 			return true
 		}
 		// Can also accept other actions if they make sense

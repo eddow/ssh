@@ -1,15 +1,14 @@
 import { type } from 'arktype'
-import { computed, effect, type ScopedCallback, unreactive } from 'mutts/src'
-import { Container, type ContainerChild, Sprite } from 'pixi.js'
+import { computed, type ScopedCallback, unreactive } from 'mutts/src'
+import { Sprite } from 'pixi.js'
 import type { GoodType } from '$lib/arktype'
 import type { Game } from '$lib/game/game'
-import type { MovingGood } from '$lib/game/hive/hive'
-import { Hive } from '$lib/game/hive/hive'
+import type { Hive, MovingGood } from '$lib/game/hive/hive'
 import type { Job } from '$lib/game/job'
 import { gameIsaTypes } from '$lib/game/npcs/utils'
 import type { Character } from '$lib/game/population/character'
 import { type AxialCoord, axial, epsilon, tileSize } from '$lib/utils'
-import { toAxialCoord } from '$lib/utils/position'
+import { toAxialCoord, toWorldCoord } from '$lib/utils/position'
 import { renderTileGoods, type Storage } from '../../storage'
 import { AlveolusGate } from '../border/alveolus-gate'
 import type { Tile } from '../tile'
@@ -31,15 +30,13 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition, typeof 
 	public declare hive: Hive
 	public storage: Storage<any>
 	// Configurable properties removed - walkway and conveyor are no longer used
-	private advertisingEffect: ScopedCallback
+	public advertisingEffect?: ScopedCallback
 
 	constructor(tile: Tile, storage: Storage<any>) {
 		super()
 		this.storage = storage
 		this.tile = tile
-		tile.content = this
 
-		const hive = Hive.for(tile)
 		// Only create gates between two alveoli
 		for (const surrounding of this.tile.surroundings) {
 			// Check if the neighboring tile also contains an alveolus
@@ -50,11 +47,6 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition, typeof 
 				}
 			}
 		}
-		// Attach (and poke) *after* creating gates
-		hive.attach(this)
-		this.advertisingEffect = effect(() => {
-			this.hive.campaign(this)
-		})
 	}
 
 	get debugInfo() {
@@ -81,9 +73,11 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition, typeof 
 	}
 
 	// Render alveolus sprite + a vertical goods bar on the right side of the tile
-	render(game: Game): ContainerChild {
-		const root = new Container()
+	render(game: Game): ScopedCallback | undefined {
 		const size = tileSize
+		const worldPos = toWorldCoord(this.tile.position)
+		const cleanups: ScopedCallback[] = []
+
 		// Alveolus sprite (centered)
 		if (this.sprites?.[0]) {
 			const sprite = new Sprite(game.getTexture(this.sprites[0]))
@@ -91,11 +85,22 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition, typeof 
 			const scale = Math.max(sprite.width, sprite.height) / (size * 1.5)
 			sprite.scale.set(1 / scale)
 			sprite.anchor.set(0.5)
-			root.addChild(sprite)
-		}
-		root.addChild(renderTileGoods(game, size, () => this.storage.renderedGoods()))
+			sprite.position.set(worldPos.x, worldPos.y)
+			game.alveoliLayer.addChild(sprite)
 
-		return root
+			cleanups.push(() => {
+				game.alveoliLayer.removeChild(sprite)
+				sprite.destroy()
+			})
+		}
+
+		// Render stored goods
+		const goodsCleanup = renderTileGoods(game, size, () => this.storage.renderedGoods(), worldPos)
+		if (goodsCleanup) cleanups.push(goodsCleanup)
+
+		return () => {
+			for (const cleanup of cleanups) cleanup()
+		}
 	}
 
 	canInteract(_action: string): boolean {
@@ -176,13 +181,14 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition, typeof 
 		// Provide a convey job only when there are pass-through movements via borders
 		// TODO: 2 "queued" movement goods (one from a->B, one from B->A) or a larger circle should be untangled
 		// TODO: the chosen movement should be random, not arbitrary
+		// TODO: set urgency/fatigue ?
 		return this.goodMovements.length > 0
-			? ({ type: 'convey', fatigue: this.getFatigueCost(), urgency: 2 } as Job)
+			? ({ type: 'convey', fatigue: 3, urgency: 2 } as Job)
 			: undefined
 	}
 
 	deconstruct() {
-		this.advertisingEffect()
+		this.advertisingEffect?.()
 		this.tile.content = new UnBuiltLand(this.tile, 'concrete')
 		for (const gate of this.gates) gate.border.content = undefined
 		this.hive.removeAlveolus(this)

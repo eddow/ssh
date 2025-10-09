@@ -1,6 +1,7 @@
 // Library used by Pixi
 import EventEmitter from 'eventemitter3'
-import { effect, ReactiveBase, type ScopedCallback, unreactive } from 'mutts/src'
+import { ReactiveBase, type ScopedCallback, unreactive } from 'mutts/src'
+import { namedEffect } from '$lib/debug'
 import type { Position } from '../utils/position'
 import type { Tile } from './board/tile'
 import type { Game } from './game'
@@ -31,7 +32,8 @@ export function withGenerator<T extends abstract new (...args: any[]) => GameObj
 			const game = this.game
 			if (game) {
 				game.loaded.then(() => {
-					if (!this.renderCleanup) this.renderCleanup = effect(() => this.render())
+					if (!this.renderCleanup)
+						this.renderCleanup = namedEffect('generator.render', () => this.render())
 				})
 			}
 		}

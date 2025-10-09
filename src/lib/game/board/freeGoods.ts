@@ -1,8 +1,8 @@
-import { atomic, effect, reactive, type ScopedCallback, unreactive } from 'mutts/src'
+import { atomic, reactive, type ScopedCallback, unreactive } from 'mutts/src'
 import { Container, Sprite } from 'pixi.js'
 import { goods } from '$assets/game-content'
 import type { GoodType } from '$lib/arktype'
-import { assert } from '$lib/debug'
+import { assert, namedEffect } from '$lib/debug'
 import { epsilon } from '$lib/utils'
 import { AxialKeyMap } from '$lib/utils/mem'
 import {
@@ -59,9 +59,9 @@ export class FreeGoods extends withTicked(withGenerator(GameObject)) {
 	private readonly display = new Map<FreeGood, { sprite: Sprite; cleanup: ScopedCallback }>()
 	private readonly fgContainer: Container = new Container()
 	render() {
-		this.game.effectLayer.addChild(this.fgContainer)
+		this.game.freeGoodsLayer.addChild(this.fgContainer)
 		return () => {
-			this.game.effectLayer.removeChild(this.fgContainer)
+			this.game.freeGoodsLayer.removeChild(this.fgContainer)
 		}
 	}
 	add(pos: Positioned, goodType: GoodType, exactly?: Position) {
@@ -103,7 +103,7 @@ export class FreeGoods extends withTicked(withGenerator(GameObject)) {
 			this.game.hex.resizeSprite(sprite, 0.8)
 			this.display.set(good, {
 				sprite,
-				cleanup: effect(() => {
+				cleanup: namedEffect('freeGood.render', () => {
 					const { x, y } = toWorldCoord(good.position)
 					sprite.position.set(x, y)
 
@@ -143,7 +143,7 @@ export class FreeGoods extends withTicked(withGenerator(GameObject)) {
 	}
 
 	getGoodsAt(coord: Positioned): FreeGood[] {
-		return this.goods.get(toAxialCoord(coord))?.filter((g) => !g.allocated) || []
+		return this.goods.get(toAxialCoord(coord)) || []
 	}
 
 	findNearestGoods(

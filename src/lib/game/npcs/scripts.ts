@@ -172,6 +172,7 @@ export class ScriptExecution {
 		} catch (error) {
 			if (error instanceof ExecutionError) {
 				console.error(`${this.script.sourceLocation(error.statement)}\n${error.error?.message}`)
+				console.error(error.stack)
 			}
 			throw error
 		}

@@ -1,7 +1,8 @@
-import { effect } from 'mutts/src'
+import type { ScopedCallback } from 'mutts/src'
 import { ColorMatrixFilter, Container, Graphics, Sprite } from 'pixi.js'
 import { goods as goodsCatalog } from '$assets/game-content'
 import type { GoodType } from '$lib/arktype'
+import { namedEffect } from '$lib/debug'
 
 export interface RenderedGoodSlot {
 	goodType: GoodType
@@ -17,14 +18,23 @@ export interface RenderedGoodSlots {
 /**
  * Renders goods based on the provided slots, similar to slotted storage but with one slot per good type.
  * Each good type gets its own "slot" and can show different visual states.
+ * @param game - The game instance
+ * @param size - The size of the tile
+ * @param getSlots - Function that returns the slots to render
+ * @param worldPosition - Absolute world position for the container
+ * @returns A cleanup function
  */
 export function renderTileGoods(
 	game: any,
 	size: number,
 	getSlots: () => RenderedGoodSlots,
-): Container {
+	worldPosition: { x: number; y: number },
+): ScopedCallback | undefined {
 	const root = new Container()
-	effect(() => {
+	root.position.set(worldPosition.x, worldPosition.y)
+	game.storedGoodsLayer.addChild(root)
+
+	const effectCleanup = namedEffect('tile.storage.render', () => {
 		const sprites: (Sprite | Graphics)[] = []
 		const { slots, assumedMaxSlots } = getSlots()
 
@@ -109,22 +119,37 @@ export function renderTileGoods(
 			for (const s of sprites) s.destroy()
 		}
 	})
-	return root
+
+	return () => {
+		effectCleanup?.()
+		game.storedGoodsLayer.removeChild(root)
+		root.destroy({ children: false })
+	}
 }
 
 /**
  * Renders goods on a border between two alveoli.
  * Takes the relative center of one alveolus and calculates positions along the border line.
  * Goods are distributed along the line while avoiding corners.
+ * @param game - The game instance
+ * @param size - The size of the tile
+ * @param getSlots - Function that returns the slots to render
+ * @param borderWorldPosition - Absolute world position of the border center
+ * @param alveolusCenter - Relative position of one alveolus from border center
+ * @returns A cleanup function
  */
 export function renderBorderGoods(
 	game: any,
 	size: number,
 	getSlots: () => RenderedGoodSlots,
+	borderWorldPosition: { x: number; y: number },
 	alveolusCenter: { x: number; y: number },
-): Container {
+): ScopedCallback | undefined {
 	const root = new Container()
-	effect(() => {
+	root.position.set(borderWorldPosition.x, borderWorldPosition.y)
+	game.storedGoodsLayer.addChild(root)
+
+	const effectCleanup = namedEffect('border.storage.render', () => {
 		const sprites: (Sprite | Graphics)[] = []
 		const { slots, assumedMaxSlots } = getSlots()
 
@@ -244,5 +269,10 @@ export function renderBorderGoods(
 			for (const s of sprites) s.destroy()
 		}
 	})
-	return root
+
+	return () => {
+		effectCleanup?.()
+		game.storedGoodsLayer.removeChild(root)
+		root.destroy({ children: false })
+	}
 }

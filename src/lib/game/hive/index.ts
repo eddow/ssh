@@ -3,7 +3,6 @@ import type { AlveolusType } from '$lib/arktype'
 import type { Alveolus } from '../board/content/alveolus'
 import { GcClasses } from '../board/content/utils'
 import type { Tile } from '../board/tile'
-import { BuildAlveolus } from './build'
 import { EngineerAlveolus } from './engineer'
 import { GatherAlveolus } from './gather'
 import { HarvestAlveolus } from './harvest'
@@ -16,11 +15,10 @@ export const alveolusClass = GcClasses(
 			harvest: HarvestAlveolus,
 			transform: TransformAlveolus,
 			gather: GatherAlveolus,
-			build: BuildAlveolus,
 			engineer: EngineerAlveolus,
 			storage: StorageAlveolus,
 		})[def.action.type],
 	alveoli,
-) as Record<AlveolusType, new (tile: Tile) => Alveolus>
+) as Partial<Record<AlveolusType, new (tile: Tile) => Alveolus>>
 
 export * from './hive'

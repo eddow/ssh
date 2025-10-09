@@ -1,5 +1,5 @@
 import { type } from 'arktype'
-import type { ContainerChild } from 'pixi.js'
+import type { ScopedCallback } from 'mutts/src'
 import { type Game, GameObject } from '$lib/game'
 import type { Storage } from '../../storage'
 import type { Tile } from '../tile'
@@ -16,9 +16,9 @@ export abstract class TileContent extends GameObject {
 	/**
 	 * Render the tile content
 	 * @param game - The game instance
-	 * @returns The container child to render
+	 * @returns A cleanup function to be called when the content is removed
 	 */
-	abstract render(game: Game): ContainerChild
+	abstract render(game: Game): ScopedCallback | undefined
 	/**
 	 * Check if this tile content can perform the given action
 	 * @param action - The action to check

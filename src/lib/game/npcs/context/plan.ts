@@ -1,7 +1,6 @@
 import { type } from 'arktype'
-import { effect } from 'mutts/src'
 import { contract, Goods, GoodType } from '$lib/arktype'
-import { assert } from '$lib/debug'
+import { assert, namedEffect } from '$lib/debug'
 import { type HexBoard, isTileCoord, TileContentArkType } from '$lib/game/board'
 import { Alveolus } from '$lib/game/board/content/alveolus'
 import type { TileContent } from '$lib/game/board/content/content'
@@ -153,7 +152,7 @@ const pickupPlanHandler: PlanHandler<PickupPlan> = {
 		const freeGoodToGrab = matchingFreeGoods[0]
 		const vehicleAllocation = vehicle.allocate({ [goodType]: 1 }, `planGrabFree.${goodType}`)
 		const allocation = freeGoodToGrab.allocate(`planGrabFree.${goodType}`)
-		plan.releaseStopper = effect(() => {
+		plan.releaseStopper = namedEffect('plan.releaseStopper', () => {
 			if (freeGoodToGrab.isRemoved) character.cancelPlan(plan)
 		})
 

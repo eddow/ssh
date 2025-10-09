@@ -1,6 +1,7 @@
 import { maxWalkTime } from '$assets/constants'
 import { goods as goodsCatalog } from '$assets/game-content'
 import { contract, type GoodType } from '$lib/arktype'
+import { BuildAlveolus } from '$lib/game/hive/build'
 import { type EngineerAlveolus, EngineerAlveolusArkType } from '$lib/game/hive/engineer'
 import { type GatherAlveolus, GatherAlveolusArkType } from '$lib/game/hive/gather'
 import type { Character } from '$lib/game/population/character'
@@ -72,20 +73,22 @@ class FindFunctions {
 	deposit(deposit: string) {
 		const { hex } = this[subject].game
 		const start = toAxialCoord(this[subject].tile.position)
-		// 1) Prefer deposits that are part of a project (project tiles take priority)
-		const pathInProject = hex.findNearestForCharacter(
+
+		// 1) Prefer deposits near building sites (construction tiles take priority)
+		const pathNearConstruction = hex.findNearestForCharacter(
 			start,
 			this[subject],
 			(coord) => {
 				const tile = hex.getTile(coord)
 				if (!(tile?.content instanceof UnBuiltLand)) return false
 				if (tile.content.deposit?.name !== deposit) return false
-				return !!tile.project
+				// Check if any neighbor is a BuildAlveolus (construction site)
+				return tile.neighborTiles.some((neighbor) => neighbor.content instanceof BuildAlveolus)
 			},
 			maxWalkTime,
 			false,
 		)
-		if (pathInProject?.length) return pathInProject
+		if (pathNearConstruction?.length) return pathNearConstruction
 
 		// 2) Fallback to any matching deposit
 		const pathAny = hex.findNearestForCharacter(
@@ -215,7 +218,7 @@ class FindFunctions {
 			this[subject],
 			(coord) => {
 				const tile = hex.getTile(coord)
-				if (!(tile?.content instanceof UnBuiltLand) || tile.zone || tile.project) return false
+				if (!(tile?.content instanceof UnBuiltLand) || tile.zone) return false
 				return 1 / (hex.freeGoods.getGoodsAt(coord).length + 1)
 			},
 			(_coord, walkTime) => walkTime > maxWalkTime,
