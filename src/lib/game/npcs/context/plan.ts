@@ -2,9 +2,9 @@ import { type } from 'arktype'
 import { effect } from 'mutts/src'
 import { contract, Goods, GoodType } from '$lib/arktype'
 import { assert } from '$lib/debug'
-import { type HexBoard, isTileCoord } from '$lib/game/board'
+import { type HexBoard, isTileCoord, TileContentArkType } from '$lib/game/board'
 import { Alveolus } from '$lib/game/board/content/alveolus'
-import { TileContent } from '$lib/game/board/content/content'
+import type { TileContent } from '$lib/game/board/content/content'
 import { JobType } from '$lib/game/job'
 import type { Character } from '$lib/game/population/character'
 import type { AllocationBase } from '$lib/game/storage'
@@ -33,7 +33,7 @@ export interface PickupPlan<T extends AllocationBase = AllocationBase> {
 export interface WorkPlan {
 	readonly type: 'work'
 	readonly jobType: typeof JobType.infer
-	readonly tileContent: TileContent
+	readonly target: TileContent
 }
 export type Plan = TransferPlan | PickupPlan | WorkPlan
 
@@ -54,7 +54,7 @@ export const PickupPlan = type.object({
 export const WorkPlan = type.object({
 	type: type.enumerated('work'),
 	jobType: JobType,
-	tileContent: TileContent,
+	target: TileContentArkType,
 })
 
 export const Plan = type.or(TransferPlan, PickupPlan, WorkPlan)
@@ -187,11 +187,11 @@ const pickupPlanHandler: PlanHandler<PickupPlan> = {
 // Work plan handler
 const workPlanHandler: PlanHandler<WorkPlan> = {
 	begin(plan: WorkPlan, character: Character) {
-		const { tileContent } = plan
+		const { target } = plan
 		// Assign worker only for alveoli
-		if (tileContent instanceof Alveolus) {
-			tileContent.assignedWorker = character
-			character.assignedAlveolus = tileContent
+		if (target instanceof Alveolus) {
+			target.assignedWorker = character
+			character.assignedAlveolus = target
 		}
 
 		// Set the assigned worker in the plan
@@ -201,8 +201,8 @@ const workPlanHandler: PlanHandler<WorkPlan> = {
 	},
 
 	finally(plan: WorkPlan, character: Character) {
-		if (plan.tileContent instanceof Alveolus) {
-			plan.tileContent.assignedWorker = undefined
+		if (plan.target instanceof Alveolus) {
+			plan.target.assignedWorker = undefined
 			character.assignedAlveolus = undefined
 		}
 	},

@@ -82,6 +82,8 @@ export class HexBoard extends withContainer(withHittable(GameObject)) {
 	setTileContent(ref: Positioned, content: TileContent | undefined) {
 		const coord = toAxialCoord(ref)
 		assert(isTileCoord(coord), 'coord must be a tile coordinate')
+		const oldContent = this.contents.get({ q: coord.q, r: coord.r }) as TileContent | undefined
+		if (oldContent) oldContent.destroy()
 		if (!content) this.contents.delete({ q: coord.q, r: coord.r })
 		else this.contents.set({ q: coord.q, r: coord.r }, content)
 		// If a tile content is set programmatically post-generation, mark tile dirty

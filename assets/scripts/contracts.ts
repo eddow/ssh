@@ -1,3 +1,4 @@
+import { type } from 'arktype'
 import { type ContractType, Goods, GoodType } from '$lib/arktype'
 import { TileArkType } from '$lib/game/board/tile'
 import { WorkPlan } from '$lib/game/npcs/context/plan'
@@ -12,7 +13,7 @@ export const CharacterContract = {
 		makeRoom: [],
 		dropStored: [Goods, TileArkType, Position.array().optional(), 'boolean?'],
 		grabStored: [Goods, TileArkType, Position.array().optional(), 'boolean?'],
-		grabFree: [GoodType, Positioned, Position.array().optional(), 'boolean?'],
+		grabFree: [GoodType.or(type.null), Positioned, Position.array().optional(), 'boolean?'],
 	},
 	selfCare: {
 		goEat: [],

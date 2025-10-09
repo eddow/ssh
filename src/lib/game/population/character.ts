@@ -114,7 +114,7 @@ export class Character extends withInteractive(
 			{
 				type: 'work',
 				jobType: job.type,
-				tileContent: jobProvider,
+				target: jobProvider,
 			},
 			path,
 		)

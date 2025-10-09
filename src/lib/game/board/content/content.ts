@@ -1,38 +1,30 @@
 import { type } from 'arktype'
 import type { ContainerChild } from 'pixi.js'
-import type { Game } from '$lib/game'
-import { Storage } from '../../storage'
-import { type Tile, TileArkType } from '../tile'
+import { type Game, GameObject } from '$lib/game'
+import type { Storage } from '../../storage'
+import type { Tile } from '../tile'
 
-export interface TileContent {
-	readonly tile: Tile
+export abstract class TileContent extends GameObject {
+	abstract readonly tile: Tile
 	// TODO: translate-> name = translation set on load
-	readonly name?: string
-	destroy?(): void
-	readonly debugInfo: Record<string, any>
-	readonly walkTime: number
-	readonly background: string
+	abstract readonly name?: string
+	abstract readonly debugInfo: Record<string, any>
+	abstract readonly walkTime: number
+	abstract readonly background: string
 	// Optional storage - undefined for tiles that don't store goods
-	storage?: Storage<any>
+	abstract storage?: Storage<any>
 	/**
 	 * Render the tile content
 	 * @param game - The game instance
 	 * @returns The container child to render
 	 */
-	render(game: Game): ContainerChild
+	abstract render(game: Game): ContainerChild
 	/**
 	 * Check if this tile content can perform the given action
 	 * @param action - The action to check
 	 * @returns true if the action can be performed
 	 */
-	canInteract?(action: string): boolean
+	abstract canInteract?(action: string): boolean
 }
 
-export const TileContent = type.object({
-	tile: TileArkType,
-	name: type.string.optional(),
-	debugInfo: type.object({}),
-	walkTime: type.number,
-	background: type.string,
-	storage: type.instanceOf(Storage).optional(),
-})
+export const TileContentArkType = type.instanceOf(TileContent)

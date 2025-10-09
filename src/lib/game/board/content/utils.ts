@@ -40,18 +40,24 @@ export function GcClasses<
 }
 
 /**
- * Only used for typing purposes, not for instantiation
- * @returns
+ * Mixin that adds game-content definition support to a class
+ * @param Base - Optional base class to extend (defaults to Object)
+ * @returns A class that extends Base and includes definition/name properties
  */
-export function GcClassed<T extends object>() {
-	return class {
+export function GcClassed<
+	T extends object,
+	Base extends abstract new (
+		...args: any[]
+	) => any = typeof Object,
+>(Base: Base = Object as any) {
+	return class extends (Base as any) {
 		get name() {
 			// @ts-expect-error
 			return this.constructor.resourceName
 		}
-	} as new (
+	} as any as abstract new (
 		...args: any[]
-	) => T & { readonly name: string }
+	) => InstanceType<Base> & T & { readonly name: string }
 }
 
 export function multiplyGoodsQty(record: Partial<Record<GoodType, number>>, multiplier: number) {

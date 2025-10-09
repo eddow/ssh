@@ -21,7 +21,7 @@ export class GameObject extends ReactiveBase {
 }
 
 // Mixin functions for composition
-export function withGenerator<T extends new (...args: any[]) => GameObject>(Base: T) {
+export function withGenerator<T extends abstract new (...args: any[]) => GameObject>(Base: T) {
 	abstract class GeneratorMixin extends Base {
 		renderCleanup?: ScopedCallback
 
@@ -47,7 +47,7 @@ export function withGenerator<T extends new (...args: any[]) => GameObject>(Base
 	return GeneratorMixin
 }
 
-export function withInteractive<T extends new (...args: any[]) => GameObject>(Base: T) {
+export function withInteractive<T extends abstract new (...args: any[]) => GameObject>(Base: T) {
 	abstract class InteractiveMixin extends Base {
 		public readonly uid: string
 
@@ -90,7 +90,7 @@ export function withInteractive<T extends new (...args: any[]) => GameObject>(Ba
 	return InteractiveMixin
 }
 
-export function withHittable<T extends new (...args: any[]) => GameObject>(Base: T) {
+export function withHittable<T extends abstract new (...args: any[]) => GameObject>(Base: T) {
 	abstract class HittableMixin extends Base {
 		/**
 		 * Z-index for hit testing priority. Higher values are tested first.
@@ -120,7 +120,7 @@ export function withHittable<T extends new (...args: any[]) => GameObject>(Base:
 	return HittableMixin
 }
 
-export function withTicked<T extends new (...args: any[]) => any>(Base: T) {
+export function withTicked<T extends abstract new (...args: any[]) => any>(Base: T) {
 	abstract class TickedMixin extends Base {
 		constructor(...args: any[]) {
 			super(...args)
@@ -137,7 +137,7 @@ export function withTicked<T extends new (...args: any[]) => any>(Base: T) {
 	return TickedMixin
 }
 
-export function withContainer<T extends new (...args: any[]) => GameObject>(Base: T) {
+export function withContainer<T extends abstract new (...args: any[]) => GameObject>(Base: T) {
 	abstract class ContainerMixin extends Base {
 		children = new Set<GameObject>()
 

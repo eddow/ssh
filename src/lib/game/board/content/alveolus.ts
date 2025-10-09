@@ -13,7 +13,7 @@ import { toAxialCoord } from '$lib/utils/position'
 import { renderTileGoods, type Storage } from '../../storage'
 import { AlveolusGate } from '../border/alveolus-gate'
 import type { Tile } from '../tile'
-import type { TileContent } from './content'
+import { TileContent } from './content'
 import { UnBuiltLand } from './unbuilt-land'
 import { GcClassed } from './utils'
 
@@ -23,7 +23,9 @@ interface LocalMovingGood extends MovingGood {
 }
 
 @unreactive
-export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition>() implements TileContent {
+export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition, typeof TileContent>(
+	TileContent,
+) {
 	public assignedWorker: Character | undefined
 	public tile: Tile
 	public declare hive: Hive

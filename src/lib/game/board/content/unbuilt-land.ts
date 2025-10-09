@@ -6,9 +6,9 @@ import type { Game } from '$lib/game/game'
 import { tileSize } from '$lib/utils'
 import { fastPoissonRandom } from '$lib/utils/poisson'
 import { toAxialCoord } from '$lib/utils/position'
-import { GameObject, withTicked } from '../../object'
+import { withTicked } from '../../object'
 import type { Tile } from '../tile'
-import type { TileContent } from './content'
+import { TileContent } from './content'
 import { GcClassed, GcClasses } from './utils'
 
 export class Deposit extends GcClassed<Ssh.DepositDefinition>() {
@@ -19,9 +19,12 @@ export class Deposit extends GcClassed<Ssh.DepositDefinition>() {
 }
 
 @unreactive('tile')
-export class UnBuiltLand extends withTicked(GameObject) implements TileContent {
+export class UnBuiltLand extends withTicked(TileContent) {
 	get name() {
 		return this.terrain
+	}
+	get storage() {
+		return undefined
 	}
 
 	constructor(

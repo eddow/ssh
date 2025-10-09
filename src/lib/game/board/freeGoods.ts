@@ -143,7 +143,7 @@ export class FreeGoods extends withTicked(withGenerator(GameObject)) {
 	}
 
 	getGoodsAt(coord: Positioned): FreeGood[] {
-		return this.goods.get(toAxialCoord(coord)) || []
+		return this.goods.get(toAxialCoord(coord))?.filter((g) => !g.allocated) || []
 	}
 
 	findNearestGoods(

@@ -1,11 +1,12 @@
-import { computed } from 'mutts/src'
+import { computed, unreactive } from 'mutts/src'
 import type { ExecutionContext } from 'npc-script/src'
 import type { Game } from '../game'
 import type { GameObject, TickedGameObject, withTicked } from '../object'
 import { ScriptExecution } from './scripts'
 import { ASingleStep } from './steps'
 
-export function withScripted<T extends new (...args: any[]) => TickedGameObject>(Base: T) {
+export function withScripted<T extends abstract new (...args: any[]) => TickedGameObject>(Base: T) {
+	@unreactive('runningScripts')
 	abstract class ScriptedMixin extends Base {
 		constructor(...args: any[]) {
 			super(...args)
@@ -28,6 +29,15 @@ export function withScripted<T extends new (...args: any[]) => TickedGameObject>
 		get actionDescription(): string[] {
 			return this.runningScripts.map((s) => s.name).reverse()
 		}
+		makeRun() {
+			try {
+				return this.runningScript.run(this.scriptsContext)
+			} catch (error) {
+				// Present stack trace
+				console.error(this.runningScripts.map((s) => [s.name, s.state]))
+				throw error
+			}
+		}
 		nextStep() {
 			if (this.stepExecutor) throw new Error('Cannot begin a new script while another is running')
 			if (!this.runningScripts.length) {
@@ -36,8 +46,8 @@ export function withScripted<T extends new (...args: any[]) => TickedGameObject>
 			}
 			let reentered = false
 			while (this.runningScripts.length && !this.stepExecutor) {
-				const executingName = this.runningScripts[0].name
-				const { type, value } = this.runningScripts[0].run(this.scriptsContext)
+				const executingName = this.runningScript.name
+				const { type, value } = this.makeRun()
 				if (type === 'return') this.runningScripts.shift()
 				if (value) {
 					reentered = false

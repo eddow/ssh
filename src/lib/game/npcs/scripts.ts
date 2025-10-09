@@ -37,6 +37,10 @@ export class GlobalContext {
 		console.dir(value, { depth: null })
 		debugger
 	}
+	@contract('...', 'unknown[]')
+	print(...args: any[]) {
+		console.log(...args)
+	}
 	@contract('string', '...', 'unknown[]')
 	error(message: string, ...args: any[]) {
 		if (args.length > 0) console.error(...args)
@@ -125,6 +129,7 @@ export class InteractiveContext<
 	get tile() {
 		return this[subject].tile
 	}
+	@contract('...', 'unknown[]')
 	log(...args: any[]) {
 		this[subject].log(...args)
 	}
@@ -166,8 +171,7 @@ export class ScriptExecution {
 			return result
 		} catch (error) {
 			if (error instanceof ExecutionError) {
-				console.error(this.script.sourceLocation(error.statement))
-				console.error(error.error?.stack)
+				console.error(`${this.script.sourceLocation(error.statement)}\n${error.error?.message}`)
 			}
 			throw error
 		}

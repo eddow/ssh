@@ -20,6 +20,7 @@ import type { HexBoard } from './board'
 import type { TileBorder } from './border/border'
 import { Alveolus } from './content/alveolus'
 import type { TileContent } from './content/content'
+import type { FreeGood } from './freeGoods'
 import type { Project } from './project'
 import type { Zone } from './zone'
 
@@ -67,8 +68,7 @@ export class Tile extends withInteractive(withGenerator(GameObject)) {
 	// Tile-level job offering
 	getJob(): Job | undefined {
 		// Offload if there are free goods on tile and it's a project/zone/alveolus tile
-		const coord = toAxialCoord(this.position)
-		const hasFreeGoods = this.board.freeGoods.getGoodsAt(coord).length > 0
+		const hasFreeGoods = this.availableGoods.length > 0
 		const isSpecial = !!this.project || !!this.zone || this.content instanceof Alveolus
 		if (hasFreeGoods && isSpecial) {
 			return { type: 'offload', fatigue: 1, urgency: 10 }
@@ -228,6 +228,16 @@ export class Tile extends withInteractive(withGenerator(GameObject)) {
 					: null
 			})
 			.filter((neighbor): neighbor is NeighborInfo => neighbor !== null)
+	}
+
+	@computed
+	get freeGoods(): FreeGood[] {
+		return this.board.freeGoods.getGoodsAt(toAxialCoord(this.position))
+	}
+
+	@computed
+	get availableGoods(): FreeGood[] {
+		return this.freeGoods.filter((g) => !g.allocated)
 	}
 }
 

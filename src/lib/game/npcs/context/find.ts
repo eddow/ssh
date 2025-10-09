@@ -85,7 +85,7 @@ class FindFunctions {
 			maxWalkTime,
 			false,
 		)
-		if (pathInProject && pathInProject.length) return pathInProject
+		if (pathInProject?.length) return pathInProject
 
 		// 2) Fallback to any matching deposit
 		const pathAny = hex.findNearestForCharacter(

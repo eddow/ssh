@@ -1,22 +1,24 @@
 function goWork(jobPlan, path)
-	alveolus = jobPlan.alveolus
+	target = jobPlan.target
 	plan jobPlan
 		inventory.dropAllFree
-		if tile != alveolus.tile then do
-			walk.until path
-		while tile != alveolus.tile
-			path = find.path(alveolus.tile, false)
-			if not path then error "No path found to alveolus"
-		loop
-		walk.enter
-		work.prepare jobPlan
+		if target isa alveolus then
+			if tile != target.tile then do
+				walk.until path
+			while tile != target.tile
+				path = find.path(target.tile, false)
+				if not path then error "No path found to target"
+			loop
+			walk.enter
+			work.prepare jobPlan
+		end if
 		// TODO: understand why `work[job](alveolus)` doesn't work/yield
 		work[jobPlan.jobType] jobPlan
 	end plan
 end function
 
 function harvest(jobPlan)
-	alveolus = jobPlan.alveolus
+	alveolus = jobPlan.target
 	do while I.keepWorking and alveolus.keepWorking
 		do while not tile.content.deposit or tile.content.deposit.name != alveolus.action.deposit
 			where = find.deposit(alveolus.action.deposit)
@@ -33,25 +35,15 @@ function harvest(jobPlan)
 	loop
 end function
 
-function offload(jobPlan)
-	// Offload: empty inventory as free goods to a safe nearby tile
-	// 1) Find best free spot (avoids zones, projects, alveoli; cost: walkTime * crowding)
-	where = find.freeSpot()
-	if not where then return false
-	// 2) Go there and drop all free goods
-	walk.into where
-	inventory.dropAllFree
-end function
-
 function transform(jobPlan)
-	alveolus = jobPlan.alveolus
+	alveolus = jobPlan.target
 	do while I.keepWorking and alveolus.keepWorking
 		work.transformStep
 	loop
 end function
 
 function convey(jobPlan)
-	alveolus = jobPlan.alveolus
+	alveolus = jobPlan.target
 	do while I.keepWorking and alveolus.goodMovements.length
 		work.conveyStep
 		if not alveolus.goodMovements.length and alveolus.incomingGoods then
@@ -62,11 +54,13 @@ function convey(jobPlan)
 end function
 
 function gather(jobPlan)
-	alveolus = jobPlan.alveolus
+	alveolus = jobPlan.target
 	do while I.keepWorking and alveolus.keepWorking
+		log "gathering"
 		do
 			gatherable = find.gatherables(alveolus, alveolus.action.radius)
 		while gatherable
+			log "gather:", gatherable
 			good = gatherable.goodType
 			path = gatherable.path
 			inventory.grabFree good, path[path.length - 1], path
@@ -79,7 +73,7 @@ function gather(jobPlan)
 end function
 
 function construct(jobPlan)
-    alveolus = jobPlan.alveolus
+    alveolus = jobPlan.target
     do while I.keepWorking and alveolus.keepWorking
         path = find.buildable(alveolus)
         if not path then return false
@@ -89,4 +83,11 @@ function construct(jobPlan)
     loop
 end function
 
-return { goWork, harvest, transform, convey, gather, construct }
+function offload(jobPlan)
+	target = jobPlan.target
+	if target.tile.availableGoods.length == 0 then return
+	inventory.grabFree null, target.tile
+	inventory.dropAllFree
+end function
+
+return { goWork, harvest, transform, convey, gather, construct, offload }

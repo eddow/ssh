@@ -45,6 +45,7 @@ function dropAllFree()
 	if not where then return false
 	walk.into where
 	do
+		// TODO: random?
 		good = keys(I.vehicle.stock)[0]
 	while good
 		// Move around the tile for preparationTime before dropping

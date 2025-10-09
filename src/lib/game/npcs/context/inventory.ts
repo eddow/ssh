@@ -109,31 +109,31 @@ class InventoryFunctions {
 		}
 	}
 
-	@contract(GoodType, Positioned)
-	planGrabFree(goodType: GoodType, source: Positioned): PickupPlan {
+	@contract(GoodType.or(type.null), Positioned)
+	planGrabFree(goodType: GoodType | undefined, source: Positioned): PickupPlan {
 		const character = this[subject]
 		const vehicle = character.vehicle
-		assert(vehicle, 'tile.vehicle must be set')
+		assert(vehicle, 'character.vehicle must be set')
 
-		const canGrab = vehicle.hasRoom(goodType)
+		const canGrab = goodType ? vehicle.hasRoom(goodType) : 1
 		if (canGrab <= 0) throw new Error('No room in vehicle to grab goods')
 
 		// Check for FreeGoods on the tile - always grab exactly 1
 		const coord = toAxialCoord(source)
 		const freeGoods = character.game.hex.freeGoods.getGoodsAt(coord)
 		const matchingFreeGoods = freeGoods.filter(
-			(good) => good.goodType === goodType && !good.allocated,
+			goodType ? (good) => good.goodType === goodType : (good) => vehicle.hasRoom(good.goodType),
 		)
 
 		if (matchingFreeGoods.length === 0) {
-			debugger
 			throw new Error('No FreeGoods to grab')
 		}
 
 		// Return plan without allocations - they will be created in plan.begin()
 		return {
 			type: 'pickup' as const,
-			goodType,
+			// TODO: random?
+			goodType: matchingFreeGoods[0].goodType,
 			target: source,
 		}
 	}

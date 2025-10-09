@@ -118,8 +118,6 @@ export const alveoli = {
 		workTime: 2,
 		sprites: ['construction'],
 		icon: 'construction',
-		// Building itself doesn't need extra cost; it gathers for target
-		constructionCost: {},
 	},
 	engineer: {
 		preparationTime: 1,

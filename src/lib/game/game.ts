@@ -7,6 +7,8 @@ import { assert } from '$lib/debug'
 import { interactionMode, mrg } from '$lib/globals.svelte'
 import { registerPixiApp, unregisterPixiApp } from '$lib/hmr-pixi'
 import { LCG } from '$lib/numbers'
+import { axial } from '$lib/utils/axial'
+import { toAxialCoord } from '$lib/utils/position'
 import { Alveolus } from './board'
 import { HexBoard } from './board/board'
 import { Deposit, UnBuiltLand } from './board/content/unbuilt-land'
@@ -58,16 +60,14 @@ export type GameGenerationOptions = {
 	characterRadius?: number
 }
 
-export interface TilePatchRoot {
+export interface AlveolusPatch {
 	coord: { q: number; r: number }
 	goods?: Partial<Record<GoodType, number>>
-}
-
-export interface AlveolusPatch extends TilePatchRoot {
 	alveolus: AlveolusType
 }
 
-export interface TilePatch extends TilePatchRoot {
+export interface TilePatch {
+	coord: { q: number; r: number }
 	deposit?: {
 		type: DepositType
 		amount: number
@@ -78,6 +78,10 @@ export interface GamePatches {
 	hives?: Array<{
 		name?: string
 		alveoli: Array<AlveolusPatch>
+	}>
+	freeGoods?: Array<{
+		goodType: GoodType
+		position: { q: number; r: number }
 	}>
 }
 
@@ -212,6 +216,7 @@ export class Game extends Eventful<GameEvents> {
 			// Apply patches if any
 			if (patches.tiles?.length) this.applyTilePatches(patches.tiles)
 			if (patches.hives?.length) this.applyHivesPatches(patches.hives)
+			if (patches.freeGoods?.length) this.applyFreeGoodsPatches(patches.freeGoods)
 		} catch (error) {
 			console.error('Generation failed:', error)
 		}
@@ -273,11 +278,16 @@ export class Game extends Eventful<GameEvents> {
 					const DepositClass = Deposit.class[p.deposit.type as keyof typeof Deposit.class]
 					if (DepositClass) content.deposit = new DepositClass(p.deposit.amount)
 				}
-				if (p.goods)
-					for (const [good, qty] of Object.entries(p.goods))
-						content.storage?.addGood(good as GoodType, qty)
 				tile.asGenerated = false
 			}
+		}
+	}
+
+	private applyFreeGoodsPatches(patches: NonNullable<GamePatches['freeGoods']>) {
+		for (const fg of patches) {
+			const tile = this.hex.getTile(axial.round(fg.position))
+			if (!tile) continue
+			this.hex.freeGoods.add(tile, fg.goodType, fg.position)
 		}
 	}
 
@@ -305,6 +315,8 @@ export class Game extends Eventful<GameEvents> {
 	public saveGameData(): GamePatches {
 		const tiles: Array<TilePatch> = []
 		const hives = new Map<Hive, Array<AlveolusPatch>>()
+		const freeGoodsPatches: GamePatches['freeGoods'] = []
+
 		// Enumerate using hex board contents map by sampling existing tiles
 		for (let q = -this.hex.boardSize; q <= this.hex.boardSize; q++) {
 			for (let r = -this.hex.boardSize; r <= this.hex.boardSize; r++) {
@@ -324,7 +336,6 @@ export class Game extends Eventful<GameEvents> {
 									amount: content.deposit.amount,
 								}
 							: undefined,
-						goods: content.storage?.stock || {},
 					})
 				} else if (content instanceof Alveolus) {
 					// Assume alveolus-like content decorated by GcClassed with resourceName accessible via .name
@@ -338,9 +349,25 @@ export class Game extends Eventful<GameEvents> {
 				}
 			}
 		}
+
+		// Save all freeGoods with their exact positions
+		const freeGoodsMap = (this.hex.freeGoods as any).goods as Map<
+			string,
+			Array<{ goodType: GoodType; position: { q: number; r: number } }>
+		>
+		for (const [, goodsList] of freeGoodsMap.entries()) {
+			for (const fg of goodsList) {
+				freeGoodsPatches!.push({
+					goodType: fg.goodType,
+					position: toAxialCoord(fg.position),
+				})
+			}
+		}
+
 		return {
 			tiles,
 			hives: Array.from(hives.entries()).map(([hive, alveoli]) => ({ name: hive.name, alveoli })),
+			freeGoods: freeGoodsPatches,
 		}
 	}
 

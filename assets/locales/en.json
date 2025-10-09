@@ -9,7 +9,9 @@
 		"stonecutter": "Stone Cutter",
 		"sawmill": "Sawmill",
 		"gather": "Gather",
-		"storage": "Store"
+		"storage": "Store",
+		"building": "Building",
+		"engineer": "Engineer"
 	},
 	"goods": {
 		"berries": "Berries",
