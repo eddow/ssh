@@ -1,14 +1,14 @@
-import { contract } from '$lib/arktype'
 import type { Character } from '$lib/game/population/character'
+import { contract } from '$lib/types'
 import { axial } from '$lib/utils'
 import { type Positioned, positionRoughlyEquals, toAxialCoord } from '../../../utils/position'
-import { type Tile, TileArkType } from '../../board/tile'
+import type { Tile } from '../../board/tile'
 import { subject } from '../scripts'
 import { MoveToStep } from '../steps'
 
 class WalkFunctions {
 	declare [subject]: Character
-	@contract('object')
+	@contract('Positioned')
 	moveTo(to: Positioned) {
 		const toAxial = toAxialCoord(to)
 		const fromAxial = toAxialCoord(this[subject])
@@ -30,11 +30,11 @@ class WalkFunctions {
 		if (!positionRoughlyEquals(fromAxial, toAxial))
 			return new MoveToStep(axial.distance(fromAxial, toAxial), this[subject], toAxial)
 	}
-	@contract(TileArkType)
+	@contract('Tile')
 	stepOn(tile: Tile) {
 		return this[subject].stepOn(tile)
 	}
-	@contract(TileArkType)
+	@contract('Tile')
 	can(_tile: Tile) {
 		return Number.isFinite(this[subject].tile.content!.walkTime)
 	}

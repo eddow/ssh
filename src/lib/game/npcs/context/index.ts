@@ -1,12 +1,12 @@
 import * as gameContent from '$assets/game-content'
 import type { CharacterContract } from '$assets/scripts/contracts'
-import { contract, GoodType } from '$lib/arktype'
-import { type HarvestAlveolus, HarvestAlveolusArkType } from '$lib/game/hive/harvest'
+import type { HarvestAlveolus } from '$lib/game/hive/harvest'
+import { contract } from '$lib/types'
+import type { GoodType } from '$lib/types/base'
 import { objectMap } from '$lib/utils'
 import { toAxialCoord } from '$lib/utils/position'
 import type { Character } from '../../population/character'
 import { InteractiveContext, loadNpcScripts, protoCtx, subject } from '../scripts'
-
 // Import all the function classes
 import { FindFunctions } from './find'
 import { InventoryFunctions } from './inventory'
@@ -16,17 +16,17 @@ import { WalkFunctions } from './walk'
 import { WorkFunctions } from './work'
 
 // Re-export TransferPlan for external use
-export { PickupPlan as GatherPlan, Plan, TransferPlan, WorkPlan } from './plan'
+export { PickupPlan as GatherPlan, Plan, TransferPlan, WorkPlan } from '$lib/types/base'
 
 class CharacterContext extends InteractiveContext<Character> {
 	get I() {
 		return this[subject]
 	}
-	@contract(GoodType.optional())
+	@contract('GoodType?')
 	haveRoom(goodType?: GoodType): number {
 		return this[subject].vehicle.hasRoom(goodType)
 	}
-	@contract(HarvestAlveolusArkType)
+	@contract('HarvestAlveolus')
 	isGatherable(harvestAlveolus: HarvestAlveolus) {
 		// TODO: check all gatherers collected by harvestAlveolus - even outside the hive
 		const gatherers = harvestAlveolus.hive.byActionType.gather

@@ -1,7 +1,7 @@
 import { atomic, computed, reactive, unreactive } from 'mutts/src'
-import type { Goods } from '$lib/arktype'
-import { GoodType } from '$lib/arktype'
 import { assert } from '$lib/debug'
+import type { Goods } from '$lib/types/base'
+import { GoodType } from '$lib/types/base'
 import type { RenderedGoodSlots } from '.'
 import type { RenderedGoodSlot } from './goods-renderer'
 import {

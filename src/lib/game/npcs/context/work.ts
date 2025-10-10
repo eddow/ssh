@@ -1,20 +1,19 @@
-import { contract, type Goods, type GoodType } from '$lib/arktype'
 import { assert } from '$lib/debug'
-import { AlveolusArkType } from '$lib/game/board'
 import { UnBuiltLand } from '$lib/game/board/content/unbuilt-land'
 import { alveolusClass } from '$lib/game/hive'
 import { BuildAlveolus } from '$lib/game/hive/build'
 import type { TransformAlveolus } from '$lib/game/hive/transform'
 import type { Character } from '$lib/game/population/character'
 import type { AllocationBase } from '$lib/game/storage'
+import { contract, type Goods, type GoodType } from '$lib/types'
 import { axial } from '$lib/utils'
 import { subject } from '../scripts'
 import { DurationStep, MoveToStep, WaitForPredicateStep } from '../steps'
-import { WorkPlan } from '.'
+import type { WorkPlan } from '.'
 
 class WorkFunctions {
 	declare [subject]: Character
-	@contract(WorkPlan)
+	@contract('WorkPlan')
 	// TODO: specific cases for `convey`: preparationTime, assignedConveyor, ... ?
 	prepare(workPlan: WorkPlan) {
 		if (['convey', 'offload'].includes(workPlan.jobType)) return
@@ -37,7 +36,7 @@ class WorkFunctions {
 			() => this[subject].assignedAlveolus!.goodMovements.length > 0,
 		)
 	}
-	@contract(AlveolusArkType.optional())
+	@contract('object?')
 	conveyStep() {
 		const character = this[subject]
 		const alveolus = character.assignedAlveolus!
@@ -120,7 +119,7 @@ class WorkFunctions {
 			})
 		})
 	}
-	@contract(AlveolusArkType.optional())
+	@contract('object?') // TODO: object??
 	transformStep() {
 		const alveolus = this[subject].assignedAlveolus as TransformAlveolus
 		assert(alveolus, 'assignedAlveolus must be set')

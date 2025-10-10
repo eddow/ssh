@@ -1,9 +1,8 @@
-import { type } from 'arktype'
 import { computed } from 'mutts/src'
 import { alveoli as alveoliDefs } from '$assets/game-content'
-import type { AlveolusType, GoodType } from '$lib/arktype'
 import { assert, namedEffect } from '$lib/debug'
 import { SpecificStorage } from '$lib/game/storage'
+import type { AlveolusType, GoodType } from '$lib/types'
 import { UnBuiltLand } from '../board'
 import { Alveolus } from '../board/content/alveolus'
 import type { Tile } from '../board/tile'
@@ -75,5 +74,3 @@ export class BuildAlveolus extends Alveolus {
 		}
 	}
 }
-
-export const BuildAlveolusArkType = type.instanceOf(BuildAlveolus)

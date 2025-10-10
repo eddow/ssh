@@ -1,5 +1,5 @@
 import { alveoli } from '$assets/game-content'
-import type { AlveolusType } from '$lib/arktype'
+import type { AlveolusType } from '$lib/types'
 import type { Alveolus } from '../board/content/alveolus'
 import { GcClasses } from '../board/content/utils'
 import type { Tile } from '../board/tile'

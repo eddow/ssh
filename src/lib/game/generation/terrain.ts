@@ -3,7 +3,7 @@
  * Extracted from hex/perlin-terrain.ts for better organization
  */
 
-import type { TerrainType } from '$lib/arktype'
+import type { TerrainType } from '$lib/types'
 import type { AxialCoord } from '$lib/utils'
 import { PerlinTerrainGenerator } from './perlin-terrain'
 

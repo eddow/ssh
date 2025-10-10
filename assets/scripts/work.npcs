@@ -3,6 +3,7 @@ function goWork(jobPlan, path)
 	plan jobPlan
 		inventory.dropAllFree
 		if tile != target.tile then do
+			log tile, target.tile
 			walk.until path
 		while tile != target.tile
 			path = find.path(target.tile, false)

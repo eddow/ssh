@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import type { GoodType } from '$lib/arktype'
+import type { GoodType } from '$lib/types/base'
 import { AllocationError } from './guard'
 import { NoStorage } from './no-storage'
 import { SlottedStorage } from './slotted-storage'

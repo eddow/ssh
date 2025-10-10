@@ -1,5 +1,5 @@
-import type { GoodType } from '$lib/arktype'
 import { traces } from '$lib/debug'
+import type { GoodType } from '$lib/types'
 import { Alveolus } from '../board'
 
 export class TransitAlveolus extends Alveolus {

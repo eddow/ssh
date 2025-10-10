@@ -1,4 +1,3 @@
-import { type } from 'arktype'
 import { watch } from 'mutts/src'
 import type { Game } from '$lib/game/game'
 import { GameObject, withGenerator } from '$lib/game/object'
@@ -73,5 +72,3 @@ export class TileBorder extends withGenerator(GameObject) {
 		)
 	}
 }
-
-export const TileBorderArkType = type.instanceOf(TileBorder)

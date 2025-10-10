@@ -1,4 +1,4 @@
-import type { GoodType } from '$lib/arktype'
+import type { GoodType } from '$lib/types'
 
 type Ctor<T extends object = any> = new (...args: any[]) => T
 

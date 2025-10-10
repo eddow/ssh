@@ -1,9 +1,7 @@
-import { type } from 'arktype'
 import { computed } from 'mutts/src'
 import { outputBufferSize } from '$assets/constants'
-import type { GoodType } from '$lib/arktype'
-import type { Job } from '$lib/game/job'
 import { SpecificStorage } from '$lib/game/storage'
+import type { GoodType, Job } from '$lib/types/base'
 import { axialDistance, type Positioned, toAxialCoord } from '../../utils/position'
 import { UnBuiltLand } from '../board'
 import { multiplyGoodsQty } from '../board/content/utils'
@@ -92,5 +90,3 @@ export class HarvestAlveolus extends TransitAlveolus {
 		}
 	}
 }
-
-export const HarvestAlveolusArkType = type.instanceOf(HarvestAlveolus)

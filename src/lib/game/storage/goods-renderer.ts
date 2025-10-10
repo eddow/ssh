@@ -1,8 +1,8 @@
 import type { ScopedCallback } from 'mutts/src'
 import { ColorMatrixFilter, Container, Graphics, Sprite } from 'pixi.js'
 import { goods as goodsCatalog } from '$assets/game-content'
-import type { GoodType } from '$lib/arktype'
 import { namedEffect } from '$lib/debug'
+import type { GoodType } from '$lib/types/base'
 
 export interface RenderedGoodSlot {
 	goodType: GoodType

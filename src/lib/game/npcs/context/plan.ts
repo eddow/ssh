@@ -1,62 +1,10 @@
-import { type } from 'arktype'
-import { contract, Goods, GoodType } from '$lib/arktype'
 import { assert, namedEffect } from '$lib/debug'
-import { type HexBoard, isTileCoord, TileContentArkType } from '$lib/game/board'
+import { type HexBoard, isTileCoord } from '$lib/game/board'
 import { Alveolus } from '$lib/game/board/content/alveolus'
-import type { TileContent } from '$lib/game/board/content/content'
-import { JobType } from '$lib/game/job'
 import type { Character } from '$lib/game/population/character'
-import type { AllocationBase } from '$lib/game/storage'
-import { Position, type Positioned, toAxialCoord } from '$lib/utils'
+import type { PickupPlan, Plan, TransferPlan, WorkPlan } from '$lib/types/base'
+import { type Positioned, toAxialCoord } from '$lib/utils'
 import { subject } from '../scripts'
-// plans should be unreactive
-export interface TransferPlan<T extends AllocationBase = AllocationBase> {
-	readonly type: 'transfer'
-	readonly description: 'grab' | 'drop'
-	vehicleAllocation?: T // Will be created in begin(), cleared in finalize()
-	allocation?: T // Will be created in begin(), cleared in finalize()
-	readonly goods: Goods
-	// Additional metadata needed for plan creation
-	readonly target?: Positioned
-}
-
-export interface PickupPlan<T extends AllocationBase = AllocationBase> {
-	readonly type: 'pickup'
-	vehicleAllocation?: T // Will be created in begin(), cleared in finalize()
-	allocation?: T // Will be created in begin(), cleared in finalize()
-	readonly goodType: GoodType
-	readonly target: Positioned
-	releaseStopper?: () => void
-}
-
-export interface WorkPlan {
-	readonly type: 'work'
-	readonly jobType: typeof JobType.infer
-	readonly target: TileContent
-}
-export type Plan = TransferPlan | PickupPlan | WorkPlan
-
-// ArkType schemas for plans (use distinct names to avoid redeclarations)
-export const TransferPlan = type.object({
-	type: type.enumerated('transfer'),
-	description: type.enumerated('grab', 'drop'),
-	goods: Goods,
-	target: Position.optional(),
-})
-
-export const PickupPlan = type.object({
-	type: type.enumerated('pickup'),
-	goodType: GoodType,
-	target: Position,
-})
-
-export const WorkPlan = type.object({
-	type: type.enumerated('work'),
-	jobType: JobType,
-	target: TileContentArkType,
-})
-
-export const Plan = type.or(TransferPlan, PickupPlan, WorkPlan)
 
 function getContentFromPosition(hex: HexBoard, position: Positioned) {
 	const coord = toAxialCoord(position)
@@ -217,23 +165,20 @@ const planHandlers: Record<Plan['type'], PlanHandler<any>> = {
 class PlanFunctions {
 	declare [subject]: Character
 
-	@contract('object')
+	// No @contract decorators needed - Plan types are simple interfaces
 	begin(plan: Plan) {
 		planHandlers[plan.type].begin(plan, this[subject])
 	}
 
-	@contract('object')
 	conclude(plan: Plan) {
 		if ('releaseStopper' in plan) plan.releaseStopper?.()
 		planHandlers[plan.type].conclude?.(plan, this[subject])
 	}
 
-	@contract('object')
 	cancel(plan: Plan) {
 		planHandlers[plan.type].cancel?.(plan, this[subject])
 	}
 
-	@contract('object')
 	finally(plan: Plan) {
 		planHandlers[plan.type].finally?.(plan, this[subject])
 		if ('releaseStopper' in plan) plan.releaseStopper?.()

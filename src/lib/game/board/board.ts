@@ -91,7 +91,7 @@ export class HexBoard extends withContainer(withHittable(GameObject)) {
 	getTile(ref: Positioned): Tile | undefined {
 		const coord = toAxialCoord(ref)
 		if (!(isInteger(coord.q) && isInteger(coord.r)) || !this.inBound(coord)) return undefined
-		const content = this.contents.get({ q: coord.q, r: coord.r }) as TileContent | undefined
+		const content = this.contents.get(axial.round(coord)) as TileContent | undefined
 		return content?.tile ?? new Tile(this, coord)
 	}
 

@@ -1,4 +1,4 @@
-import { type } from 'arktype'
+import { scope } from 'arktype'
 import { immutables } from 'mutts/src'
 import {
 	type AxialCoord,
@@ -15,10 +15,27 @@ import {
 function roughly(x: number) {
 	return Math.round(x / epsilon) * epsilon
 }
-// Position concept - can be any coordinate representation
-export const Position = type.or({ q: 'number', r: 'number' }, { x: 'number', y: 'number' })
+
+// ============================================================
+// Position Types Module
+// ============================================================
+// Defines position-related types that can be imported into other scopes
+
+// Create a scope that includes base game types + position types
+export const positionScope = scope({
+	AxialCoord: { q: 'number', r: 'number' },
+	WorldCoord: { x: 'number', y: 'number' },
+	Position: () => positionScope.type('AxialCoord | WorldCoord'),
+	'#PositionedObject': { position: () => positionScope.type('Position') },
+	Positioned: () => positionScope.type('Position | PositionedObject'),
+})
+
+export const positionTypes = positionScope.export()
+
+// Backward compatible exports
+export const Position = positionTypes.Position
+export const Positioned = positionTypes.Positioned
 export type Position = typeof Position.infer
-export const Positioned = type.or(Position, { position: Position })
 export type Positioned = typeof Positioned.infer
 
 immutables.add((x) => Position.allows(x))

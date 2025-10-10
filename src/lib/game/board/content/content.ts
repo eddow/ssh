@@ -1,4 +1,3 @@
-import { type } from 'arktype'
 import type { ScopedCallback } from 'mutts/src'
 import { type Game, GameObject } from '$lib/game'
 import type { Storage } from '../../storage'
@@ -26,5 +25,3 @@ export abstract class TileContent extends GameObject {
 	 */
 	abstract canInteract?(action: string): boolean
 }
-
-export const TileContentArkType = type.instanceOf(TileContent)

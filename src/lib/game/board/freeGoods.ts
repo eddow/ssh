@@ -1,8 +1,8 @@
 import { atomic, reactive, type ScopedCallback, unreactive } from 'mutts/src'
 import { Container, Sprite } from 'pixi.js'
 import { goods } from '$assets/game-content'
-import type { GoodType } from '$lib/arktype'
 import { assert, namedEffect } from '$lib/debug'
+import type { GoodType } from '$lib/types'
 import { epsilon } from '$lib/utils'
 import { AxialKeyMap } from '$lib/utils/mem'
 import {

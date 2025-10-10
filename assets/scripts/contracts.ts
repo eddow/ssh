@@ -1,33 +1,31 @@
-import { type } from 'arktype'
-import { type ContractType, Goods, GoodType } from '$lib/arktype'
-import { TileArkType } from '$lib/game/board/tile'
-import { WorkPlan } from '$lib/game/npcs/context/plan'
-import { Position, Positioned } from '$lib/utils/position'
+import type { Contract, ContractType } from '$lib/types'
+
+// Contracts defined using pure string arrays validated by contractScope in arktype.ts
 export const CharacterContract = {
 	walk: {
-		into: [Position.array()],
-		until: [Position.array()],
+		into: ['Position[]'],
+		until: ['Position[]'],
 	},
 	inventory: {
 		dropAllFree: [],
 		makeRoom: [],
-		dropStored: [Goods, TileArkType, Position.array().optional(), 'boolean?'],
-		grabStored: [Goods, TileArkType, Position.array().optional(), 'boolean?'],
-		grabFree: [GoodType.or(type.null), Positioned, Position.array().optional(), 'boolean?'],
+		dropStored: ['Goods', 'Positioned', 'Position[]?', 'boolean?'],
+		grabStored: ['Goods', 'Positioned', 'Position[]?', 'boolean?'],
+		grabFree: ['GoodType | null', 'Positioned', 'Position[]?', 'boolean?'],
 	},
 	selfCare: {
 		goEat: [],
 		wander: [],
 	},
 	work: {
-		goWork: [WorkPlan, Position.array()],
-		harvest: [WorkPlan],
-		convey: [WorkPlan],
-		offload: [WorkPlan],
-		gather: [WorkPlan],
-		transform: [WorkPlan],
-		construct: [WorkPlan],
+		goWork: ['WorkPlan', 'Position[]'],
+		harvest: ['WorkPlan'],
+		convey: ['WorkPlan'],
+		offload: ['WorkPlan'],
+		gather: ['WorkPlan'],
+		transform: ['WorkPlan'],
+		construct: ['WorkPlan'],
 	},
-} as const
+} as const satisfies Contract
 
 export type CharacterContract = ContractType<typeof CharacterContract>

@@ -1,12 +1,11 @@
-import { type } from 'arktype'
 import { computed, type ScopedCallback, unreactive } from 'mutts/src'
 import { Sprite } from 'pixi.js'
-import type { GoodType } from '$lib/arktype'
 import type { Game } from '$lib/game/game'
 import type { Hive, MovingGood } from '$lib/game/hive/hive'
-import type { Job } from '$lib/game/job'
 import { gameIsaTypes } from '$lib/game/npcs/utils'
 import type { Character } from '$lib/game/population/character'
+import type { GoodType } from '$lib/types'
+import type { Job } from '$lib/types/base'
 import { type AxialCoord, axial, epsilon, tileSize } from '$lib/utils'
 import { toAxialCoord, toWorldCoord } from '$lib/utils/position'
 import { renderTileGoods, type Storage } from '../../storage'
@@ -221,5 +220,3 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition, typeof 
 gameIsaTypes.alveolus = (value: any) => {
 	return value instanceof Alveolus
 }
-
-export const AlveolusArkType = type.instanceOf(Alveolus)

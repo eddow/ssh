@@ -78,7 +78,8 @@ export function withScripted<T extends abstract new (...args: any[]) => TickedGa
 					this.stepExecutor = undefined
 					this.nextStep()
 					const newType = this.stepExecutor!?.type
-					if (uselessStepExecutor === newType) throw new Error(`Useless step executor: ${newType}`)
+					if (uselessStepExecutor === newType && newType !== 'walk')
+						throw new Error(`Useless step executor: ${newType}`)
 				}
 			}
 		}

@@ -12,12 +12,13 @@ import { CharacterContract } from '$assets/scripts/contracts'
 import {
 	type Contract,
 	contract,
+	contractScope,
 	isContract,
 	overloadContract,
 	registerContract,
-} from '$lib/arktype'
+} from '$lib/types'
 import { axial, epsilon, objectMap } from '$lib/utils'
-import { Positioned, positionRoughly, toAxialCoord } from '../../utils/position'
+import { Positioned, positionRoughly, toAxialCoord } from '$lib/utils/position'
 import type { GameObject, InteractiveGameObject } from '../object'
 import { gameIsaTypes, gameOperators, lerp } from './utils'
 
@@ -214,7 +215,7 @@ export function loadNpcScripts(alveoli: Record<string, string>, context: Executi
 		contract: Contract,
 	): XoDe {
 		if (entryPoint instanceof FunctionDefinition && Array.isArray(contract)) {
-			const validate = type.raw(contract)
+			const validate = contractScope.type(contract as any)
 			return registerContract((...args: any[]) => {
 				const result = validate(args)
 				if (result instanceof type.errors) {

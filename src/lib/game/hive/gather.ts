@@ -1,6 +1,5 @@
-import { type } from 'arktype'
 import { computed } from 'mutts/src'
-import type { Job } from '$lib/game/job'
+import type { Job } from '$lib/types/base'
 import { toAxialCoord } from '$lib/utils/position'
 import type { Tile } from '../board/tile'
 import { SlottedStorage } from '../storage'
@@ -46,5 +45,3 @@ export class GatherAlveolus extends TransitAlveolus {
 		}
 	}
 }
-
-export const GatherAlveolusArkType = type.instanceOf(GatherAlveolus)

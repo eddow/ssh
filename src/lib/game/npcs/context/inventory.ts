@@ -1,19 +1,18 @@
-import { type } from 'arktype'
-import { contract, Goods, GoodType } from '$lib/arktype'
 import { assert } from '$lib/debug'
 import { Alveolus } from '$lib/game/board'
-import { type TileBorder, TileBorderArkType } from '$lib/game/board/border/border'
-import { type Tile, TileArkType } from '$lib/game/board/tile'
+import type { TileBorder } from '$lib/game/board/border/border'
+import type { Tile } from '$lib/game/board/tile'
 import type { Character } from '$lib/game/population/character'
-import { Positioned, toAxialCoord } from '$lib/utils'
+import { contract, type Goods, type GoodType } from '$lib/types'
+import type { PickupPlan, TransferPlan } from '$lib/types/base'
+import { type Positioned, toAxialCoord } from '$lib/utils'
 import { subject } from '../scripts'
 import { DurationStep } from '../steps'
-import type { PickupPlan, TransferPlan } from './plan'
 
 class InventoryFunctions {
 	declare [subject]: Character
 
-	@contract(GoodType, 'number?')
+	@contract('GoodType', 'number?')
 	dropAsFreeGood(goodType: GoodType, maxAmount: number = 1) {
 		const character = this[subject]
 		const { vehicle } = character
@@ -34,7 +33,7 @@ class InventoryFunctions {
 				vehicleTransfer.cancel()
 			})
 	}
-	@contract(Goods, type.or(TileArkType, TileBorderArkType))
+	@contract('Goods', 'Tile | TileBorder')
 	planDropStored(goods: Goods, destination: Tile | TileBorder): TransferPlan {
 		const character = this[subject]
 		const content = destination.content
@@ -70,7 +69,7 @@ class InventoryFunctions {
 			target: destination,
 		}
 	}
-	@contract(Goods, type.or(TileArkType, TileBorderArkType))
+	@contract('Goods', 'Tile | TileBorder')
 	planGrabStored(goods: Goods, source: Tile | TileBorder) {
 		const character = this[subject]
 		const vehicle = character.vehicle
@@ -109,7 +108,7 @@ class InventoryFunctions {
 		}
 	}
 
-	@contract(GoodType.or(type.null), Positioned)
+	@contract('GoodType | null', 'Positioned')
 	planGrabFree(goodType: GoodType | undefined, source: Positioned): PickupPlan {
 		const character = this[subject]
 		const vehicle = character.vehicle
@@ -137,7 +136,7 @@ class InventoryFunctions {
 			target: source,
 		}
 	}
-	@contract('object')
+	@contract('TransferPlan | PickupPlan')
 	effectuate(action: TransferPlan | PickupPlan) {
 		const character = this[subject]
 		const { vehicleAllocation } = action

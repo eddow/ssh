@@ -1,5 +1,5 @@
-import type { GoodType } from '$lib/arktype'
 import { traces } from '$lib/debug'
+import type { GoodType } from '$lib/types'
 import { Alveolus } from '../board/content/alveolus'
 import type { Tile } from '../board/tile'
 import { SlottedStorage } from '../storage/slotted-storage'

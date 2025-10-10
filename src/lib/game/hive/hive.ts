@@ -1,6 +1,6 @@
 import { computed, ReactiveBase, reactive, unreactive } from 'mutts/src'
-import type { GoodType } from '$lib/arktype'
 import { assert, traces } from '$lib/debug'
+import type { GoodType } from '$lib/types'
 import { type AxialCoord, findPath, type Positioned, setPop } from '$lib/utils'
 import { AxialKeyMap } from '$lib/utils/mem'
 import { toAxialCoord } from '../../utils/position'

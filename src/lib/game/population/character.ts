@@ -1,17 +1,24 @@
-import { type } from 'arktype'
 import { reactive, type ScopedCallback } from 'mutts/src'
 import { ColorMatrixFilter, Sprite } from 'pixi.js'
 import { characterEvolutionRates, characterTriggerLevels, maxWalkTime } from '$assets/constants'
 import { goods as goodsCatalog } from '$assets/game-content'
-import type { GoodType } from '$lib/arktype'
 import { assert, namedEffect } from '$lib/debug'
 import { mrg } from '$lib/globals.svelte'
+import type { GoodType, Job, WorkPlan } from '$lib/types/base'
 import { type AxialCoord, axial, maxBy, type Positioned } from '$lib/utils'
 import { axialDistance, type Position, toAxialCoord, toWorldCoord } from '../../utils/position'
 import type { Alveolus } from '../board/content/alveolus'
 import type { Tile } from '../board/tile'
 import type { Game } from '../game'
-import { bestPossibleJobScore, calculateJobScore, type Job } from '../job'
+
+// Simple job scoring functions
+function calculateJobScore(_character: Character, job: Job): number {
+	return job.urgency
+}
+function bestPossibleJobScore(_character: Character): number {
+	return 3
+}
+
 import aCharacterContext from '../npcs/context'
 import { withScripted } from '../npcs/object'
 // biome-ignore lint/correctness/noUnusedImports: We need `subject` for mixins tranquility: all propertyKeys are known
@@ -106,18 +113,16 @@ export class Character extends withInteractive(
 		const targetCoord = path[path.length - 1]
 		const targetTile = this.game.hex.getTile(targetCoord)!
 		const job = targetTile.getJob() as Job
-		const jobProvider = targetTile.content
+		const jobProvider = targetTile.content!
 		this.log('character.beginJob', job.type)
 
 		// Create and return the work plan - the plan lifecycle will handle state management
-		return this.scriptsContext.work.goWork(
-			{
-				type: 'work',
-				jobType: job.type,
-				target: jobProvider,
-			},
-			path,
-		)
+		const workPlan: WorkPlan = {
+			type: 'work',
+			jobType: job.type,
+			target: jobProvider,
+		}
+		return this.scriptsContext.work.goWork(workPlan, path)
 	}
 
 	get keepWorking(): boolean {
@@ -229,6 +234,3 @@ export class Character extends withInteractive(
 		}
 	}
 }
-
-// ArkType validation for Character
-export const CharacterArkType = type.instanceOf(Character)

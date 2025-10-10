@@ -1,19 +1,19 @@
 import { maxWalkTime } from '$assets/constants'
 import { goods as goodsCatalog } from '$assets/game-content'
-import { contract, type GoodType } from '$lib/arktype'
 import { BuildAlveolus } from '$lib/game/hive/build'
-import { type EngineerAlveolus, EngineerAlveolusArkType } from '$lib/game/hive/engineer'
-import { type GatherAlveolus, GatherAlveolusArkType } from '$lib/game/hive/gather'
+import type { EngineerAlveolus } from '$lib/game/hive/engineer'
+import type { GatherAlveolus } from '$lib/game/hive/gather'
 import type { Character } from '$lib/game/population/character'
+import { contract, type GoodType } from '$lib/types'
 import { type AxialCoord, axial } from '$lib/utils'
-import { Positioned, toAxialCoord } from '../../../utils/position'
+import { type Positioned, toAxialCoord } from '../../../utils/position'
 import { UnBuiltLand } from '../../board/content/unbuilt-land'
 import type { Tile } from '../../board/tile'
 import { subject } from '../scripts'
 
 class FindFunctions {
 	declare [subject]: Character
-	@contract(Positioned, 'boolean?')
+	@contract('Positioned', 'boolean?')
 	path(to: Positioned, punctual: boolean = true) {
 		return this[subject].game.hex.findPathForCharacter(
 			toAxialCoord(this[subject].tile.position),
@@ -163,7 +163,7 @@ class FindFunctions {
 			),
 		}
 	}
-	@contract(GatherAlveolusArkType, 'number')
+	@contract('GatherAlveolus', 'number') // TODO: GatherAlveolusArkType
 	gatherables(gatherer: GatherAlveolus, maxWalkTime: number) {
 		const { hex } = this[subject].game
 		const start = toAxialCoord(this[subject].tile.position)
@@ -203,7 +203,7 @@ class FindFunctions {
 		return path
 	}
 
-	@contract(EngineerAlveolusArkType)
+	@contract('EngineerAlveolus')
 	buildable(engineer: EngineerAlveolus) {
 		return engineer.nextSite
 	}

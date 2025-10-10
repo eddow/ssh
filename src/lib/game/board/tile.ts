@@ -1,10 +1,8 @@
-import { type } from 'arktype'
 import { computed, unreactive, watch } from 'mutts/src'
 import { ColorMatrixFilter, Container, Graphics, Point, TilingSprite } from 'pixi.js'
-
-import type { AlveolusType } from '$lib/arktype'
 import { namedEffect } from '$lib/debug'
 import { mrg } from '$lib/globals.svelte'
+import type { AlveolusType, Job } from '$lib/types/base'
 import { type AxialCoord, axial, type NeighborInfo, tileSize } from '$lib/utils'
 import {
 	axialDistance,
@@ -15,7 +13,6 @@ import {
 } from '../../utils/position'
 import { Hive } from '../hive'
 import { BuildAlveolus } from '../hive/build'
-import type { Job } from '../job'
 import { gameIsaTypes } from '../npcs/utils'
 import { GameObject, withGenerator, withInteractive } from '../object'
 import type { HexBoard } from './board'
@@ -259,7 +256,6 @@ export class Tile extends withInteractive(withGenerator(GameObject)) {
 	}
 }
 
-export const TileArkType = type.instanceOf(Tile)
 gameIsaTypes.tile = (value: any) => {
 	return value instanceof Tile
 }

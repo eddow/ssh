@@ -1,6 +1,6 @@
 import { atomic, computed, reactive, unreactive } from 'mutts/src'
-import type { Goods, GoodType } from '$lib/arktype'
 import { assert } from '$lib/debug'
+import type { Goods, GoodType } from '$lib/types/base'
 import type { RenderedGoodSlot, RenderedGoodSlots } from './goods-renderer'
 import {
 	AllocationError,
