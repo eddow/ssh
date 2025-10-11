@@ -59,7 +59,10 @@ declare namespace Ssh {
 		workTime: number
 		icon: Sprite
 		sprites: Sprite[]
-		constructionCost?: Record<string, number>
+		construction?: {
+			goods: Record<string, number>
+			time: number
+		}
 	}
 	interface GoodsDefinition {
 		feedingValue?: number

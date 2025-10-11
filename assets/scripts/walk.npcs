@@ -1,5 +1,6 @@
 function until(path)
 	for step in path
+	// TODO: What if walkability changed (building, ...)
 		if tile.position != step then
 			midPoint = lerp(tile.position, step, 1/2)
 			walk.moveTo midPoint

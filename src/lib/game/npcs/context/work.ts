@@ -1,3 +1,4 @@
+import { alveoli } from '$assets/game-content'
 import { assert } from '$lib/debug'
 import { UnBuiltLand } from '$lib/game/board/content/unbuilt-land'
 import { alveolusClass } from '$lib/game/hive'
@@ -157,7 +158,11 @@ class WorkFunctions {
 		const targetType = site.target as keyof typeof alveolusClass
 		const TargetClass = alveolusClass[targetType]
 		assert(TargetClass, 'Target alveolus class must exist')
-		return new DurationStep(site.workTime, 'work', `construct.${targetType}`).finished(() => {
+		return new DurationStep(
+			alveoli[targetType].construction.time,
+			'work',
+			`construct.${targetType}`,
+		).finished(() => {
 			// Replace the tile content with the target alveolus
 			site.tile.content = new TargetClass(site.tile)
 		})

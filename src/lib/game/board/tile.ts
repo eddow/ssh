@@ -164,7 +164,7 @@ export class Tile extends withInteractive(withGenerator(GameObject)) {
 			.map((neighbor) => this.board.getTile(neighbor))
 			.filter((tile): tile is Tile => tile !== undefined)
 	}
-
+	// TODO: Tile is only an accessor and shouldn't manage rendering
 	render() {
 		if (!this.content) return
 		const { background } = this.content

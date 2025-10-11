@@ -24,7 +24,9 @@ export class EngineerAlveolus extends Alveolus {
 			start,
 			(coord) => {
 				const tile = hex.getTile(coord)
-				return tile?.content instanceof BuildAlveolus && tile.content.isReady
+				return (
+					tile?.content instanceof BuildAlveolus && tile.content.isReady && !tile.content.destroyed
+				)
 			},
 			this.action.radius,
 			true,

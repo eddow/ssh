@@ -1,12 +1,11 @@
 import { computed } from 'mutts/src'
 import { alveoli as alveoliDefs } from '$assets/game-content'
-import { assert, namedEffect } from '$lib/debug'
+import { assert } from '$lib/debug'
 import { SpecificStorage } from '$lib/game/storage'
 import type { AlveolusType, GoodType } from '$lib/types'
 import { UnBuiltLand } from '../board'
 import { Alveolus } from '../board/content/alveolus'
 import type { Tile } from '../board/tile'
-import { alveolusClass } from './index'
 
 export class BuildAlveolus extends Alveolus {
 	public underlyingLand?: UnBuiltLand // Store the UnBuiltLand that was here before
@@ -14,7 +13,7 @@ export class BuildAlveolus extends Alveolus {
 
 	constructor(tile: Tile, target: AlveolusType) {
 		const targetDef = alveoliDefs[target]
-		const cost = 'constructionCost' in targetDef ? targetDef.constructionCost : {}
+		const cost = (targetDef.construction?.goods || {}) as Record<GoodType, number>
 
 		// Preserve the underlying UnBuiltLand (for background and deposit checking) before calling super
 		const underlyingLand = tile.content
@@ -28,11 +27,13 @@ export class BuildAlveolus extends Alveolus {
 		// Now assign properties after super
 		this.target = target
 		this.underlyingLand = underlyingLand
-		// TODO: Once the build has begun, the underlying land should be destroyed
-
+		// TODO: Once the resource collection has begun, the underlying land should be destroyed
+		// Indeed, before resource collection, terraform could be used
+		/*
 		// Watch for completion and replace with target alveolus
 		const once = namedEffect('construction.complete', () => {
 			if (this.isReady) {
+				// TODO: Actually call the engineer
 				// Construction is complete, replace with the target alveolus
 				const TargetClass = alveolusClass[this.target]
 				if (TargetClass) {
@@ -43,14 +44,13 @@ export class BuildAlveolus extends Alveolus {
 				}
 				once()
 			}
-		})
+		})*/
 	}
 
 	@computed
 	get remainingNeeds(): Record<string, number> {
 		const targetDef = alveoliDefs[this.target]
-		const cost: Partial<Record<GoodType, number>> =
-			'constructionCost' in targetDef ? targetDef.constructionCost : {}
+		const cost = targetDef.construction?.goods || {}
 		const needs: Record<string, number> = {}
 		for (const [good, qty] of Object.entries(cost)) {
 			const have = this.storage.available(good as GoodType) || 0
@@ -61,12 +61,12 @@ export class BuildAlveolus extends Alveolus {
 
 	@computed
 	get isReady(): boolean {
-		return Object.keys(this.remainingNeeds).length === 0
+		return Object.keys(this.remainingNeeds).length === 0 && !this.destroyed
 	}
 
 	advertise(): void {
 		// Only demand goods if tile is clear
-		if (!this.tile.isClear) return
+		if (!this.tile.isClear || this.destroyed) return
 
 		// Demand each missing good
 		for (const good of Object.keys(this.remainingNeeds) as GoodType[]) {

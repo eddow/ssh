@@ -17,8 +17,10 @@ export class GameObject extends ReactiveBase {
 	) {
 		super()
 	}
-
-	destroy() {}
+	public destroyed: boolean = false
+	destroy() {
+		this.destroyed = true
+	}
 }
 
 // Mixin functions for composition

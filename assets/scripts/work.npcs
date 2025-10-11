@@ -71,9 +71,9 @@ function gather(jobPlan)
 end function
 
 function construct(jobPlan)
-    alveolus = jobPlan.target
-    do while I.keepWorking and alveolus.keepWorking
-        path = find.buildable(alveolus)
+    engineer = jobPlan.target
+    do while I.keepWorking and engineer.keepWorking
+        path = engineer.nextSite
         if not path then return false
         walk.until path
         walk.enter

@@ -1,7 +1,6 @@
 import { maxWalkTime } from '$assets/constants'
 import { goods as goodsCatalog } from '$assets/game-content'
 import { BuildAlveolus } from '$lib/game/hive/build'
-import type { EngineerAlveolus } from '$lib/game/hive/engineer'
 import type { GatherAlveolus } from '$lib/game/hive/gather'
 import type { Character } from '$lib/game/population/character'
 import { contract, type GoodType } from '$lib/types'
@@ -201,11 +200,6 @@ class FindFunctions {
 
 		const path = hex.freeGoods.findNearestGoods(start, start, [targetGood], maxWalkTime)
 		return path
-	}
-
-	@contract('EngineerAlveolus')
-	buildable(engineer: EngineerAlveolus) {
-		return engineer.nextSite
 	}
 
 	@contract()
