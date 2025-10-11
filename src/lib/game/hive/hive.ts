@@ -324,7 +324,6 @@ export class Hive extends ReactiveBase {
 		traces.advertising?.log(`Demanding ${goodType}: ${demander.name}`)
 		const q = this.getQueue(goodType)
 		if (!q) {
-			// TODO: Look in the moving goods towards a storage
 			// Try to satisfy immediately from nearest storage with stock
 			const storages = new Set<Alveolus>()
 			for (const alveolus of this.alveoli) if (alveolus.canGive(goodType)) storages.add(alveolus)

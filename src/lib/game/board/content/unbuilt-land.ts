@@ -2,7 +2,6 @@ import { type ScopedCallback, unreactive } from 'mutts/src'
 import { Sprite } from 'pixi.js'
 import { deposits } from '$assets/game-content'
 import { namedEffect } from '$lib/debug'
-import type { Game } from '$lib/game/game'
 import type { TerrainType } from '$lib/types'
 import { tileSize } from '$lib/utils'
 import { fastPoissonRandom } from '$lib/utils/poisson'
@@ -35,7 +34,6 @@ export class UnBuiltLand extends withTicked(TileContent) {
 	) {
 		const tileCoord = toAxialCoord(tile.position)
 		super(tile.board.game, `unbuilt-${tileCoord.q}-${tileCoord.r}`)
-		tile.content = this
 	}
 
 	update(deltaTime: number) {
@@ -92,32 +90,46 @@ export class UnBuiltLand extends withTicked(TileContent) {
 	get background() {
 		return `terrain-${this.terrain}`
 	}
-	render(game: Game): ScopedCallback | undefined {
+	render(): ScopedCallback | undefined {
 		const size = tileSize
 		const worldPos = toWorldCoord(this.tile.position)
+		const cleanups: ScopedCallback[] = []
 
-		return namedEffect('unbuilt.render', () => {
+		// Render the tile background first
+		cleanups.push(this.renderBackground())
+
+		// Deposit sprite if any (reactive effect)
+		const depositCleanup = namedEffect('unbuilt.render', () => {
 			// Deposit sprite if any
 			if (this.deposit?.sprites?.[0]) {
-				const sprite = new Sprite(game.getTexture(this.deposit.sprites[0]))
+				const sprite = new Sprite(this.game.getTexture(this.deposit.sprites[0]))
 				// match previous hex resize: scale to tile size
 				const scale = Math.max(sprite.width, sprite.height) / (size * 1)
 				sprite.scale.set(1 / scale)
 				sprite.anchor.set(0.5)
 				sprite.position.set(worldPos.x, worldPos.y)
-				game.alveoliLayer.addChild(sprite)
+				this.game.alveoliLayer.addChild(sprite)
 
 				return () => {
-					game.alveoliLayer.removeChild(sprite)
+					this.game.alveoliLayer.removeChild(sprite)
 					sprite.destroy()
 				}
 			}
 		})
+		cleanups.push(depositCleanup)
+
+		return () => {
+			for (const cleanup of cleanups) cleanup()
+		}
 	}
 
 	canInteract(action: string): boolean {
 		// UnBuiltLand can accept building actions
 		if (action.startsWith('build:')) {
+			return true
+		}
+		// UnBuiltLand can accept zoning actions
+		if (action.startsWith('zone:')) {
 			return true
 		}
 		// Can also accept other actions if they make sense

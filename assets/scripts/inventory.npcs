@@ -45,8 +45,7 @@ function dropAllFree()
 	if not where then return false
 	walk.into where
 	do
-		// TODO: random?
-		good = keys(I.vehicle.stock)[0]
+		good = aKey(I.vehicle.stock)
 	while good
 		// Move around the tile for preparationTime before dropping
 		walk.moveTo find.randomPositionInTile()
@@ -56,7 +55,7 @@ end function
 
 function makeRoom()
 	do while not haveRoom()
-		good = keys(I.vehicle.stock)[0]
+		good = aKey(I.vehicle.stock)
 		if not good then
 			debugger I.vehicle
 			error "Try to make room but has no good to drop"

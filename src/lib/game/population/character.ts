@@ -192,7 +192,6 @@ export class Character extends withInteractive(
 		if (Object.values(this.vehicle.stock).some((qty) => qty > 0))
 			return this.scriptsContext.inventory.dropAllFree()
 		const tryAnActivity =
-			// TODO: make sure to dropAllFree before findBestJob - or indeed to find where to drop
 			this.fatigue < this.triggerLevels.fatigue.high ? this.findBestJob() : undefined // goRest
 		// Default to wandering when no specific action is needed
 		return tryAnActivity || this.scriptsContext.selfCare.wander()

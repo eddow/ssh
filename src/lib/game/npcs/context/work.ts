@@ -15,20 +15,17 @@ import type { WorkPlan } from '.'
 class WorkFunctions {
 	declare [subject]: Character
 	@contract('WorkPlan')
-	// TODO: specific cases for `convey`: preparationTime, assignedConveyor, ... ?
 	prepare(workPlan: WorkPlan) {
 		if (['convey', 'offload'].includes(workPlan.jobType)) return
 		assert(
 			this[subject].assignedAlveolus?.preparationTime,
 			'assignedAlveolus must be set and have a preparationTime',
 		)
-		return workPlan.jobType !== 'convey'
-			? new DurationStep(
-					this[subject].assignedAlveolus!.preparationTime,
-					'work',
-					`prepare.${workPlan.jobType}`,
-				)
-			: undefined
+		return new DurationStep(
+			this[subject].assignedAlveolus!.preparationTime,
+			'work',
+			`prepare.${workPlan.jobType}`,
+		)
 	}
 	@contract()
 	waitForIncomingGoods() {
@@ -120,7 +117,7 @@ class WorkFunctions {
 			})
 		})
 	}
-	@contract('object?') // TODO: object??
+	@contract()
 	transformStep() {
 		const alveolus = this[subject].assignedAlveolus as TransformAlveolus
 		assert(alveolus, 'assignedAlveolus must be set')

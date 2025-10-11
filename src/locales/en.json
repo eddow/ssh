@@ -62,5 +62,9 @@
 		"conveyorTooltip": "Allow unrelated goods to pass through this alveolus"
 	},
 	"deposit": "Resources",
-	"goods": "Goods"
+	"goods": "Goods",
+	"zones": {
+		"residential": "Residential Zone",
+		"unzone": "Remove Zone"
+	}
 }

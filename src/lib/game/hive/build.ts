@@ -28,23 +28,6 @@ export class BuildAlveolus extends Alveolus {
 		this.target = target
 		this.underlyingLand = underlyingLand
 		// TODO: Once the resource collection has begun, the underlying land should be destroyed
-		// Indeed, before resource collection, terraform could be used
-		/*
-		// Watch for completion and replace with target alveolus
-		const once = namedEffect('construction.complete', () => {
-			if (this.isReady) {
-				// TODO: Actually call the engineer
-				// Construction is complete, replace with the target alveolus
-				const TargetClass = alveolusClass[this.target]
-				if (TargetClass) {
-					// Destroy this build alveolus
-					this.destroy()
-					// Create the target alveolus and set as tile content
-					this.tile.content = new TargetClass(this.tile)
-				}
-				once()
-			}
-		})*/
 	}
 
 	@computed

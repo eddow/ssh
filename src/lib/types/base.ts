@@ -33,15 +33,8 @@ export const baseGameScope = scope({
 	ActivityType: type.enumerated('idle', 'walk', 'work', 'eat', 'sleep', 'ponder'),
 	NeedType: type.enumerated('hunger', 'tiredness', 'fatigue'),
 
-	// TODO partial<record<GoodType, number>>
-	// Goods type - commonly used
-	Goods: {
-		'berries?': 'number',
-		'mushrooms?': 'number',
-		'planks?': 'number',
-		'stone?': 'number',
-		'wood?': 'number',
-	},
+	// Goods type - commonly used (Partial<Record<GoodType, number>>)
+	Goods: Object.fromEntries(goodTypes.map((gt) => [`${gt}?`, 'number'])),
 
 	// Job and Needs types
 	Job: {
@@ -106,7 +99,7 @@ export type AlveolusType = typeof AlveolusType.infer
 export type JobType = typeof JobType.infer
 export type ActivityType = typeof ActivityType.infer
 export type NeedType = typeof NeedType.infer
-export type Goods = typeof Goods.infer
+export type Goods = Partial<Record<GoodType, number>>
 export type Job = typeof Job.infer
 export type Needs = typeof Needs.infer
 

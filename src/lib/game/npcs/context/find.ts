@@ -89,7 +89,23 @@ class FindFunctions {
 		)
 		if (pathNearConstruction?.length) return pathNearConstruction
 
-		// 2) Fallback to any matching deposit
+		// 2) Prefer deposits in harvest zones (cleaning duties)
+		const pathInZone = hex.findNearestForCharacter(
+			start,
+			this[subject],
+			(coord) => {
+				const tile = hex.getTile(coord)
+				if (!(tile?.content instanceof UnBuiltLand)) return false
+				if (tile.content.deposit?.name !== deposit) return false
+				// Check if this tile is in a harvest zone
+				return tile.zone === 'harvest'
+			},
+			maxWalkTime,
+			false,
+		)
+		if (pathInZone?.length) return pathInZone
+
+		// 3) Fallback to any matching deposit
 		const pathAny = hex.findNearestForCharacter(
 			start,
 			this[subject],
@@ -162,7 +178,7 @@ class FindFunctions {
 			),
 		}
 	}
-	@contract('GatherAlveolus', 'number') // TODO: GatherAlveolusArkType
+	@contract('GatherAlveolus', 'number')
 	gatherables(gatherer: GatherAlveolus, maxWalkTime: number) {
 		const { hex } = this[subject].game
 		const start = toAxialCoord(this[subject].tile.position)
@@ -207,11 +223,13 @@ class FindFunctions {
 		const { hex } = this[subject].game
 		const start = toAxialCoord(this[subject].tile.position)
 		// Use findBest with a cost function: walkTime * crowding
+		// Only drop in UnBuiltLand that is not zoned or an alveolus
 		const result = hex.findBestForCharacter(
 			start,
 			this[subject],
 			(coord) => {
 				const tile = hex.getTile(coord)
+				// Exclude zones and alveoli - only allow UnBuiltLand without zones
 				if (!(tile?.content instanceof UnBuiltLand) || tile.zone) return false
 				return 1 / (hex.freeGoods.getGoodsAt(coord).length + 1)
 			},

@@ -38,11 +38,11 @@ export class HarvestAlveolus extends TransitAlveolus {
 			0,
 		)
 	}
+	// TODO: no more `keepWorking` but a generic job finding function
 	get keepWorking(): boolean {
 		return this.storage.canStoreAll(this.action.output)
 	}
 	alveolusSpecificJob(): Job | undefined {
-		if (!this.keepWorking) return undefined
 		// TODO: Give specifications of the job (like the deposit found) in the job description ?
 		// First, try to find a deposit on a construction site tile (highest priority)
 		const constructionDeposit = this.tile.game.hex.findNearest(
@@ -69,6 +69,34 @@ export class HarvestAlveolus extends TransitAlveolus {
 				urgency: 3, // High urgency for construction site clearing
 			}
 		}
+
+		// Second, try to find deposits in harvest zones (cleaning duties)
+		// These jobs are offered even when the harvester is full, since goods can be dropped as free goods
+		const zoneDeposit = this.tile.game.hex.findNearest(
+			toAxialCoord(this.tile.position),
+			(coord: Positioned) => {
+				const tile = this.tile.game.hex.getTile(coord)
+				return (
+					tile?.content instanceof UnBuiltLand &&
+					tile.content.deposit?.name === this.action.deposit &&
+					tile.zone === 'harvest'
+				)
+			},
+			6,
+		)
+
+		// If found, prioritize it with medium urgency
+		if (zoneDeposit) {
+			const zoneDepositCoord = zoneDeposit[zoneDeposit.length - 1]
+			return {
+				type: 'harvest',
+				fatigue: this.getFatigueCost() + axialDistance(this.tile.position, zoneDepositCoord) * 2,
+				urgency: 2, // Medium urgency for zone cleaning
+			}
+		}
+
+		// For regular harvesting (not cleaning), only offer job if there's room to store
+		if (!this.keepWorking) return undefined
 
 		// Otherwise, find any deposit of the right type
 		const nearestDeposit = this.tile.game.hex.findNearest(

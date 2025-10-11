@@ -27,10 +27,12 @@ function harvest(jobPlan)
 		loop
 		walk.enter
 		work.harvestStep
-		if isGatherable(alveolus) then
-			inventory.dropAllFree
-		else
-			inventory.dropStored I.vehicle.stock, alveolus.tile
+		if not I.vehicle.isEmpty then
+			if isGatherable(alveolus) then
+				inventory.dropAllFree
+			else
+				inventory.dropStored I.vehicle.stock, alveolus.tile
+			end if
 		end if
 	loop
 end function

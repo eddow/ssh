@@ -1,8 +1,8 @@
 import { scope, type Type, type } from 'arktype'
 import { positionTypes } from '$lib/utils/position'
+import type { ScriptExecution } from '../game/npcs/scripts'
 import { baseGameScope } from './base'
 import { gameObjectsModule } from './game-objects'
-import type { ScriptExecution } from '../game/npcs/scripts'
 
 // ============================================================
 // Contract Registry - FIRST for initialization order
@@ -53,7 +53,6 @@ export const contractScope = scope({
 	...gameScope.export(),
 	...gameObjectsModule,
 })
-
 
 // ============================================================
 // Contract Decorator System

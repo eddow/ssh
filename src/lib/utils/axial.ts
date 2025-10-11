@@ -78,6 +78,46 @@ export function fromCartesian({ x, y }: WorldCoord, size: number) {
 }
 
 /**
+ * Get all axial coordinates in a hexagonal rectangular selection defined by two points
+ * Uses 3-symmetric cubic coordinate bounds (q, r, s) for a more natural hexagonal shape
+ * Returns coordinates where q_min ≤ q ≤ q_max AND r_min ≤ r ≤ r_max AND s_min ≤ s ≤ s_max
+ * @param start Starting axial point
+ * @param end Ending axial point
+ * @returns Array of all axial coordinates in the selection
+ */
+export function axialRectangle(start: AxialRef, end: AxialRef): AxialCoord[] {
+	const startCoord = axial.coord(start)
+	const endCoord = axial.coord(end)
+
+	// Convert to cubic coordinates (q, r, s where s = -q - r)
+	const startS = -startCoord.q - startCoord.r
+	const endS = -endCoord.q - endCoord.r
+
+	// Find min/max for all 3 cubic axes
+	const minQ = Math.min(startCoord.q, endCoord.q)
+	const maxQ = Math.max(startCoord.q, endCoord.q)
+	const minR = Math.min(startCoord.r, endCoord.r)
+	const maxR = Math.max(startCoord.r, endCoord.r)
+	const minS = Math.min(startS, endS)
+	const maxS = Math.max(startS, endS)
+
+	const coords: AxialCoord[] = []
+
+	// Iterate through the bounding box in q and r
+	for (let q = minQ; q <= maxQ; q++) {
+		for (let r = minR; r <= maxR; r++) {
+			const s = -q - r
+			// Check if s is within bounds (3rd axis constraint)
+			if (s >= minS && s <= maxS) {
+				coords.push({ q, r })
+			}
+		}
+	}
+
+	return coords
+}
+
+/**
  * Test if a world point is inside a hexagonal tile
  * @param point - World coordinates to test
  * @param coord - Axial coordinates of the tile

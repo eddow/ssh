@@ -137,6 +137,30 @@
 				{/each}
 			</ButtonGroup>
 		</ToolbarGroup>
+		<ToolbarGroup>
+			<ButtonGroup>
+				<RadioButton
+					name="action-selection"
+					value="zone:residential"
+					bind:group={interactionMode.selectedAction}
+					checkedClass="!bg-gray-200 !text-gray-900 !border-2 !border-gray-400 dark:!bg-gray-700 dark:!text-gray-100 dark:!border-gray-500"
+					title={$T.zones.residential}
+					outline
+				>
+					<Icon icon="mdi:home-group" width="24" height="24" />
+				</RadioButton>
+				<RadioButton
+					name="action-selection"
+					value="zone:none"
+					bind:group={interactionMode.selectedAction}
+					checkedClass="!bg-gray-200 !text-gray-900 !border-2 !border-gray-400 dark:!bg-gray-700 dark:!text-gray-100 dark:!border-gray-500"
+					title={$T.zones.unzone}
+					outline
+				>
+					<Icon icon="mdi:eraser" width="24" height="24" />
+				</RadioButton>
+			</ButtonGroup>
+		</ToolbarGroup>
 
 		{#snippet end()}
 			<ToolbarGroup>

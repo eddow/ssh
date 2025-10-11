@@ -1,6 +1,5 @@
 import { computed, type ScopedCallback, unreactive } from 'mutts/src'
 import { Sprite } from 'pixi.js'
-import type { Game } from '$lib/game/game'
 import type { Hive, MovingGood } from '$lib/game/hive/hive'
 import { gameIsaTypes } from '$lib/game/npcs/utils'
 import type { Character } from '$lib/game/population/character'
@@ -32,7 +31,8 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition, typeof 
 	public advertisingEffect?: ScopedCallback
 
 	constructor(tile: Tile, storage: Storage<any>) {
-		super()
+		const tileCoord = toAxialCoord(tile.position)
+		super(tile.board.game, `alveolus:${tileCoord.q},${tileCoord.r}`)
 		this.storage = storage
 		this.tile = tile
 
@@ -71,30 +71,38 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition, typeof 
 		return true
 	}
 
-	// Render alveolus sprite + a vertical goods bar on the right side of the tile
-	render(game: Game): ScopedCallback | undefined {
+	// Render tile background, alveolus sprite + a vertical goods bar on the right side of the tile
+	render(): ScopedCallback | undefined {
 		const size = tileSize
 		const worldPos = toWorldCoord(this.tile.position)
 		const cleanups: ScopedCallback[] = []
 
+		// Render the tile background first
+		cleanups.push(this.renderBackground())
+
 		// Alveolus sprite (centered)
 		if (this.sprites?.[0]) {
-			const sprite = new Sprite(game.getTexture(this.sprites[0]))
+			const sprite = new Sprite(this.game.getTexture(this.sprites[0]))
 			// approximate size scaling similar to hexboard
 			const scale = Math.max(sprite.width, sprite.height) / (size * 1.5)
 			sprite.scale.set(1 / scale)
 			sprite.anchor.set(0.5)
 			sprite.position.set(worldPos.x, worldPos.y)
-			game.alveoliLayer.addChild(sprite)
+			this.game.alveoliLayer.addChild(sprite)
 
 			cleanups.push(() => {
-				game.alveoliLayer.removeChild(sprite)
+				this.game.alveoliLayer.removeChild(sprite)
 				sprite.destroy()
 			})
 		}
 
 		// Render stored goods
-		const goodsCleanup = renderTileGoods(game, size, () => this.storage.renderedGoods(), worldPos)
+		const goodsCleanup = renderTileGoods(
+			this.game,
+			size,
+			() => this.storage.renderedGoods(),
+			worldPos,
+		)
 		if (goodsCleanup) cleanups.push(goodsCleanup)
 
 		return () => {
@@ -118,7 +126,6 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition, typeof 
 	alveolusSpecificJob?(): Job | undefined
 
 	getJob(): Job | undefined {
-		// TODO: cleaning job (also unbuild marked tile) -> unburden
 		if (this.assignedWorker) return undefined
 		// Don't provide jobs if the alveolus is burdened by FreeGoods
 		if (this.isBurdened) return undefined

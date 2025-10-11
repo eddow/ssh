@@ -37,13 +37,5 @@ Active WIP. Systems and naming may change (e.g., convey/collect flows). Expect b
 
 # TODO
 
-- harvesters resources when out of gatherer's radius
-- - gatherer's radius -> walktime (and computed-get)
 - slotted-storage specific job: defrag
-allocate goods moving to storage when demanding
-Clean alveoli who contain a freeGood
-
-## bugs/deadlocks
-
-- convey -> free good
-- waitForIncoming never resolved
+- zines: residential

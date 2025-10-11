@@ -28,6 +28,9 @@ class CharacterContext extends InteractiveContext<Character> {
 	}
 	@contract('HarvestAlveolus')
 	isGatherable(harvestAlveolus: HarvestAlveolus) {
+		// Return true if the harvest alveolus is full (can't store more)
+		if (!harvestAlveolus.canStoreInHarvester) return true
+
 		// TODO: check all gatherers collected by harvestAlveolus - even outside the hive
 		const gatherers = harvestAlveolus.hive.byActionType.gather
 		if (!gatherers || gatherers.length === 0) return false

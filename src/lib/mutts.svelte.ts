@@ -36,4 +36,3 @@ export function p2s<T extends object | any[] | undefined>(getter: () => T): () =
 
 	return () => (initialized ? value : getter())
 }
-// TODO: proxy -> $state(sub)?

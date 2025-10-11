@@ -138,10 +138,6 @@ export function findPath(
 			parentMap.set(neighborCoord, currentCoord)
 			openSet.set(axial.key(neighborCoord), neighborNode.fCost)
 			openSetMap.set(neighborCoord, neighborNode)
-			if (openSet.size !== openSetMap.size) {
-				//TODO: okay, it's the same .... so, why 2 sets?
-				debugger
-			}
 		}
 	}
 

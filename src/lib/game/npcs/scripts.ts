@@ -103,6 +103,11 @@ export class GlobalContext {
 	keys(object: object) {
 		return Object.keys(object)
 	}
+	@contract('object')
+	aKey(object: object) {
+		const keys = Object.keys(object)
+		return keys[Math.floor(Math.random() * keys.length)]
+	}
 }
 
 export const subject = Symbol('subject')

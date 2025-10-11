@@ -1,20 +1,12 @@
-import { computed, unreactive, watch } from 'mutts/src'
-import { ColorMatrixFilter, Container, Graphics, Point, TilingSprite } from 'pixi.js'
+import { computed, unreactive } from 'mutts/src'
 import { namedEffect } from '$lib/debug'
-import { mrg } from '$lib/globals.svelte'
 import type { AlveolusType, Job } from '$lib/types/base'
-import { type AxialCoord, axial, type NeighborInfo, tileSize } from '$lib/utils'
-import {
-	axialDistance,
-	type Position,
-	type Positioned,
-	toAxialCoord,
-	toWorldCoord,
-} from '../../utils/position'
+import { type AxialCoord, axial, type NeighborInfo } from '$lib/utils'
+import { axialDistance, type Position, type Positioned, toAxialCoord } from '../../utils/position'
 import { Hive } from '../hive'
 import { BuildAlveolus } from '../hive/build'
 import { gameIsaTypes } from '../npcs/utils'
-import { GameObject, withGenerator, withInteractive } from '../object'
+import { GameObject, withInteractive } from '../object'
 import type { HexBoard } from './board'
 import type { TileBorder } from './border/border'
 import { Alveolus } from './content/alveolus'
@@ -23,7 +15,7 @@ import type { FreeGood } from './freeGoods'
 import type { Zone } from './zone'
 
 @unreactive
-export class Tile extends withInteractive(withGenerator(GameObject)) {
+export class Tile extends withInteractive(GameObject) {
 	// True when the tile is exactly as produced by generation
 	public asGenerated: boolean = false
 	@computed
@@ -164,70 +156,7 @@ export class Tile extends withInteractive(withGenerator(GameObject)) {
 			.map((neighbor) => this.board.getTile(neighbor))
 			.filter((tile): tile is Tile => tile !== undefined)
 	}
-	// TODO: Tile is only an accessor and shouldn't manage rendering
-	render() {
-		if (!this.content) return
-		const { background } = this.content
-		const { position, game } = this
-		const { x: wpx, y: wpy } = toWorldCoord(position)
 
-		const tileContainer = new Container()
-		tileContainer.position.set(wpx, wpy)
-
-		const size = tileSize
-		const texture = this.game.getTexture(background)
-		const tileSprite = new TilingSprite({ texture, width: size * 2, height: size * 2 })
-		tileSprite.anchor.set(0.5)
-		tileSprite.tilePosition.set(-wpx % (texture.width || size), -wpy % (texture.height || size))
-
-		const mask = new Graphics()
-		const points = Array.from({ length: 6 }, (_, i) => {
-			const angle = (Math.PI / 3) * (i + 0.5)
-			return new Point(Math.cos(angle) * size, Math.sin(angle) * size)
-		})
-		mask.poly(points).fill(0xffffff)
-		tileSprite.mask = mask
-		const brightnessFilter = new ColorMatrixFilter()
-		tileSprite.filters = [brightnessFilter]
-
-		tileContainer.addChild(tileSprite, mask)
-		game.groundLayer.addChild(tileContainer)
-
-		// Watch for content changes and render content
-		const cleanup = watch(
-			() => this.content,
-			(content) => {
-				if (!content) return
-				// content.render now returns a cleanup function instead of a Container
-				return content.render(game)
-			},
-			{ immediate: true },
-		)
-
-		const mouseoverEffect = namedEffect('tile.mouseover', () => {
-			if (mrg.hoveredObject === this) {
-				tileSprite.tint = 0xaaaaff
-				brightnessFilter.brightness(1.2, false)
-			} else {
-				let tint = 0xffffff
-				// Priority: construction site > zone
-				if (this.zone === 'residential') {
-					tint = 0xaaffaa // greenish for residential zone
-				} else if (this.zone === 'harvest') {
-					tint = 0xffffaa // yellowish for harvest zone
-				}
-				tileSprite.tint = tint
-				brightnessFilter.brightness(1, false)
-			}
-		})
-
-		return () => {
-			cleanup()
-			mouseoverEffect()
-			tileContainer.destroy({ children: false })
-			this.game.groundLayer.removeChild(tileContainer)
-		}
-	}
 	@computed
 	get walkNeighbors(): NeighborInfo[] {
 		const coord = toAxialCoord(this.position)

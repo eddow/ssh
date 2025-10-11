@@ -1,5 +1,14 @@
 import { Eventful, reactive, unreactive, zip } from 'mutts/src'
-import { Application, Assets, Container, Point, Spritesheet, Texture, Ticker } from 'pixi.js'
+import {
+	Application,
+	Assets,
+	Container,
+	Graphics,
+	Point,
+	Spritesheet,
+	Texture,
+	Ticker,
+} from 'pixi.js'
 import * as gameContent from '$assets/game-content'
 import { prefix, resources } from '$assets/resources'
 import { assert } from '$lib/debug'
@@ -7,8 +16,9 @@ import { interactionMode, mrg } from '$lib/globals.svelte'
 import { registerPixiApp, unregisterPixiApp } from '$lib/hmr-pixi'
 import { LCG } from '$lib/numbers'
 import type { AlveolusType, DepositType, GoodType } from '$lib/types'
-import { axial } from '$lib/utils/axial'
+import { axial, axialRectangle, cartesian, fromCartesian } from '$lib/utils/axial'
 import { toAxialCoord } from '$lib/utils/position'
+import { tileSize } from '$lib/utils/varied'
 import { Alveolus } from './board'
 import { HexBoard } from './board/board'
 import { Deposit, UnBuiltLand } from './board/content/unbuilt-land'
@@ -51,6 +61,7 @@ export type GameEvents = {
 	objectDown(pointer: any, object: InteractiveGameObject, stopPropagation?: () => void): void
 	objectUp(pointer: any, object: InteractiveGameObject): void
 	objectClick(pointer: any, object: InteractiveGameObject): void
+	objectDrag(tiles: Tile[]): void
 }
 unreactive(Eventful)
 export type GameGenerationOptions = {
@@ -99,6 +110,7 @@ export class Game extends Eventful<GameEvents> {
 	public storedGoodsLayer: Container
 	public freeGoodsLayer: Container
 	public charactersLayer: Container
+	public selectionOverlayLayer: Container
 	public resources: Record<string, Texture | Spritesheet> = null!
 	public readonly population: Population
 	getTexture(spec: Ssh.Sprite): Texture {
@@ -155,6 +167,7 @@ export class Game extends Eventful<GameEvents> {
 		const deltaTime = (25 * timer.elapsedMS) / 1000
 		if (deltaTime > 1) return // more than 1 second = paused on debugging, skip passing time when debugger paused
 		for (const object of this.tickedObjects) {
+			if ('destroyed' in object && object.destroyed) continue
 			object.update(deltaTime)
 		}
 	}
@@ -179,6 +192,7 @@ export class Game extends Eventful<GameEvents> {
 		this.storedGoodsLayer = new Container()
 		this.freeGoodsLayer = new Container()
 		this.charactersLayer = new Container()
+		this.selectionOverlayLayer = new Container()
 
 		// Disable sorting for ground layer (tiles stay in fixed order)
 		this.groundLayer.sortableChildren = false
@@ -187,6 +201,7 @@ export class Game extends Eventful<GameEvents> {
 		this.storedGoodsLayer.sortableChildren = false
 		this.freeGoodsLayer.sortableChildren = false
 		this.charactersLayer.sortableChildren = true
+		this.selectionOverlayLayer.sortableChildren = false
 
 		// Add layers to stage in order (bottom to top)
 		this.stage.addChild(this.groundLayer)
@@ -194,6 +209,7 @@ export class Game extends Eventful<GameEvents> {
 		this.stage.addChild(this.storedGoodsLayer)
 		this.stage.addChild(this.freeGoodsLayer)
 		this.stage.addChild(this.charactersLayer)
+		this.stage.addChild(this.selectionOverlayLayer)
 
 		// Create hex board
 		this.hex = new HexBoard(this)
@@ -474,6 +490,82 @@ export class GameView {
 	private isPanning = false
 	private panStartPosition = { x: 0, y: 0 }
 	private panStartCamera = { x: 0, y: 0 }
+	// Drag selection properties
+	private isDragging = false
+	private dragStartWorld = { x: 0, y: 0 }
+	private dragEndWorld = { x: 0, y: 0 }
+	private selectionPreview?: Graphics
+
+	/**
+	 * Convert two world coordinate points into a list of tiles in axial selection
+	 * @param startWorld Starting world coordinate point
+	 * @param endWorld Ending world coordinate point
+	 * @param game Game instance to get tiles from
+	 * @returns Array of tiles in the selection
+	 */
+	private getTilesInSelection(
+		startWorld: { x: number; y: number },
+		endWorld: { x: number; y: number },
+		game: Game,
+	): Tile[] {
+		// Convert world coordinates to axial coordinates
+		const startAxial = axial.round(fromCartesian(startWorld, tileSize))
+		const endAxial = axial.round(fromCartesian(endWorld, tileSize))
+
+		// Get all axial coordinates in the selection
+		const axialCoords = axialRectangle(startAxial, endAxial)
+
+		// Convert to tiles
+		const selectedTiles: Tile[] = []
+		for (const coord of axialCoords) {
+			const tile = game.hex.getTile(coord)
+			if (tile) {
+				selectedTiles.push(tile)
+			}
+		}
+
+		return selectedTiles
+	}
+
+	private updateSelectionPreview(game: Game) {
+		if (!this.isDragging) return
+
+		// Clear previous preview
+		if (this.selectionPreview) {
+			game.selectionOverlayLayer.removeChild(this.selectionPreview)
+			this.selectionPreview.destroy()
+		}
+
+		// Create new preview
+		this.selectionPreview = new Graphics()
+
+		// Convert world coordinates to axial coordinates
+		const startAxial = axial.round(fromCartesian(this.dragStartWorld, tileSize))
+		const endAxial = axial.round(fromCartesian(this.dragEndWorld, tileSize))
+
+		// Get all axial coordinates in the selection
+		const axialCoords = axialRectangle(startAxial, endAxial)
+
+		// Draw outline for each tile in selection
+		for (const coord of axialCoords) {
+			const tile = game.hex.getTile(coord)
+			if (tile) {
+				const worldPos = cartesian(coord, tileSize)
+				// Draw hexagon outline
+				const points = Array.from({ length: 6 }, (_, i) => {
+					const angle = (Math.PI / 3) * (i + 0.5)
+					return new Point(
+						worldPos.x + Math.cos(angle) * tileSize,
+						worldPos.y + Math.sin(angle) * tileSize,
+					)
+				})
+				this.selectionPreview.poly(points).stroke({ width: 2, color: 0xffffff, alpha: 0.8 })
+			}
+		}
+
+		game.selectionOverlayLayer.addChild(this.selectionPreview)
+	}
+
 	public setupInput(game: Game, canvas: HTMLCanvasElement) {
 		const getCanvasPoint = (e: MouseEvent | WheelEvent) => {
 			return { x: e.offsetX, y: e.offsetY }
@@ -525,6 +617,14 @@ export class GameView {
 				this.stage.x = this.panStartCamera.x - deltaX
 				this.stage.y = this.panStartCamera.y - deltaY
 				//console.log(this.stage.x, this.stage.y)
+			} else if (this.isDragging && e.buttons & 1) {
+				// Left button drag for zoning - track rectangle
+				const { x, y } = getCanvasPoint(e)
+				const { x: wx, y: wy } = getWorldPoint(x, y)
+				this.dragEndWorld = { x: wx, y: wy }
+				this.updateSelectionPreview(game)
+				const hit = topmostInteractiveAt(wx, wy)
+				emitOverOutIfNeeded(hit, e)
 			} else {
 				const { x, y } = getCanvasPoint(e)
 				const { x: wx, y: wy } = getWorldPoint(x, y)
@@ -588,6 +688,13 @@ export class GameView {
 			const { x: wx, y: wy } = getWorldPoint(x, y)
 			const hit = topmostInteractiveAt(wx, wy)
 			if (hit) {
+				// Check if we're in zone mode for drag support
+				if (e.button === 0 && interactionMode.selectedAction.startsWith('zone:')) {
+					this.isDragging = true
+					this.dragStartWorld = { x: wx, y: wy }
+					this.dragEndWorld = { x: wx, y: wy }
+					this.updateSelectionPreview(game)
+				}
 				game.clickObject(e, hit)
 			}
 		})
@@ -597,6 +704,24 @@ export class GameView {
 				this.isPanning = false
 				canvas.style.cursor = 'default'
 				return
+			}
+			if (e.button === 0 && this.isDragging) {
+				// End drag and find all tiles in the axial coordinate selection
+				const selectedTiles = this.getTilesInSelection(this.dragStartWorld, this.dragEndWorld, game)
+
+				// Emit event if at least one tile was selected
+				if (selectedTiles.length >= 1) {
+					game.emit('objectDrag', selectedTiles)
+				}
+
+				// Clear selection preview
+				if (this.selectionPreview) {
+					game.selectionOverlayLayer.removeChild(this.selectionPreview)
+					this.selectionPreview.destroy()
+					this.selectionPreview = undefined
+				}
+
+				this.isDragging = false
 			}
 		})
 
