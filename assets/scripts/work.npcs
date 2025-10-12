@@ -13,13 +13,20 @@ function goWork(jobPlan, path)
 
 		work.prepare jobPlan
 		// TODO: understand why `work[job](alveolus)` doesn't work/yield
-		work[jobPlan.jobType] jobPlan
+		work[jobPlan.job] jobPlan
 	end plan
 end function
 
 function harvest(jobPlan)
 	alveolus = jobPlan.target
-	do while I.keepWorking and alveolus.keepWorking
+	do
+		nextJob = work.myNextJob()
+	while I.keepWorking and nextJob
+		// Use path from nextJob if available for first iteration
+		if nextJob.path and (not tile.content.deposit or tile.content.deposit.name != alveolus.action.deposit) then
+			walk.until nextJob.path
+		end if
+		
 		do while not tile.content.deposit or tile.content.deposit.name != alveolus.action.deposit
 			where = find.deposit(alveolus.action.deposit)
 			if not where then return false
@@ -39,7 +46,9 @@ end function
 
 function transform(jobPlan)
 	alveolus = jobPlan.target
-	do while I.keepWorking and alveolus.keepWorking
+	do
+		nextJob = work.myNextJob()
+	while I.keepWorking and nextJob
 		work.transformStep
 	loop
 end function
@@ -57,27 +66,29 @@ end function
 
 function gather(jobPlan)
 	alveolus = jobPlan.target
-	do while I.keepWorking and alveolus.keepWorking
-		do
-			gatherable = find.gatherables(alveolus, alveolus.action.radius)
-		while gatherable
-			good = gatherable.goodType
-			path = gatherable.path
-			inventory.grabFree good, path[path.length - 1], path
-		loop
-		// bring back to alveolus tile (hive edge)
+	do
+		nextJob = work.myNextJob()
+	while I.keepWorking and nextJob
+		// Use path and goodType from nextJob
+		if not nextJob.path then error "No path found to gather"
+		if not nextJob.goodType then error "No good type to gather"
+		inventory.grabFree nextJob.goodType, nextJob.path[nextJob.path.length - 1], nextJob.path
+	loop
+	// bring back to alveolus tile (hive edge) if we have goods
+	if not I.vehicle.isEmpty then
 		path = find.path(alveolus.tile, false)
 		if not path then error "No path found to alveolus"
 		inventory.dropStored I.vehicle.stock, alveolus.tile, path, false
-	loop
+	end if
 end function
 
 function construct(jobPlan)
     engineer = jobPlan.target
-    do while I.keepWorking and engineer.keepWorking
-        path = engineer.nextSite
-        if not path then return false
-        walk.until path
+    do
+        nextJob = work.myNextJob()
+    while I.keepWorking and nextJob
+        if not nextJob.path then return false
+		walk.until nextJob.path
         walk.enter
         work.constructionStep
     loop
@@ -85,8 +96,9 @@ end function
 
 function offload(jobPlan)
 	target = jobPlan.target
-	if target.tile.availableGoods.length == 0 then return
-	inventory.grabFree null, target.tile
+	// Target is the tile for offload jobs
+	if target.availableGoods.length == 0 then return
+	inventory.grabFree null, target
 	inventory.dropAllFree
 end function
 

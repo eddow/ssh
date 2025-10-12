@@ -90,12 +90,21 @@ export class Character extends withInteractive(
 	findBestJob(): ScriptExecution | false {
 		const start = toAxialCoord(this.position)
 
+		// Cache jobs computed during scoring to avoid recomputing
+		const jobCache = new Map<string, Job>()
+
 		// Score function: evaluates how good a job is at a given coordinate
 		const scoreJob = (coord: Positioned): number | false => {
 			const tile = this.game.hex.getTile(coord)
 			if (!tile) return false
-			const job = tile.getJob?.()
-			return job ? calculateJobScore(this, job) : false
+			const job = tile.getJob?.(this) // Pass character to compute full job with path
+			if (!job) return false
+
+			// Cache the job for later retrieval
+			const key = `${(coord as AxialCoord).q},${(coord as AxialCoord).r}`
+			jobCache.set(key, job)
+
+			return calculateJobScore(this, job)
 		}
 
 		// Find the best job using the findBest pathfinding function
@@ -110,17 +119,22 @@ export class Character extends withInteractive(
 
 		if (!path || path.length === 0) return false
 
-		const targetCoord = path[path.length - 1]
-		const targetTile = this.game.hex.getTile(targetCoord)!
-		const job = targetTile.getJob() as Job
-		const jobProvider = targetTile.content!
-		this.log('character.beginJob', job.type)
+		const targetCoord = path[path.length - 1] as AxialCoord
+		const key = `${targetCoord.q},${targetCoord.r}`
+		const job = jobCache.get(key)!
 
-		// Create and return the work plan - the plan lifecycle will handle state management
+		const targetTile = this.game.hex.getTile(targetCoord)!
+		const jobProvider = targetTile.content!
+
+		this.log('character.beginJob', job.job)
+
+		// Job already has all details (path, urgency, fatigue) from cached getJob()
+		// Just create WorkPlan by adding plan type and target
+		const target = job.job === 'offload' ? targetTile : jobProvider
 		const workPlan: WorkPlan = {
+			...job,
 			type: 'work',
-			jobType: job.type,
-			target: jobProvider,
+			target: target as any,
 		}
 		return this.scriptsContext.work.goWork(workPlan, path)
 	}

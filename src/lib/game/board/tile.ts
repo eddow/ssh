@@ -1,5 +1,6 @@
 import { computed, unreactive } from 'mutts/src'
 import { namedEffect } from '$lib/debug'
+import type { Character } from '$lib/game/population/character'
 import type { AlveolusType, Job } from '$lib/types/base'
 import { type AxialCoord, axial, type NeighborInfo } from '$lib/utils'
 import { axialDistance, type Position, type Positioned, toAxialCoord } from '../../utils/position'
@@ -65,15 +66,15 @@ export class Tile extends withInteractive(GameObject) {
 	}
 
 	// Tile-level job offering
-	getJob(): Job | undefined {
+	getJob(character?: Character): Job | undefined {
 		// Offload if there are free goods on tile and it's a zone/alveolus tile
 		const hasFreeGoods = this.availableGoods.length > 0
 		const isSpecial = !!this.zone || this.content instanceof Alveolus
 		if (hasFreeGoods && isSpecial) {
-			return { type: 'offload', fatigue: 1, urgency: 10 }
+			return { job: 'offload', fatigue: 1, urgency: 10 }
 		}
 		// Otherwise delegate to alveolus if present
-		if (this.content instanceof Alveolus) return this.content.getJob()
+		if (this.content instanceof Alveolus) return this.content.getJob(character)
 	}
 
 	// Zone getter/setter

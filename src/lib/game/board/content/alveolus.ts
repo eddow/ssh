@@ -123,18 +123,19 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition, typeof 
 		return freeGoods.length > 0
 	}
 
-	alveolusSpecificJob?(): Job | undefined
+	nextJob?(character?: Character): Job | undefined
 
-	getJob(): Job | undefined {
+	getJob(character?: Character): Job | undefined {
 		if (this.assignedWorker) return undefined
 		// Don't provide jobs if the alveolus is burdened by FreeGoods
 		if (this.isBurdened) return undefined
 		const carry = this.conveyJob()
 		if (carry) return carry
-		return this.alveolusSpecificJob?.()
+
+		return this.nextJob?.(character)
 	}
 
-	protected getFatigueCost(): number {
+	getFatigueCost(): number {
 		// Base fatigue based on action type
 		const baseFatigue = this.action.type === 'harvest' ? this.workTime + 2 : this.workTime
 
@@ -175,7 +176,8 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition, typeof 
 		}
 		return results
 	}
-	@computed
+	//TODO: @computed
+	// when computed, work.npcs:61 throws debugger and then deadlock
 	get incomingGoods(): boolean {
 		// Note: because borders have 2 neighbors, if a good is incoming, it's for you (you're in one of the neighbors)
 		return this.tile.surroundings.some(
@@ -189,7 +191,7 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition, typeof 
 		// TODO: the chosen movement should be random, not arbitrary
 		// TODO: set urgency/fatigue ?
 		return this.goodMovements.length > 0
-			? ({ type: 'convey', fatigue: 3, urgency: 2 } as Job)
+			? ({ job: 'convey', fatigue: 3, urgency: 2 } as Job)
 			: undefined
 	}
 

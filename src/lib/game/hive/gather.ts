@@ -1,6 +1,7 @@
 import { computed } from 'mutts/src'
-import type { Job } from '$lib/types/base'
-import { toAxialCoord } from '$lib/utils/position'
+import type { Character } from '$lib/game/population/character'
+import type { GatherJob, GoodType } from '$lib/types/base'
+import { type Positioned, toAxialCoord } from '$lib/utils/position'
 import type { Tile } from '../board/tile'
 import { SlottedStorage } from '../storage'
 import { TransitAlveolus } from './transit'
@@ -31,17 +32,67 @@ export class GatherAlveolus extends TransitAlveolus {
 		return nearestGoods !== undefined
 	}
 
-	get keepWorking(): boolean {
-		return this.hasFreeGoodsToGather && this.storage.isEmpty
-	}
+	// nextJob() replaces both alveolusSpecificJob() and keepWorking
+	// Returns detailed job info including path when called from character
+	nextJob(character?: Character): GatherJob | undefined {
+		if (!this.hasFreeGoodsToGather || !this.storage.isEmpty) return undefined
 
-	alveolusSpecificJob(): Job | undefined {
-		if (this.hasFreeGoodsToGather && this.storage.isEmpty) {
-			return {
-				type: 'gather',
-				fatigue: this.getFatigueCost(),
-				urgency: 1.5, // Moderate-high urgency to keep goods flowing
+		const startPos = character ? toAxialCoord(character.position) : toAxialCoord(this.tile.position)
+		const hex = this.tile.game.hex
+
+		// If called from character, find specific path to gatherable
+		let path: Positioned[] | undefined
+		let goodType: GoodType | undefined
+		if (character) {
+			const selectableGoods = Array.from(this.hive.needs).filter((good) =>
+				character.vehicle.hasRoom(good),
+			)
+			if (selectableGoods.length === 0) return undefined
+
+			const goodCounts = Object.fromEntries(selectableGoods.map((good) => [good, 0])) as Partial<
+				Record<GoodType, number>
+			>
+
+			// Count goods within range
+			hex.findNearest(
+				startPos,
+				(pos: Positioned) => {
+					const goodsAtTile = hex.freeGoods.getGoodsAt(pos)
+					for (const good of goodsAtTile) {
+						const gt = good.goodType as GoodType
+						if (!good.allocated && gt in goodCounts) goodCounts[gt]!++
+					}
+					return false
+				},
+				this.action.radius,
+				false,
+			)
+
+			const targetGood = Object.entries(goodCounts).reduce(
+				(max, [good, count]) => (count > max.count ? { good: good as GoodType, count } : max),
+				{ good: null as GoodType | null, count: 0 },
+			).good
+
+			if (!targetGood) return undefined
+
+			const result = hex.freeGoods.findNearestGoods(
+				startPos,
+				startPos,
+				[targetGood],
+				this.action.radius,
+			)
+			if (result) {
+				path = result.path
+				goodType = targetGood
 			}
+		}
+
+		return {
+			job: 'gather',
+			path,
+			goodType,
+			urgency: 1.5,
+			fatigue: this.getFatigueCost(),
 		}
 	}
 }

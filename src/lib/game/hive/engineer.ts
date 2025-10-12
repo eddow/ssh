@@ -1,6 +1,6 @@
-import { computed } from 'mutts/src'
+import type { Character } from '$lib/game/population/character'
 import { SlottedStorage } from '$lib/game/storage'
-import type { Job } from '$lib/types/base'
+import type { ConstructJob } from '$lib/types/base'
 import { toAxialCoord } from '$lib/utils/position'
 import { Alveolus } from '../board/content/alveolus'
 import type { Tile } from '../board/tile'
@@ -16,12 +16,12 @@ export class EngineerAlveolus extends Alveolus {
 		super(tile, new SlottedStorage(0, 0))
 	}
 
-	@computed // Returns a path to the nearest ready site, or false
-	get nextSite() {
+	nextJob(character?: Character): ConstructJob | undefined {
 		const hex = this.tile.game.hex
-		const start = toAxialCoord(this.tile.position)
+		const startPos = character ? toAxialCoord(character.position) : toAxialCoord(this.tile.position)
+
 		const path = hex.findNearest(
-			start,
+			startPos,
 			(coord) => {
 				const tile = hex.getTile(coord)
 				return (
@@ -31,12 +31,14 @@ export class EngineerAlveolus extends Alveolus {
 			this.action.radius,
 			true,
 		)
-		return path || false
-	}
 
-	alveolusSpecificJob(): Job | undefined {
-		if (this.nextSite) {
-			return { type: 'construct', fatigue: this.getFatigueCost(), urgency: 2 } as Job
+		if (!path) return undefined
+
+		return {
+			job: 'construct',
+			path: character ? path : undefined,
+			urgency: 2,
+			fatigue: this.getFatigueCost(),
 		}
 	}
 

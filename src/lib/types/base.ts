@@ -38,7 +38,7 @@ export const baseGameScope = scope({
 
 	// Job and Needs types
 	Job: {
-		type: 'JobType',
+		job: 'JobType',
 		fatigue: 'number',
 		urgency: 'number',
 	},
@@ -64,8 +64,11 @@ export const baseGameScope = scope({
 
 	WorkPlan: {
 		type: "'work'",
-		jobType: 'JobType',
-		'target?': 'object', // TileContent validated at runtime
+		job: 'JobType',
+		target: 'object', // TileContent validated at runtime
+		urgency: 'number',
+		fatigue: 'number',
+		// Additional fields depend on job type (path, etc.)
 	},
 
 	Plan: () => baseGameScope.type('TransferPlan | PickupPlan | WorkPlan'),
@@ -100,7 +103,6 @@ export type JobType = typeof JobType.infer
 export type ActivityType = typeof ActivityType.infer
 export type NeedType = typeof NeedType.infer
 export type Goods = Partial<Record<GoodType, number>>
-export type Job = typeof Job.infer
 export type Needs = typeof Needs.infer
 
 // TypeScript interfaces for runtime use (augmented with runtime-only fields)
@@ -123,9 +125,55 @@ export interface PickupPlan<T extends AllocationBase = AllocationBase> {
 	releaseStopper?: () => void // Runtime-only field
 }
 
-export interface WorkPlan {
+// Job types - returned by alveolus.nextJob()
+// Each job type has common fields: job, urgency, fatigue
+
+export interface HarvestJob {
+	job: 'harvest'
+	urgency: number
+	fatigue: number
+	path?: Positioned[] // Path to deposit
+}
+
+export interface TransformJob {
+	job: 'transform'
+	urgency: number
+	fatigue: number
+}
+
+export interface GatherJob {
+	job: 'gather'
+	urgency: number
+	fatigue: number
+	path?: Positioned[] // Path to gatherable good
+	goodType?: GoodType // Which good to gather
+}
+
+export interface ConveyJob {
+	job: 'convey'
+	urgency: number
+	fatigue: number
+}
+
+export interface ConstructJob {
+	job: 'construct'
+	urgency: number
+	fatigue: number
+	path?: Positioned[] // Path to construction site
+}
+
+export interface OffloadJob {
+	job: 'offload'
+	urgency: number
+	fatigue: number
+}
+
+// Job is the union of all job types
+export type Job = HarvestJob | TransformJob | GatherJob | ConveyJob | ConstructJob | OffloadJob
+
+// WorkPlan is Job with Plan type and target alveolus
+export type WorkPlan = Job & {
 	readonly type: 'work'
-	readonly jobType: JobType
 	readonly target: TileContent
 }
 

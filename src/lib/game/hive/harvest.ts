@@ -1,7 +1,8 @@
 import { computed } from 'mutts/src'
-import { outputBufferSize } from '$assets/constants'
+import { maxWalkTime, outputBufferSize } from '$assets/constants'
+import type { Character } from '$lib/game/population/character'
 import { SpecificStorage } from '$lib/game/storage'
-import type { GoodType, Job } from '$lib/types/base'
+import type { GoodType, HarvestJob } from '$lib/types/base'
 import { axialDistance, type Positioned, toAxialCoord } from '../../utils/position'
 import { UnBuiltLand } from '../board'
 import { multiplyGoodsQty } from '../board/content/utils'
@@ -38,83 +39,71 @@ export class HarvestAlveolus extends TransitAlveolus {
 			0,
 		)
 	}
-	// TODO: no more `keepWorking` but a generic job finding function
-	get keepWorking(): boolean {
-		return this.storage.canStoreAll(this.action.output)
-	}
-	alveolusSpecificJob(): Job | undefined {
-		// TODO: Give specifications of the job (like the deposit found) in the job description ?
-		// First, try to find a deposit on a construction site tile (highest priority)
-		const constructionDeposit = this.tile.game.hex.findNearest(
-			toAxialCoord(this.tile.position),
-			(coord: Positioned) => {
-				const tile = this.tile.game.hex.getTile(coord)
-				// Check if there's a BuildAlveolus on a neighboring tile waiting for this tile to be cleared
-				return (
-					tile?.content instanceof UnBuiltLand &&
-					tile.content.deposit?.name === this.action.deposit &&
-					tile.neighborTiles.some((neighbor) => neighbor.content instanceof BuildAlveolus)
-				)
-			},
-			6,
-		)
+	// nextJob() replaces both alveolusSpecificJob() and keepWorking
+	// Returns detailed job info including path when called from character
+	nextJob(character?: Character): HarvestJob | undefined {
+		const startPos = character ? toAxialCoord(character.position) : toAxialCoord(this.tile.position)
+		const hex = this.tile.game.hex
+		const searchDistance = character ? maxWalkTime : 6
 
-		// If found, prioritize it with higher urgency
-		if (constructionDeposit) {
-			const constructionDepositCoord = constructionDeposit[constructionDeposit.length - 1]
+		// Helper to find deposit with priority
+		const findDeposit = (priority: 'construction' | 'zone' | 'any') => {
+			const searchFn = (coord: Positioned) => {
+				const tile = hex.getTile(coord)
+				if (!(tile?.content instanceof UnBuiltLand)) return false
+				if (tile.content.deposit?.name !== this.action.deposit) return false
+
+				if (priority === 'construction') {
+					return tile.neighborTiles.some((neighbor) => neighbor.content instanceof BuildAlveolus)
+				} else if (priority === 'zone') {
+					return tile.zone === 'harvest'
+				}
+				return true
+			}
+
+			return hex.findNearest(startPos, searchFn, searchDistance, false)
+		}
+
+		// Try priorities: construction > zone > any
+		let path = findDeposit('construction')
+		if (path) {
 			return {
-				type: 'harvest',
+				job: 'harvest',
+				path,
+				urgency: 3,
 				fatigue:
-					this.getFatigueCost() + axialDistance(this.tile.position, constructionDepositCoord) * 2,
-				urgency: 3, // High urgency for construction site clearing
+					this.getFatigueCost() +
+					(character ? axialDistance(startPos, path[path.length - 1]) * 2 : 0),
 			}
 		}
 
-		// Second, try to find deposits in harvest zones (cleaning duties)
-		// These jobs are offered even when the harvester is full, since goods can be dropped as free goods
-		const zoneDeposit = this.tile.game.hex.findNearest(
-			toAxialCoord(this.tile.position),
-			(coord: Positioned) => {
-				const tile = this.tile.game.hex.getTile(coord)
-				return (
-					tile?.content instanceof UnBuiltLand &&
-					tile.content.deposit?.name === this.action.deposit &&
-					tile.zone === 'harvest'
-				)
-			},
-			6,
-		)
-
-		// If found, prioritize it with medium urgency
-		if (zoneDeposit) {
-			const zoneDepositCoord = zoneDeposit[zoneDeposit.length - 1]
+		path = findDeposit('zone')
+		if (path) {
 			return {
-				type: 'harvest',
-				fatigue: this.getFatigueCost() + axialDistance(this.tile.position, zoneDepositCoord) * 2,
-				urgency: 2, // Medium urgency for zone cleaning
+				job: 'harvest',
+				path,
+				urgency: 2,
+				fatigue:
+					this.getFatigueCost() +
+					(character ? axialDistance(startPos, path[path.length - 1]) * 2 : 0),
 			}
 		}
 
-		// For regular harvesting (not cleaning), only offer job if there's room to store
-		if (!this.keepWorking) return undefined
+		// For regular harvesting, only offer if harvester can store
+		if (!this.canStoreInHarvester) return undefined
 
-		// Otherwise, find any deposit of the right type
-		const nearestDeposit = this.tile.game.hex.findNearest(
-			toAxialCoord(this.tile.position),
-			(coord: Positioned) => {
-				const tile = this.tile.game.hex.getTile(coord)
-				return (
-					tile?.content instanceof UnBuiltLand && tile.content.deposit?.name === this.action.deposit
-				)
-			},
-			6,
-		)
-		if (!nearestDeposit) return undefined
-		const nearestDepositCoord = nearestDeposit[nearestDeposit.length - 1]
-		return {
-			type: this.action.type,
-			fatigue: this.getFatigueCost() + axialDistance(this.tile.position, nearestDepositCoord) * 2,
-			urgency: (this.alveoliNeedingGood ? 0.5 : 0) + 0.25,
+		path = findDeposit('any')
+		if (path) {
+			return {
+				job: 'harvest',
+				path,
+				urgency: (this.alveoliNeedingGood ? 0.5 : 0) + 0.25,
+				fatigue:
+					this.getFatigueCost() +
+					(character ? axialDistance(startPos, path[path.length - 1]) * 2 : 0),
+			}
 		}
+
+		return undefined
 	}
 }

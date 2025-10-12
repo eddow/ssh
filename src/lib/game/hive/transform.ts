@@ -1,8 +1,9 @@
 import { computed } from 'mutts/src'
 import { inputBufferSize, outputBufferSize } from '$assets/constants'
 import { traces } from '$lib/debug'
+import type { Character } from '$lib/game/population/character'
 import { SpecificStorage } from '$lib/game/storage'
-import type { GoodType, Job } from '$lib/types/base'
+import type { GoodType, TransformJob } from '$lib/types/base'
 import { Alveolus } from '../board/content/alveolus'
 import { multiplyGoodsQty } from '../board/content/utils'
 import type { Tile } from '../board/tile'
@@ -33,18 +34,17 @@ export class TransformAlveolus extends Alveolus {
 			this.storage.canStoreAll(this.action.output)
 		)
 	}
-	alveolusSpecificJob(): Job | undefined {
-		if (this.canWork) {
-			return {
-				type: 'transform',
-				fatigue: this.getFatigueCost(),
-				urgency: 1,
-			}
+	// nextJob() replaces both alveolusSpecificJob() and keepWorking
+	nextJob(_character?: Character): TransformJob | undefined {
+		if (!this.canWork) return undefined
+
+		return {
+			job: 'transform',
+			urgency: 1,
+			fatigue: this.getFatigueCost(),
 		}
 	}
-	get keepWorking(): boolean {
-		return this.canWork
-	}
+
 	advertise(): void {
 		traces.advertising?.groupCollapsed(`Advertising ${this.name}`)
 		const action = this.action

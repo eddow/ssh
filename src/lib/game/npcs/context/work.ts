@@ -16,7 +16,7 @@ class WorkFunctions {
 	declare [subject]: Character
 	@contract('WorkPlan')
 	prepare(workPlan: WorkPlan) {
-		if (['convey', 'offload'].includes(workPlan.jobType)) return
+		if (['convey', 'offload'].includes(workPlan.job)) return
 		assert(
 			this[subject].assignedAlveolus?.preparationTime,
 			'assignedAlveolus must be set and have a preparationTime',
@@ -24,8 +24,19 @@ class WorkFunctions {
 		return new DurationStep(
 			this[subject].assignedAlveolus!.preparationTime,
 			'work',
-			`prepare.${workPlan.jobType}`,
+			`prepare.${workPlan.job}`,
 		)
+	}
+
+	@contract()
+	myNextJob() {
+		const alveolus = this[subject].assignedAlveolus
+		assert(alveolus, 'assignedAlveolus must be set')
+		assert(
+			'nextJob' in alveolus && typeof alveolus.nextJob === 'function',
+			'alveolus must have nextJob method',
+		)
+		return alveolus.nextJob(this[subject])
 	}
 	@contract()
 	waitForIncomingGoods() {
