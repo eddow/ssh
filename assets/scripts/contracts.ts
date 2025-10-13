@@ -25,6 +25,7 @@ export const CharacterContract = {
 		gather: ['WorkPlan'],
 		transform: ['WorkPlan'],
 		construct: ['WorkPlan'],
+		foundation: ['WorkPlan'],
 	},
 } as const satisfies Contract
 

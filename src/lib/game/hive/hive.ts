@@ -1,4 +1,4 @@
-import { computed, ReactiveBase, reactive, unreactive } from 'mutts/src'
+import { ReactiveBase, reactive, unreactive } from 'mutts/src'
 import { assert, traces } from '$lib/debug'
 import type { GoodType } from '$lib/types'
 import { type AxialCoord, findPath, type Positioned, setPop } from '$lib/utils'
@@ -51,11 +51,11 @@ export class Hive extends ReactiveBase {
 
 	// Campaign management
 	private runningCampaign: { queue: Set<Alveolus>; done: Set<Alveolus> } | undefined
-	@computed
+	//-@computed
 	get byActionType() {
 		const rv: Partial<Record<Ssh.Action['type'], Alveolus[]>> = {}
 		for (const alveolus of this.alveoli) {
-			const type = alveolus.action.type
+			const type = alveolus.action?.type
 			if (!rv[type]) rv[type] = []
 			rv[type].push(alveolus)
 		}
@@ -193,7 +193,7 @@ export class Hive extends ReactiveBase {
 		return [border.tile.a.position, border.tile.b.position]
 	}
 	//#region Needy / events
-	@computed
+	//-@computed
 	get needs() {
 		const needsSet = new Set<GoodType>()
 		for (const [good, queue] of this.queues) {
@@ -202,7 +202,7 @@ export class Hive extends ReactiveBase {
 		return needsSet
 	}
 
-	@computed
+	//-@computed
 	get provides() {
 		const providesSet = new Set<GoodType>()
 		for (const [good, queue] of this.queues) {

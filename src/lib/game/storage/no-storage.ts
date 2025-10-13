@@ -1,4 +1,3 @@
-import { computed } from 'mutts/src'
 import type { Goods, GoodType } from '$lib/types/base'
 import type { RenderedGoodSlots } from './goods-renderer'
 import { AllocationError } from './guard'
@@ -21,7 +20,7 @@ export class NoStorage extends Storage<any> {
 		return 0
 	}
 
-	@computed
+	//-@computed
 	get stock(): { [k in GoodType]?: number } {
 		return {}
 	}

@@ -684,17 +684,32 @@ export class GameView {
 				canvas.style.cursor = 'grab'
 				return
 			}
+			// Right-click cancels zoning drag
+			if (e.button === 2 && this.isDragging) {
+				// Clear selection preview
+				if (this.selectionPreview) {
+					game.selectionOverlayLayer.removeChild(this.selectionPreview)
+					this.selectionPreview.destroy()
+					this.selectionPreview = undefined
+				}
+				this.isDragging = false
+				return
+			}
 			const { x, y } = getCanvasPoint(e)
 			const { x: wx, y: wy } = getWorldPoint(x, y)
 			const hit = topmostInteractiveAt(wx, wy)
+
+			// Check if we're in zone mode for drag support (works even if no hit or hit is alveolus)
+			if (e.button === 0 && interactionMode.selectedAction.startsWith('zone:')) {
+				this.isDragging = true
+				this.dragStartWorld = { x: wx, y: wy }
+				this.dragEndWorld = { x: wx, y: wy }
+				this.updateSelectionPreview(game)
+				// Don't call clickObject in zone mode - we'll handle zoning on mouseup
+				return
+			}
+
 			if (hit) {
-				// Check if we're in zone mode for drag support
-				if (e.button === 0 && interactionMode.selectedAction.startsWith('zone:')) {
-					this.isDragging = true
-					this.dragStartWorld = { x: wx, y: wy }
-					this.dragEndWorld = { x: wx, y: wy }
-					this.updateSelectionPreview(game)
-				}
 				game.clickObject(e, hit)
 			}
 		})

@@ -1,4 +1,4 @@
-import { computed, unreactive } from 'mutts/src'
+import { unreactive } from 'mutts/src'
 import type { ExecutionContext } from 'npc-script/src'
 import type { Game } from '../game'
 import type { GameObject, TickedGameObject, withTicked } from '../object'
@@ -25,7 +25,7 @@ export function withScripted<T extends abstract new (...args: any[]) => TickedGa
 		abstract scriptsContext: ExecutionContext
 		abstract findAction(): ScriptExecution | undefined
 
-		@computed
+		//-@computed
 		get actionDescription(): string[] {
 			return this.runningScripts.map((s) => s.name).reverse()
 		}

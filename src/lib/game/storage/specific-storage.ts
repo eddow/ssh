@@ -1,4 +1,4 @@
-import { atomic, computed, reactive, unreactive } from 'mutts/src'
+import { atomic, reactive, unreactive } from 'mutts/src'
 import { assert } from '$lib/debug'
 import type { Goods } from '$lib/types/base'
 import { GoodType } from '$lib/types/base'
@@ -80,7 +80,7 @@ export class SpecificStorage extends Storage<SpecificAllocation> {
 		this.maxAmounts = { ...maxAmounts }
 	}
 
-	@computed
+	//-@computed
 	get allocatedSlots(): boolean {
 		return Object.values(this._allocated).some((qty) => qty > 0)
 	}
@@ -97,7 +97,7 @@ export class SpecificStorage extends Storage<SpecificAllocation> {
 		return maxAmount - currentAmount - allocated
 	}
 
-	@computed
+	//-@computed
 	get isEmpty(): boolean {
 		return Object.values(this._goods).every((qty) => qty === 0)
 	}
@@ -130,7 +130,7 @@ export class SpecificStorage extends Storage<SpecificAllocation> {
 		return toRemove
 	}
 
-	@computed
+	//-@computed
 	get stock(): { [k in GoodType]?: number } {
 		return { ...this._goods }
 	}

@@ -29,7 +29,15 @@ export const baseGameScope = scope({
 	AlveolusType: type.enumerated(...alveolusTypes),
 
 	// Job and activity types
-	JobType: type.enumerated('harvest', 'transform', 'convey', 'offload', 'gather', 'construct'),
+	JobType: type.enumerated(
+		'harvest',
+		'transform',
+		'convey',
+		'offload',
+		'gather',
+		'construct',
+		'foundation',
+	),
 	ActivityType: type.enumerated('idle', 'walk', 'work', 'eat', 'sleep', 'ponder'),
 	NeedType: type.enumerated('hunger', 'tiredness', 'fatigue'),
 
@@ -127,7 +135,7 @@ export interface PickupPlan<T extends AllocationBase = AllocationBase> {
 
 // Job types - returned by alveolus.nextJob()
 // Each job type has common fields: job, urgency, fatigue
-
+// TODO: do something with urgency/fatigue?
 export interface HarvestJob {
 	job: 'harvest'
 	urgency: number
@@ -168,8 +176,22 @@ export interface OffloadJob {
 	fatigue: number
 }
 
+export interface FoundationJob {
+	job: 'foundation'
+	urgency: number
+	fatigue: number
+	path?: Positioned[] // Path to site needing foundation
+}
+
 // Job is the union of all job types
-export type Job = HarvestJob | TransformJob | GatherJob | ConveyJob | ConstructJob | OffloadJob
+export type Job =
+	| HarvestJob
+	| TransformJob
+	| GatherJob
+	| ConveyJob
+	| ConstructJob
+	| OffloadJob
+	| FoundationJob
 
 // WorkPlan is Job with Plan type and target alveolus
 export type WorkPlan = Job & {

@@ -1,17 +1,17 @@
-import { computed, unreactive } from 'mutts/src'
+import { unreactive } from 'mutts/src'
 import { namedEffect } from '$lib/debug'
 import type { Character } from '$lib/game/population/character'
 import type { AlveolusType, Job } from '$lib/types/base'
 import { type AxialCoord, axial, type NeighborInfo } from '$lib/utils'
 import { axialDistance, type Position, type Positioned, toAxialCoord } from '../../utils/position'
 import { Hive } from '../hive'
-import { BuildAlveolus } from '../hive/build'
 import { gameIsaTypes } from '../npcs/utils'
 import { GameObject, withInteractive } from '../object'
 import type { HexBoard } from './board'
 import type { TileBorder } from './border/border'
 import { Alveolus } from './content/alveolus'
 import type { TileContent } from './content/content'
+import { UnBuiltLand } from './content/unbuilt-land'
 import type { FreeGood } from './freeGoods'
 import type { Zone } from './zone'
 
@@ -19,7 +19,7 @@ import type { Zone } from './zone'
 export class Tile extends withInteractive(GameObject) {
 	// True when the tile is exactly as produced by generation
 	public asGenerated: boolean = false
-	@computed
+	//-@computed
 	get content(): TileContent | undefined {
 		return this.board.getTileContent(toAxialCoord(this.position))
 	}
@@ -67,10 +67,17 @@ export class Tile extends withInteractive(GameObject) {
 
 	// Tile-level job offering
 	getJob(character?: Character): Job | undefined {
-		// Offload if there are free goods on tile and it's a zone/alveolus tile
+		// Check if UnBuiltLand has a project-related job (clearing for construction)
+		if (this.content instanceof UnBuiltLand) {
+			const unbuiltJob = this.content.getJob()
+			if (unbuiltJob) return unbuiltJob
+		}
+
+		// Offload if there are free goods on tile and it's a residential zone or alveolus tile
+		// Note: harvest zones do NOT trigger offload (goods can be dropped there)
 		const hasFreeGoods = this.availableGoods.length > 0
-		const isSpecial = !!this.zone || this.content instanceof Alveolus
-		if (hasFreeGoods && isSpecial) {
+		const isResidentialOrAlveolus = this.zone === 'residential' || this.content instanceof Alveolus
+		if (hasFreeGoods && isResidentialOrAlveolus) {
 			return { job: 'offload', fatigue: 1, urgency: 10 }
 		}
 		// Otherwise delegate to alveolus if present
@@ -90,6 +97,14 @@ export class Tile extends withInteractive(GameObject) {
 		}
 	}
 
+	//-@computed
+	get clearing(): boolean {
+		return (
+			![undefined, 'harvest'].includes(this.zone) ||
+			(!!this.content && ('project' in this.content || this.content instanceof Alveolus))
+		)
+	}
+
 	canInteract(action: string): boolean {
 		return this.content?.canInteract?.(action) ?? false
 	}
@@ -101,15 +116,8 @@ export class Tile extends withInteractive(GameObject) {
 		const coord = toAxialCoord(this.position)
 		const content = this.board.getTileContent(coord)
 
-		// If this is a BuildAlveolus, check the underlying land's deposit
-		if (content instanceof BuildAlveolus) {
-			const underlyingLand = content.underlyingLand
-			if (underlyingLand && 'deposit' in underlyingLand && underlyingLand.deposit) {
-				return false
-			}
-		}
-		// Otherwise check content directly for deposit
-		else if (content && 'deposit' in content && content.deposit) {
+		// Check content for deposit (only applicable to UnBuiltLand)
+		if (content && 'deposit' in content && content.deposit) {
 			return false
 		}
 
@@ -128,8 +136,13 @@ export class Tile extends withInteractive(GameObject) {
 			return false
 		}
 
-		// Create BuildAlveolus directly - it will be blocked until tile is clear
-		this.content = new BuildAlveolus(this, alveolusType)
+		// Set project on UnBuiltLand instead of creating BuildAlveolus immediately
+		// The tile must be cleared first, then BuildAlveolus will be created
+		const content = this.content
+		if (content instanceof UnBuiltLand) {
+			content.project = `build:${alveolusType}`
+		}
+		this.zone = undefined
 		return true
 	}
 
@@ -150,7 +163,7 @@ export class Tile extends withInteractive(GameObject) {
 		const coord = axial.linear([0.5, thisCoord], [0.5, otherCoord])
 		return this.board.getBorder(coord)
 	}
-	@computed
+	//-@computed
 	get neighborTiles(): Tile[] {
 		return axial
 			.neighbors(toAxialCoord(this.position))
@@ -158,7 +171,7 @@ export class Tile extends withInteractive(GameObject) {
 			.filter((tile): tile is Tile => tile !== undefined)
 	}
 
-	@computed
+	//-@computed
 	get walkNeighbors(): NeighborInfo[] {
 		const coord = toAxialCoord(this.position)
 		const neighbors = axial.neighbors(coord)
@@ -175,12 +188,12 @@ export class Tile extends withInteractive(GameObject) {
 			.filter((neighbor): neighbor is NeighborInfo => neighbor !== null)
 	}
 
-	@computed
+	//-@computed
 	get freeGoods(): FreeGood[] {
 		return this.board.freeGoods.getGoodsAt(toAxialCoord(this.position))
 	}
 
-	@computed
+	//-@computed
 	get availableGoods(): FreeGood[] {
 		return this.freeGoods.filter((g) => !g.allocated)
 	}

@@ -20,6 +20,9 @@ export class Deposit extends GcClassed<Ssh.DepositDefinition>() {
 
 @unreactive('tile')
 export class UnBuiltLand extends withTicked(TileContent) {
+	/** Project identifier (e.g., "build:sawmill") indicating pending construction */
+	public project?: string
+
 	get name() {
 		return this.terrain
 	}
@@ -58,6 +61,25 @@ export class UnBuiltLand extends withTicked(TileContent) {
 		}
 	}
 
+	/**
+	 * Provide jobs for construction project
+	 */
+	getJob(): any {
+		if (!this.project) return undefined
+
+		// If there are free goods on the tile, provide offload job
+		if (this.tile.availableGoods.length > 0) {
+			return {
+				job: 'offload',
+				fatigue: 1,
+				urgency: 15,
+			}
+		}
+
+		// Note: Foundation jobs are provided by engineer alveolus, not by UnBuiltLand
+		return undefined
+	}
+
 	private generateGoodAtTile(goodType: string) {
 		const tileCoord = toAxialCoord(this.tile.position)
 
@@ -90,6 +112,16 @@ export class UnBuiltLand extends withTicked(TileContent) {
 	get background() {
 		return `terrain-${this.terrain}`
 	}
+
+	/**
+	 * Override colorCode to show pink tint/border when there's a project
+	 */
+	colorCode(): { tint: number; borderColor?: number } {
+		return this.project
+			? { tint: 0xffb4d9, borderColor: 0xff1493 } // pinkish tint, deep pink border
+			: super.colorCode()
+	}
+
 	render(): ScopedCallback | undefined {
 		const size = tileSize
 		const worldPos = toWorldCoord(this.tile.position)
@@ -100,8 +132,8 @@ export class UnBuiltLand extends withTicked(TileContent) {
 
 		// Deposit sprite if any (reactive effect)
 		const depositCleanup = namedEffect('unbuilt.render', () => {
-			// Deposit sprite if any
-			if (this.deposit?.sprites?.[0]) {
+			// Deposit sprite only if deposit exists, has sprites, and has resources remaining
+			if (this.deposit?.sprites?.[0] && this.deposit.amount > 0) {
 				const sprite = new Sprite(this.game.getTexture(this.deposit.sprites[0]))
 				// match previous hex resize: scale to tile size
 				const scale = Math.max(sprite.width, sprite.height) / (size * 1)

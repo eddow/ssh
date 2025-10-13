@@ -1,4 +1,3 @@
-import { computed } from 'mutts/src'
 import { maxWalkTime, outputBufferSize } from '$assets/constants'
 import type { Character } from '$lib/game/population/character'
 import { SpecificStorage } from '$lib/game/storage'
@@ -7,7 +6,6 @@ import { axialDistance, type Positioned, toAxialCoord } from '../../utils/positi
 import { UnBuiltLand } from '../board'
 import { multiplyGoodsQty } from '../board/content/utils'
 import type { Tile } from '../board/tile'
-import { BuildAlveolus } from './build'
 import { TransitAlveolus } from './transit'
 export class HarvestAlveolus extends TransitAlveolus {
 	declare action: Ssh.HarvestingAction
@@ -24,15 +22,15 @@ export class HarvestAlveolus extends TransitAlveolus {
 		)
 	}
 
-	@computed
+	//-@computed
 	get canStoreInHarvester() {
 		return this.storage.canStoreAll(this.action.output)
 	}
-	@computed
+	//-@computed
 	get hiveHasCollector() {
 		return this.hive.byActionType.gather?.length
 	}
-	@computed
+	//-@computed
 	get alveoliNeedingGood() {
 		return Object.keys(this.action.output).reduce(
 			(acc, goodType) => acc + (this.hive.needs.has(goodType as GoodType) ? 1 : 0),
@@ -47,42 +45,24 @@ export class HarvestAlveolus extends TransitAlveolus {
 		const searchDistance = character ? maxWalkTime : 6
 
 		// Helper to find deposit with priority
-		const findDeposit = (priority: 'construction' | 'zone' | 'any') => {
+		const findDeposit = (priority: 'construction' | 'clearing' | 'zone' | 'any') => {
 			const searchFn = (coord: Positioned) => {
 				const tile = hex.getTile(coord)
 				if (!(tile?.content instanceof UnBuiltLand)) return false
 				if (tile.content.deposit?.name !== this.action.deposit) return false
 
-				if (priority === 'construction') {
-					return tile.neighborTiles.some((neighbor) => neighbor.content instanceof BuildAlveolus)
-				} else if (priority === 'zone') {
-					return tile.zone === 'harvest'
-				}
-				return true
+				return priority === 'clearing' ? tile.clearing : tile.zone === 'harvest'
 			}
 
 			return hex.findNearest(startPos, searchFn, searchDistance, false)
 		}
 
-		// Try priorities: construction > zone > any
-		let path = findDeposit('construction')
+		let path = findDeposit('clearing')
 		if (path) {
 			return {
 				job: 'harvest',
 				path,
-				urgency: 3,
-				fatigue:
-					this.getFatigueCost() +
-					(character ? axialDistance(startPos, path[path.length - 1]) * 2 : 0),
-			}
-		}
-
-		path = findDeposit('zone')
-		if (path) {
-			return {
-				job: 'harvest',
-				path,
-				urgency: 2,
+				urgency: 2.5,
 				fatigue:
 					this.getFatigueCost() +
 					(character ? axialDistance(startPos, path[path.length - 1]) * 2 : 0),

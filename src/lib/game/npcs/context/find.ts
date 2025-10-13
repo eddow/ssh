@@ -223,14 +223,14 @@ class FindFunctions {
 		const { hex } = this[subject].game
 		const start = toAxialCoord(this[subject].tile.position)
 		// Use findBest with a cost function: walkTime * crowding
-		// Only drop in UnBuiltLand that is not zoned or an alveolus
+		// Only drop in clearing tiles (UnBuiltLand with no/harvest zone and no project)
 		const result = hex.findBestForCharacter(
 			start,
 			this[subject],
 			(coord) => {
 				const tile = hex.getTile(coord)
-				// Exclude zones and alveoli - only allow UnBuiltLand without zones
-				if (!(tile?.content instanceof UnBuiltLand) || tile.zone) return false
+				// Only allow clearing tiles
+				if (tile?.clearing) return false
 				return 1 / (hex.freeGoods.getGoodsAt(coord).length + 1)
 			},
 			(_coord, walkTime) => walkTime > maxWalkTime,

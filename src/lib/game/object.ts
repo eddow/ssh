@@ -35,7 +35,7 @@ export function withGenerator<T extends abstract new (...args: any[]) => GameObj
 			if (game) {
 				game.loaded.then(() => {
 					if (!this.renderCleanup)
-						this.renderCleanup = namedEffect('generator.render', () => this.render())
+						this.renderCleanup = namedEffect(`${this.constructor.name}.render`, () => this.render())
 				})
 			}
 		}

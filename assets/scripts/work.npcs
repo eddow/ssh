@@ -55,9 +55,9 @@ end function
 
 function convey(jobPlan)
 	alveolus = jobPlan.target
-	do while I.keepWorking and alveolus.goodMovements.length
+	do while I.keepWorking and alveolus.aGoodMovement
 		work.conveyStep
-		if not alveolus.goodMovements.length and alveolus.incomingGoods then
+		if not alveolus.aGoodMovement and alveolus.incomingGoods then
 			debugger alveolus
 			work.waitForIncomingGoods
 		end if
@@ -94,6 +94,18 @@ function construct(jobPlan)
     loop
 end function
 
+function foundation(jobPlan)
+	engineer = jobPlan.target
+	do
+		nextJob = work.myNextJob()
+	while I.keepWorking and nextJob
+		if not nextJob.path then return false
+		walk.until nextJob.path
+		walk.enter
+		work.foundationStep
+	loop
+end function
+
 function offload(jobPlan)
 	target = jobPlan.target
 	// Target is the tile for offload jobs
@@ -102,4 +114,4 @@ function offload(jobPlan)
 	inventory.dropAllFree
 end function
 
-return { goWork, harvest, transform, convey, gather, construct, offload }
+return { goWork, harvest, transform, convey, gather, construct, foundation, offload }

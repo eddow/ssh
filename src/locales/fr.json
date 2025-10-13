@@ -46,6 +46,7 @@
 			"sawmill": "Scie du bois"
 		},
 		"convey": "Convoie",
+		"foundation": "Coulage de fondation",
 		"queue": "Fait la queue",
 		"pickup": "Ramasse"
 	},
@@ -63,8 +64,11 @@
 	},
 	"deposit": "Ressources",
 	"goods": "Marchandises",
+	"project": "Projet",
+	"clearing": "Dégagement",
 	"zones": {
 		"residential": "Zone résidentielle",
+		"harvest": "Zone de récolte",
 		"unzone": "Supprimer la zone"
 	}
 }

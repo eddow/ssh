@@ -38,4 +38,4 @@ Active WIP. Systems and naming may change (e.g., convey/collect flows). Expect b
 # TODO
 
 - slotted-storage specific job: defrag
-- zines: residential
+- Construction sites should display after cleanup (before: background unbuilt)

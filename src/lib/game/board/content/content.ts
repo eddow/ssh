@@ -30,6 +30,20 @@ export abstract class TileContent extends withGenerator(GameObject) {
 	abstract canInteract?(action: string): boolean
 
 	/**
+	 * Get color code for this tile content based on zone or other status
+	 * @returns Object with tint and optional borderColor
+	 */
+	colorCode(): { tint: number; borderColor?: number } {
+		// Base colors based on zone
+		if (this.tile.zone === 'residential') {
+			return { tint: 0xaaffaa, borderColor: 0x44dd44 } // greenish tint, strong green border
+		} else if (this.tile.zone === 'harvest') {
+			return { tint: 0xccaa88, borderColor: 0xaa7744 } // brownish tint, strong brown border
+		}
+		return { tint: 0xffffff } // default white (no tint)
+	}
+
+	/**
 	 * Helper to render tile background (hexagonal sprite)
 	 * Should be called by subclasses in their render() method
 	 */
@@ -64,15 +78,11 @@ export abstract class TileContent extends withGenerator(GameObject) {
 		tileContainer.addChild(zoneBorder)
 
 		const mouseoverEffect = namedEffect('tile.mouseover', () => {
-			let tint = 0xffffff
 			let brightness = 1
 
-			// Base tint: show existing zone colors
-			if (this.tile.zone === 'residential') {
-				tint = 0xaaffaa // greenish for residential zone
-			} else if (this.tile.zone === 'harvest') {
-				tint = 0xffffaa // yellowish for harvest zone
-			}
+			// Get base color code from content
+			const colorCode = this.colorCode()
+			let tint = colorCode.tint
 
 			// Overlay: show action preview on hover
 			if (mrg.hoveredObject === this.tile) {
@@ -83,6 +93,9 @@ export abstract class TileContent extends withGenerator(GameObject) {
 						const zoneType = action.replace('zone:', '')
 						if (zoneType === 'residential') {
 							tint = 0x88ff88 // brighter greenish for zone preview
+							brightness = 1.1
+						} else if (zoneType === 'harvest') {
+							tint = 0xddbb99 // brighter brownish for zone preview
 							brightness = 1.1
 						} else if (zoneType === 'none') {
 							tint = 0xbbbbbb // grey-ish for unzone preview
@@ -103,22 +116,17 @@ export abstract class TileContent extends withGenerator(GameObject) {
 			tileSprite.tint = tint
 			brightnessFilter.brightness(brightness, false)
 
-			// Draw zone border if tile is zoned
+			// Draw border if color code provides one
 			zoneBorder.clear()
-			if (this.tile.zone) {
-				let borderColor = 0xffffff
-				if (this.tile.zone === 'residential') {
-					borderColor = 0x44dd44 // strong green for residential
-				} else if (this.tile.zone === 'harvest') {
-					borderColor = 0xdddd44 // strong yellow for harvest
-				}
-
+			if (colorCode.borderColor) {
 				const borderWidth = 3
+				// Draw polygon slightly smaller so the stroke extends only inward (inner half of border)
+				const innerSize = size - borderWidth / 4
 				const points = Array.from({ length: 6 }, (_, i) => {
 					const angle = (Math.PI / 3) * (i + 0.5)
-					return new Point(Math.cos(angle) * size, Math.sin(angle) * size)
+					return new Point(Math.cos(angle) * innerSize, Math.sin(angle) * innerSize)
 				})
-				zoneBorder.poly(points).stroke({ width: borderWidth, color: borderColor })
+				zoneBorder.poly(points).stroke({ width: borderWidth / 2, color: colorCode.borderColor })
 			}
 		})
 

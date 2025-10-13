@@ -167,10 +167,13 @@ function handleZoningDrag(tiles: Tile[]) {
 	const zoneType = action.replace('zone:', '')
 
 	for (const tile of tiles) {
-		if (zoneType === 'none') {
-			tile.zone = undefined
-		} else {
-			tile.zone = zoneType as any
+		// Only zone tiles that can be zoned (UnBuiltLand, not Alveolus)
+		if (tile.content?.canInteract?.(action)) {
+			if (zoneType === 'none') {
+				tile.zone = undefined
+			} else {
+				tile.zone = zoneType as any
+			}
 		}
 	}
 }

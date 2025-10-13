@@ -46,6 +46,7 @@
 			"sawmill": "Saw wood"
 		},
 		"convey": "Convey",
+		"foundation": "Laying foundation",
 		"queue": "Queue",
 		"pickup": "Pick up"
 	},
@@ -63,8 +64,11 @@
 	},
 	"deposit": "Resources",
 	"goods": "Goods",
+	"project": "Project",
+	"clearing": "Clearing",
 	"zones": {
 		"residential": "Residential Zone",
+		"harvest": "Harvest Zone",
 		"unzone": "Remove Zone"
 	}
 }

@@ -15,6 +15,7 @@ let { tile }: { tile: Tile } = $props()
 let tileContent = $derived.by(p2s(() => tile.content))
 let stock = $derived.by(p2s(() => tile.content!.storage?.stock))
 // TODO: terrain type as background color
+// TODO: display freeGoods
 </script>
 
 {#if tileContent}

@@ -1,8 +1,9 @@
 import type { Character } from '$lib/game/population/character'
 import { SlottedStorage } from '$lib/game/storage'
-import type { ConstructJob } from '$lib/types/base'
+import type { ConstructJob, FoundationJob } from '$lib/types/base'
 import { toAxialCoord } from '$lib/utils/position'
 import { Alveolus } from '../board/content/alveolus'
+import { UnBuiltLand } from '../board/content/unbuilt-land'
 import type { Tile } from '../board/tile'
 import { BuildAlveolus } from './build'
 
@@ -16,17 +17,34 @@ export class EngineerAlveolus extends Alveolus {
 		super(tile, new SlottedStorage(0, 0))
 	}
 
-	nextJob(character?: Character): ConstructJob | undefined {
+	nextJob(character?: Character): ConstructJob | FoundationJob | undefined {
 		const hex = this.tile.game.hex
 		const startPos = character ? toAxialCoord(character.position) : toAxialCoord(this.tile.position)
 
+		// Find nearest site needing foundation or construction (whichever is closest)
+		let jobType: 'foundation' | 'construct' | undefined
 		const path = hex.findNearest(
 			startPos,
 			(coord) => {
 				const tile = hex.getTile(coord)
-				return (
-					tile?.content instanceof BuildAlveolus && tile.content.isReady && !tile.content.destroyed
-				)
+
+				// Check for UnBuiltLand with clear project (needs foundation)
+				if (tile?.content instanceof UnBuiltLand && !!tile.content.project && tile.isClear) {
+					jobType = 'foundation'
+					return true
+				}
+
+				// Check for BuildAlveolus ready to be built (needs construction)
+				if (
+					tile?.content instanceof BuildAlveolus &&
+					tile.content.isReady &&
+					!tile.content.destroyed
+				) {
+					jobType = 'construct'
+					return true
+				}
+
+				return false
 			},
 			this.action.radius,
 			true,
@@ -34,11 +52,21 @@ export class EngineerAlveolus extends Alveolus {
 
 		if (!path) return undefined
 
-		return {
-			job: 'construct',
-			path: character ? path : undefined,
-			urgency: 2,
-			fatigue: this.getFatigueCost(),
+		// Return appropriate job based on what was found
+		if (jobType === 'foundation') {
+			return {
+				job: 'foundation',
+				path: character ? path : undefined,
+				urgency: 3,
+				fatigue: 3,
+			}
+		} else {
+			return {
+				job: 'construct',
+				path: character ? path : undefined,
+				urgency: 2,
+				fatigue: this.getFatigueCost(),
+			}
 		}
 	}
 

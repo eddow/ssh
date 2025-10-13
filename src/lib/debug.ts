@@ -37,3 +37,4 @@ if (debugMutts) {
 	}
 }
 reactiveOptions.maxEffectChain = 500
+reactiveOptions.maxEffectReaction = 'debug'

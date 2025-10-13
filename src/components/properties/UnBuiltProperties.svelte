@@ -1,4 +1,5 @@
 <script lang="ts">
+import { Badge } from 'flowbite-svelte'
 import EntityBadge from '$components/parts/EntityBadge.svelte'
 import PropertyGridRow from '$components/parts/PropertyGridRow.svelte'
 import type { UnBuiltLand } from '$lib/game/board/content/unbuilt-land'
@@ -17,9 +18,26 @@ const deposit = $derived.by(
 			},
 	),
 )
+const projectData = $derived.by(
+	p2s(() => {
+		const proj = content.project
+		return proj ? { project: proj, name: proj.replace('build:', '') } : undefined
+	}),
+)
 </script>
 
-{#if deposit}
+{#if !!projectData}
+	<PropertyGridRow label={$T.project} class="flex items-center">
+		<Badge color="blue">
+			{projectData.name ? $T.alveoli[projectData.name] : projectData.project}
+		</Badge>
+		{#if !content.tile.isClear}
+			<Badge color="yellow">{$T.clearing}</Badge>
+		{/if}
+	</PropertyGridRow>
+{/if}
+
+{#if !!deposit}
 	<PropertyGridRow label={$T.deposit} class="flex items-center">
 		<EntityBadge
 			{game}

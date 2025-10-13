@@ -1,4 +1,4 @@
-import { computed, type ScopedCallback, unreactive } from 'mutts/src'
+import { type ScopedCallback, unreactive } from 'mutts/src'
 import { Sprite } from 'pixi.js'
 import type { Hive, MovingGood } from '$lib/game/hive/hive'
 import { gameIsaTypes } from '$lib/game/npcs/utils'
@@ -115,7 +115,7 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition, typeof 
 		return false
 	}
 
-	@computed
+	//-@computed
 	get isBurdened(): boolean {
 		// Check if there are FreeGoods on this tile
 		const coord = toAxialCoord(this.tile.position)
@@ -145,38 +145,140 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition, typeof 
 	}
 
 	/**
-	 * Goods movements visible at this alveolus:
-	 * - from/to includes tile or its borders
-	 * - next hop has room for the good
+	 * Find a good movement or a cycle of blocked movements:
+	 * - Returns a single movement (as singleton array) if one can advance
+	 * - Returns a cycle of movements (A->B, B->C, C->A) if circular blockade detected
+	 * - Returns undefined if no movements available
 	 */
-	@computed
-	get goodMovements(): LocalMovingGood[] {
+	//-@computed
+	get aGoodMovement(): LocalMovingGood[] | undefined {
 		const hive = this.hive
 		const here = toAxialCoord(this.tile.position)
-		const results: LocalMovingGood[] = []
+		const blocked: LocalMovingGood[] = []
+
 		function canAdvance(mg: MovingGood) {
 			const storage = hive.storageAt(mg.path[0])
 			return storage?.hasRoom(mg.goodType) || mg.path.length === 1
 		}
-		// Special case: include all movements at the tile itself
-		const atHere = hive.movingGoods.get(here)
-		if (atHere)
-			for (const mg of atHere)
-				if (canAdvance(mg)) results.push(Object.setPrototypeOf({ from: here }, mg))
 
-		// Only browse surroundings (borders)
+		// Collect movements at the tile itself
+		const atHere = hive.movingGoods.get(here)
+		if (atHere) {
+			for (const mg of atHere) {
+				const localMg = Object.setPrototypeOf({ from: here }, mg) as LocalMovingGood
+				if (canAdvance(mg)) {
+					return [localMg]
+				} else {
+					blocked.push(localMg)
+				}
+			}
+		}
+
+		// Collect movements from surroundings (borders)
 		for (const { border } of this.tile.surroundings) {
 			const from = toAxialCoord(border.position)
 			const arr = hive.movingGoods.get(from)
 			if (!arr) continue
 			for (const mg of arr) {
-				if (axial.distance(mg.path[0], here) < 0.5 + epsilon && canAdvance(mg))
-					results.push(Object.setPrototypeOf({ from }, mg))
+				if (axial.distance(mg.path[0], here) < 0.5 + epsilon) {
+					const localMg = Object.setPrototypeOf({ from }, mg) as LocalMovingGood
+					if (canAdvance(mg)) {
+						return [localMg]
+					} else {
+						blocked.push(localMg)
+					}
+				}
 			}
 		}
-		return results
+
+		// No available movements - try to find circular blocks
+		if (blocked.length === 0) {
+			return undefined
+		}
+
+		// Detect circular blockades using DFS
+		const cycle = this.findCircularBlock(blocked)
+		return cycle
 	}
-	//TODO: @computed
+
+	/**
+	 * Find a circular blockade in the list of blocked movements
+	 * Returns the cycle as an array of movements, or undefined if no cycle found
+	 */
+	private findCircularBlock(blocked: LocalMovingGood[]): LocalMovingGood[] | undefined {
+		// Build a map from current position to movements
+		const movementsByPosition = new Map<string, LocalMovingGood[]>()
+
+		for (const mg of blocked) {
+			const key = `${mg.from.q},${mg.from.r}`
+			if (!movementsByPosition.has(key)) {
+				movementsByPosition.set(key, [])
+			}
+			movementsByPosition.get(key)!.push(mg)
+		}
+
+		// Try to find a cycle starting from each blocked movement
+		const visited = new Set<string>()
+		const recursionStack = new Set<string>()
+		const path: LocalMovingGood[] = []
+
+		/**
+		 * Depth-First Search to detect cycles in the movement graph.
+		 * Uses the recursion stack to detect back edges that indicate cycles.
+		 *
+		 * @param mg - The current movement being explored
+		 * @returns The cycle as an array of movements if found, undefined otherwise
+		 *
+		 * Algorithm:
+		 * - Tracks visited nodes to avoid re-exploring
+		 * - Maintains recursion stack to detect back edges (cycles)
+		 * - Builds path during traversal
+		 * - When a back edge is found (next position is in recursion stack), extracts the cycle
+		 * - Backtracks by removing from recursion stack and path when exploring branch completes
+		 */
+		function depthFirstSearchForCycle(mg: LocalMovingGood): LocalMovingGood[] | undefined {
+			const currentKey = `${mg.from.q},${mg.from.r}`
+			const nextKey = `${mg.path[0].q},${mg.path[0].r}`
+
+			visited.add(currentKey)
+			recursionStack.add(currentKey)
+			path.push(mg)
+
+			// Check if next position creates a cycle (back edge detected)
+			if (recursionStack.has(nextKey)) {
+				// Found a cycle! Extract the cycle from path
+				const cycleStart = path.findIndex((m) => `${m.path[0].q},${m.path[0].r}` === nextKey)
+				return path.slice(cycleStart)
+			}
+
+			// Explore movements from the next position
+			const nextMovements = movementsByPosition.get(nextKey) || []
+			for (const nextMg of nextMovements) {
+				const nextNextKey = `${nextMg.from.q},${nextMg.from.r}`
+				if (!visited.has(nextNextKey)) {
+					const result = depthFirstSearchForCycle(nextMg)
+					if (result) return result
+				}
+			}
+
+			// Backtrack: remove from recursion stack and path
+			recursionStack.delete(currentKey)
+			path.pop()
+			return undefined
+		}
+
+		// Try DFS from each unvisited blocked movement
+		for (const mg of blocked) {
+			const key = `${mg.from.q},${mg.from.r}`
+			if (!visited.has(key)) {
+				const cycle = depthFirstSearchForCycle(mg)
+				if (cycle) return cycle
+			}
+		}
+
+		return undefined
+	}
+	//TODO: //-@computed
 	// when computed, work.npcs:61 throws debugger and then deadlock
 	get incomingGoods(): boolean {
 		// Note: because borders have 2 neighbors, if a good is incoming, it's for you (you're in one of the neighbors)
@@ -187,12 +289,9 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition, typeof 
 
 	private conveyJob(): Job | undefined {
 		// Provide a convey job only when there are pass-through movements via borders
-		// TODO: 2 "queued" movement goods (one from a->B, one from B->A) or a larger circle should be untangled
+		// Now handles circular blockades - aGoodMovement will return a cycle to untangle
 		// TODO: the chosen movement should be random, not arbitrary
-		// TODO: set urgency/fatigue ?
-		return this.goodMovements.length > 0
-			? ({ job: 'convey', fatigue: 3, urgency: 2 } as Job)
-			: undefined
+		return this.aGoodMovement ? ({ job: 'convey', fatigue: 3, urgency: 2 } as Job) : undefined
 	}
 
 	deconstruct() {
@@ -202,7 +301,7 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition, typeof 
 		this.hive.removeAlveolus(this)
 	}
 
-	@computed
+	//-@computed
 	get neighborAlveoli(): Alveolus[] {
 		return this.tile.neighborTiles
 			.map((neighbor) => neighbor?.content)

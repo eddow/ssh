@@ -1,4 +1,4 @@
-import { atomic, computed, reactive, unreactive } from 'mutts/src'
+import { atomic, reactive, unreactive } from 'mutts/src'
 import { assert } from '$lib/debug'
 import type { Goods, GoodType } from '$lib/types/base'
 import type { RenderedGoodSlot, RenderedGoodSlots } from './goods-renderer'
@@ -102,7 +102,7 @@ export class SlottedStorage extends Storage<SlottedAllocation> {
 		this.slots = reactive(Array(maxSlots).fill(undefined))
 	}
 
-	@computed
+	//-@computed
 	get allocatedSlots(): boolean {
 		return this.slots.some((slot) => slot?.allocated)
 	}
@@ -122,7 +122,7 @@ export class SlottedStorage extends Storage<SlottedAllocation> {
 		return totalCapacity
 	}
 
-	@computed
+	//-@computed
 	get isEmpty(): boolean {
 		return this.slots.every((slot) => slot === undefined || slot.quantity === 0)
 	}
@@ -176,7 +176,8 @@ export class SlottedStorage extends Storage<SlottedAllocation> {
 		return qty - remaining
 	}
 
-	@computed
+	//TODO: //-@computed
+	// When computed, we can have an empty stock on a nearly filled storage
 	get stock(): { [k in GoodType]?: number } {
 		const result: { [k in GoodType]?: number } = {}
 

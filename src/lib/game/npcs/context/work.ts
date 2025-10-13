@@ -7,9 +7,9 @@ import type { TransformAlveolus } from '$lib/game/hive/transform'
 import type { Character } from '$lib/game/population/character'
 import type { AllocationBase } from '$lib/game/storage'
 import { contract, type Goods, type GoodType } from '$lib/types'
-import { axial } from '$lib/utils'
+import { type AxialCoord, axial } from '$lib/utils'
 import { subject } from '../scripts'
-import { DurationStep, MoveToStep, WaitForPredicateStep } from '../steps'
+import { DurationStep, MultiMoveStep, WaitForPredicateStep } from '../steps'
 import type { WorkPlan } from '.'
 
 class WorkFunctions {
@@ -42,7 +42,7 @@ class WorkFunctions {
 	waitForIncomingGoods() {
 		return new WaitForPredicateStep(
 			'waitIncomingGoods',
-			() => this[subject].assignedAlveolus!.goodMovements.length > 0,
+			() => !!this[subject].assignedAlveolus!.aGoodMovement,
 		)
 	}
 	@contract('object?')
@@ -53,45 +53,79 @@ class WorkFunctions {
 			alveolus === character.tile.content,
 			'Character must be assigned to the alveolus on the same tile',
 		)
-		// Pick one movement that passes through this alveolus
-		const movements = alveolus.goodMovements
-		if (movements.length === 0) return
-		const mg = movements[0]
+		// Get movement(s) - either a single movement or a cycle
+		const movements = alveolus.aGoodMovement
+		if (!movements || movements.length === 0) return
+
 		const hive = alveolus.hive
 
-		mg.allocations.source.fulfill()
-		// Advance one hop along the path
-		const hop = mg.hop()!
-		const nextStorage = hive.storageAt(hop)
-		assert(nextStorage, 'nextStorage must be defined')
-		const hopAlloc = mg.path.length
-			? nextStorage.allocate({ [mg.goodType]: 1 }, { type: 'convey.hop', movement: mg })
-			: undefined
-		const moving = character.game.hex.freeGoods.add(alveolus.tile, mg.goodType, mg.from)
-		const time = character.vehicle.transferTime * axial.distance(mg.from, hop)
-		return new MoveToStep(time, moving, hop, 'work', `convey.${mg.goodType}`)
+		// Unified handling for both single and multiple movements
+		// Prepare all movements: fulfill source, allocate hop, create moving good
+		const allocations: Array<{ mg: any; hopAlloc: any; hop: AxialCoord }> = []
+		const movingGoods: Array<{ mg: any; moving: any }> = []
+		const visualMovements: Array<{ who: any; from: any; to: any }> = []
+
+		for (const mg of movements) {
+			mg.allocations.source.fulfill()
+			const hop = mg.hop()!
+
+			const nextStorage = hive.storageAt(hop)
+			assert(nextStorage, 'nextStorage must be defined')
+			const hopAlloc = mg.path.length
+				? nextStorage.allocate({ [mg.goodType]: 1 }, { type: 'convey.hop', movement: mg })
+				: undefined
+
+			const moving = character.game.hex.freeGoods.add(alveolus.tile, mg.goodType, mg.from)
+
+			allocations.push({ mg, hopAlloc, hop })
+			movingGoods.push({ mg, moving })
+			visualMovements.push({ who: moving, from: mg.from, to: hop })
+		}
+
+		// Calculate time: O(n²) for cycles, O(n) for single movements
+		let totalTime = 0
+		for (let i = 0; i < movements.length; i++) {
+			const distance = axial.distance(movements[i].from, allocations[i].hop)
+			totalTime += character.vehicle.transferTime * distance * movements.length
+		}
+
+		// Create unified MultiMoveStep that animates all movements
+		const description = movements.length === 1 ? `convey.${movements[0].goodType}` : `convey.cycle`
+
+		return new MultiMoveStep(totalTime, visualMovements, 'work', description)
 			.canceled(() => {
-				hopAlloc?.cancel()
-				mg.allocations.target.cancel()
-				mg.finish()
+				for (const { mg, hopAlloc } of allocations) {
+					hopAlloc?.cancel()
+					mg.allocations.target.cancel()
+					mg.finish()
+				}
 			})
 			.finished(() => {
-				moving.remove()
-				if (!mg.path.length) {
-					mg.allocations.target.fulfill()
-				} else {
-					hopAlloc!.fulfill()
-					mg.allocations.source = nextStorage!.reserve(
-						{ [mg.goodType]: 1 },
-						{
-							type: 'convey.path',
-							movement: mg,
-						},
-					)
+				// Complete all movements
+				for (let i = 0; i < movements.length; i++) {
+					const { mg, moving } = movingGoods[i]
+					const { hopAlloc, hop } = allocations[i]
+					const nextStorage = hive.storageAt(hop)
+
+					moving.remove()
+					if (!mg.path.length) {
+						mg.allocations.target.fulfill()
+					} else {
+						hopAlloc!.fulfill()
+						mg.allocations.source = nextStorage!.reserve(
+							{ [mg.goodType]: 1 },
+							{
+								type: 'convey.path',
+								movement: mg,
+							},
+						)
+					}
 				}
 			})
 			.final(() => {
-				if (!moving.isRemoved) debugger
+				for (const { moving } of movingGoods) {
+					if (!moving.isRemoved) debugger
+				}
 			})
 	}
 	@contract()
@@ -156,6 +190,23 @@ class WorkFunctions {
 				for (const allocation of allocations) allocation.cancel()
 			})
 	}
+	@contract()
+	foundationStep() {
+		// Character must be on an UnBuiltLand tile with a project
+		const content = this[subject].tile.content
+		assert(content instanceof UnBuiltLand, 'Tile must be UnBuiltLand')
+		assert(content.project, 'UnBuiltLand must have a project')
+
+		// Extract the alveolus type from project (e.g., "build:sawmill" -> "sawmill")
+		const alveolusType = content.project.replace('build:', '')
+
+		return new DurationStep(3, 'work', 'foundation').finished(() => {
+			// Create BuildAlveolus
+			const buildAlveolus = new BuildAlveolus(content.tile, alveolusType as any)
+			content.tile.content = buildAlveolus
+		})
+	}
+
 	@contract()
 	constructionStep() {
 		// Character must already be on the construction site tile

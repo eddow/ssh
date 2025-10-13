@@ -1,4 +1,3 @@
-import { computed } from 'mutts/src'
 import { inputBufferSize, outputBufferSize } from '$assets/constants'
 import { traces } from '$lib/debug'
 import type { Character } from '$lib/game/population/character'
@@ -23,7 +22,7 @@ export class TransformAlveolus extends Alveolus {
 			}),
 		)
 	}
-	@computed
+	//-@computed
 	get canWork(): boolean {
 		return (
 			// If we have all the inputs required

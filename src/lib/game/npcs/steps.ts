@@ -134,6 +134,30 @@ export class MoveToStep extends ALerpStep<Positioned> {
 	}
 }
 
+export class MultiMoveStep extends AEvolutionStep {
+	get description(): string | false {
+		return this.givenDescription ?? super.description
+	}
+	constructor(
+		duration: number,
+		readonly movements: Array<{ who: { position: Position }; from?: Position; to: Positioned }>,
+		readonly type: Ssh.ActivityType = 'work',
+		readonly givenDescription?: string,
+	) {
+		super(duration)
+		// Capture the starting positions at construction time
+		for (const movement of this.movements) {
+			movement.from ??= { ...movement.who.position }
+		}
+	}
+	evolve(evolution: number): void {
+		// Lerp each movement independently
+		for (const movement of this.movements) {
+			movement.who.position = lerp(movement.from!, movement.to, evolution) as Position
+		}
+	}
+}
+
 export class DurationStep extends AEvolutionStep {
 	get description(): string | false {
 		return this.givenDescription
