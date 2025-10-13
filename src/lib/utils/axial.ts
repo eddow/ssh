@@ -3,7 +3,7 @@
  */
 import type { Sextuplet } from '../../types'
 import { assert } from '../debug'
-import type { RandGenerator } from '../numbers'
+import type { RandGenerator } from './numbers'
 
 export type AxialKey = string
 export const AxialKey = 'string'

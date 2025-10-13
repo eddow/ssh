@@ -1,5 +1,5 @@
-import { type RandGenerator, uuid } from '$lib/numbers'
 import { type AxialCoord, toAxialCoord } from '$lib/utils'
+import { type RandGenerator, uuid } from '$lib/utils/numbers'
 import type { Game } from '../game'
 import { GameObject, withContainer, withHittable } from '../object'
 import { Character } from './character'

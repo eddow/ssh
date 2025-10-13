@@ -148,9 +148,7 @@ class WorkFunctions {
 		)
 		if (!canStoreAny) return
 		deposit.amount -= 1
-		if (deposit.amount <= 0) {
-			unbuiltLand.deposit = undefined
-		}
+		if (deposit.amount <= 0) unbuiltLand.deposit = undefined
 		return new DurationStep(
 			this[subject].assignedAlveolus!.workTime,
 			'work',

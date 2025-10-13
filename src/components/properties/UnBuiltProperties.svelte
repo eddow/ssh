@@ -37,7 +37,7 @@ const projectData = $derived.by(
 	</PropertyGridRow>
 {/if}
 
-{#if !!deposit}
+{#if deposit?.amount !== undefined}
 	<PropertyGridRow label={$T.deposit} class="flex items-center">
 		<EntityBadge
 			{game}

@@ -36,5 +36,5 @@ if (debugMutts) {
 		console.groupEnd()
 	}
 }
-reactiveOptions.maxEffectChain = 500
+reactiveOptions.maxEffectChain = 100
 reactiveOptions.maxEffectReaction = 'debug'

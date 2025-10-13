@@ -39,3 +39,4 @@ Active WIP. Systems and naming may change (e.g., convey/collect flows). Expect b
 
 - slotted-storage specific job: defrag
 - Construction sites should display after cleanup (before: background unbuilt)
+- "purge" button on gatherer: remove all goods (drop free somewhere?)

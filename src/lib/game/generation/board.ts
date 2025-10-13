@@ -77,21 +77,26 @@ export class BoardGenerator {
 					const goodDef = goodsCatalog[goodType as keyof typeof goodsCatalog]
 					if (!goodDef) continue
 
-					// Skip goods with infinite half-life (they don't decay, so no equilibrium needed)
-					if (goodDef.halfLife === Infinity) continue
-
-					// Calculate decay rate per second: 1 - 2^(-1/halfLife)
-					const decayRate = 1 - 2 ** (-1 / goodDef.halfLife)
-
 					// Total generation rate for this deposit: generationRate * depositAmount
 					const totalGenerationRate = generationRate * deposit.amount
 
-					// At equilibrium: totalGenerationRate = decayRate * equilibriumAmount
-					// So: equilibriumAmount = totalGenerationRate / decayRate
-					const equilibriumAmount = totalGenerationRate / decayRate
+					let equilibriumAmount: number
 
-					// Add some randomness (±20%) to make it feel natural
-					const variance = 0.2
+					if (goodDef.halfLife === Infinity) {
+						// For infinite half-life goods, use a reasonable base amount
+						// Since they don't decay, we generate a moderate amount
+						equilibriumAmount = totalGenerationRate * 10 // 10x the generation rate as base amount
+					} else {
+						// Calculate decay rate per second: 1 - 2^(-1/halfLife)
+						const decayRate = 1 - 2 ** (-1 / goodDef.halfLife)
+
+						// At equilibrium: totalGenerationRate = decayRate * equilibriumAmount
+						// So: equilibriumAmount = totalGenerationRate / decayRate
+						equilibriumAmount = totalGenerationRate / decayRate
+					}
+
+					// Add some randomness (±30%) to make it feel natural
+					const variance = 0.3
 					const randomFactor = 1 + (rnd() - 0.5) * variance
 					const finalAmount = Math.max(0, Math.floor(equilibriumAmount * randomFactor))
 

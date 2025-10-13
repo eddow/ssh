@@ -63,14 +63,6 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition, typeof 
 			.filter((b): b is AlveolusGate => b instanceof AlveolusGate)
 	}
 
-	/**
-	 * Whether the worker should go on its work in this alveolus
-	 * @returns true if the alveolus can keep working
-	 */
-	get keepWorking(): boolean {
-		return true
-	}
-
 	// Render tile background, alveolus sprite + a vertical goods bar on the right side of the tile
 	render(): ScopedCallback | undefined {
 		const size = tileSize

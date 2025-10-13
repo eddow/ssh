@@ -14,9 +14,9 @@ import { prefix, resources } from '$assets/resources'
 import { assert } from '$lib/debug'
 import { interactionMode, mrg } from '$lib/globals.svelte'
 import { registerPixiApp, unregisterPixiApp } from '$lib/hmr-pixi'
-import { LCG } from '$lib/numbers'
 import type { AlveolusType, DepositType, GoodType } from '$lib/types'
 import { axial, axialRectangle, cartesian, fromCartesian } from '$lib/utils/axial'
+import { LCG } from '$lib/utils/numbers'
 import { toAxialCoord } from '$lib/utils/position'
 import { tileSize } from '$lib/utils/varied'
 import { Alveolus } from './board'
@@ -61,7 +61,7 @@ export type GameEvents = {
 	objectDown(pointer: any, object: InteractiveGameObject, stopPropagation?: () => void): void
 	objectUp(pointer: any, object: InteractiveGameObject): void
 	objectClick(pointer: any, object: InteractiveGameObject): void
-	objectDrag(tiles: Tile[]): void
+	objectDrag(tiles: Tile[], event: MouseEvent): void
 }
 unreactive(Eventful)
 export type GameGenerationOptions = {
@@ -726,7 +726,7 @@ export class GameView {
 
 				// Emit event if at least one tile was selected
 				if (selectedTiles.length >= 1) {
-					game.emit('objectDrag', selectedTiles)
+					game.emit('objectDrag', selectedTiles, e as MouseEvent)
 				}
 
 				// Clear selection preview
