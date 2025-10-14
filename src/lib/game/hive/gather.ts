@@ -34,7 +34,7 @@ export class GatherAlveolus extends TransitAlveolus {
 	// nextJob() replaces both alveolusSpecificJob() and keepWorking
 	// Returns detailed job info including path when called from character
 	nextJob(character?: Character): GatherJob | undefined {
-		if (!this.hasFreeGoodsToGather || !this.storage.isEmpty) return undefined
+		if (!this.working || !this.hasFreeGoodsToGather || !this.storage.isEmpty) return undefined
 
 		const startPos = character ? toAxialCoord(character.position) : toAxialCoord(this.tile.position)
 		const hex = this.tile.game.hex

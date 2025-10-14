@@ -195,7 +195,7 @@ export class FreeGoods extends withTicked(withGenerator(GameObject)) {
 				const decayProbability = 1 - 2 ** (-deltaSeconds / halfLife)
 
 				// Random chance to decay
-				if (Math.random() < decayProbability) {
+				if (this.game.random() < decayProbability) {
 					goodsToRemove.push(good)
 				}
 			}

@@ -13,9 +13,7 @@
 		"bothButtonsPan": "Both left+right down = pan"
 	},
 	"game": {
-		"gameTitle": "Game {game}",
-		"unknownObject": "Unknown object {uid}",
-		"unknownObjectType": "Unknown object type"
+		"gameTitle": "Game {game}"
 	},
 	"tile": {
 		"content": "Content",
@@ -63,7 +61,11 @@
 		"conveyorTooltip": "Allow unrelated goods to pass through this alveolus"
 	},
 	"deposit": "Resources",
-	"goods": "Goods",
+	"goods": {
+		"": "Goods",
+		"loose": "Loose goods",
+		"stored": "Stored goods"
+	},
 	"project": "Project",
 	"clearing": "Clearing",
 	"zones": {

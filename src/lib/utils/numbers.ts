@@ -19,9 +19,8 @@ export type RandGenerator = (max?: number, min?: number) => number
  */
 const [a, c, m] = [1664525, 1013904223, 2 ** 32]
 export function LCG(...seeds: (number | string)[]): RandGenerator {
-	let state = seeds.length
-		? Math.abs(seeds.reduce<number>((acc, seed) => acc ^ (numeric(seed) * c), 0))
-		: Math.random() * m
+	if (!seeds.length) throw new Error('LCG requires at least one seed for reproducibility')
+	let state = Math.abs(seeds.reduce<number>((acc, seed) => acc ^ (numeric(seed) * c), 0))
 	return (max = 1, min = 0) => {
 		state = (a * state + c + m) % m
 		return (state / m) * (max - min) + min

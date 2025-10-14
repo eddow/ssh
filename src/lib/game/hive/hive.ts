@@ -79,7 +79,10 @@ export class Hive extends ReactiveBase {
 	 * @param hive
 	 */
 	private partOf(hive: Hive) {
-		if (hive.name) this.name = `${hive.name} - ${Math.random().toString(36).substring(2, 5)}`
+		if (hive.name)
+			this.name = `${hive.name} - ${Math.floor(this.board.game.random(36 ** 3))
+				.toString(36)
+				.padStart(3, '0')}`
 		const filteredQueue = (which: 'demanders' | 'providers', queue: HiveQueue) => {
 			if (which in queue) {
 				const mySet = new Set<Alveolus>()

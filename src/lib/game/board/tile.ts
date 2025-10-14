@@ -142,9 +142,8 @@ export class Tile extends withInteractive(GameObject) {
 		// The tile must be cleared first, then BuildAlveolus will be created
 		const content = this.content
 		if (content instanceof UnBuiltLand) {
-			content.project = `build:${alveolusType}`
+			content.setProject(`build:${alveolusType}`)
 		}
-		this.zone = undefined
 		return true
 	}
 

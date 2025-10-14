@@ -29,6 +29,7 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition, typeof 
 	public storage: Storage<any>
 	// Configurable properties removed - walkway and conveyor are no longer used
 	public advertisingEffect?: ScopedCallback
+	public working: boolean = true
 
 	constructor(tile: Tile, storage: Storage<any>) {
 		const tileCoord = toAxialCoord(tile.position)
@@ -124,6 +125,8 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition, typeof 
 		const carry = this.conveyJob()
 		if (carry) return carry
 
+		// Only provide alveolus-specific jobs if working is enabled
+		if (!this.working) return undefined
 		return this.nextJob?.(character)
 	}
 
@@ -286,8 +289,10 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition, typeof 
 		return this.aGoodMovement ? ({ job: 'convey', fatigue: 3, urgency: 2 } as Job) : undefined
 	}
 
-	deconstruct() {
+	destroy() {
 		this.advertisingEffect?.()
+		this.advertisingEffect = undefined
+		super.destroy()
 		this.tile.content = new UnBuiltLand(this.tile, 'concrete')
 		for (const gate of this.gates) gate.border.content = undefined
 		this.hive.removeAlveolus(this)

@@ -94,8 +94,10 @@ class WorkFunctions {
 
 		return new MultiMoveStep(totalTime, visualMovements, 'work', description)
 			.canceled(() => {
+				debugger
 				for (const { mg, hopAlloc } of allocations) {
 					hopAlloc?.cancel()
+					mg.allocations.source.cancel()
 					mg.allocations.target.cancel()
 					mg.finish()
 				}

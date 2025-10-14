@@ -7,11 +7,14 @@
  * Generate a random number from a Poisson distribution with mean lambda
  * Uses Knuth's algorithm for efficiency
  */
-export function poissonRandom(lambda: number): number {
+export function poissonRandom(
+	lambda: number,
+	rnd: (max?: number, min?: number) => number = Math.random,
+): number {
 	if (lambda <= 0) return 0
 	if (lambda > 100) {
 		// For large lambda, use normal approximation
-		return Math.max(0, Math.round(lambda + Math.sqrt(lambda) * (Math.random() * 2 - 1)))
+		return Math.max(0, Math.round(lambda + Math.sqrt(lambda) * (rnd() * 2 - 1)))
 	}
 
 	let k = 0
@@ -20,7 +23,7 @@ export function poissonRandom(lambda: number): number {
 
 	do {
 		k++
-		p *= Math.random()
+		p *= rnd()
 	} while (p >= L && k < 1000) // Cap to avoid infinite loops
 
 	return k - 1
@@ -72,17 +75,17 @@ class PoissonLookupTable {
 	 * Get a Poisson random number using the lookup table
 	 * Falls back to direct calculation for values not in table
 	 */
-	get(lambda: number): number {
+	get(lambda: number, rnd: (max?: number, min?: number) => number = Math.random): number {
 		if (lambda <= 0) return 0
 
 		// For very small lambda, use simple approximation
 		if (lambda < 0.1) {
-			return Math.random() < lambda ? 1 : 0
+			return rnd() < lambda ? 1 : 0
 		}
 
 		// For very large lambda, use normal approximation
 		if (lambda > this.maxLambda) {
-			return Math.max(0, Math.round(lambda + Math.sqrt(lambda) * (Math.random() * 2 - 1)))
+			return Math.max(0, Math.round(lambda + Math.sqrt(lambda) * (rnd() * 2 - 1)))
 		}
 
 		// Use lookup table
@@ -90,7 +93,7 @@ class PoissonLookupTable {
 		const probabilities = this.table.get(key)
 
 		if (probabilities) {
-			const r = Math.random()
+			const r = rnd()
 			for (let k = 0; k < probabilities.length; k++) {
 				if (r < probabilities[k]) return k
 			}
@@ -98,7 +101,7 @@ class PoissonLookupTable {
 		}
 
 		// Fallback to direct calculation
-		return poissonRandom(lambda)
+		return poissonRandom(lambda, rnd)
 	}
 }
 
@@ -109,6 +112,9 @@ const poissonTable = new PoissonLookupTable()
  * High-performance Poisson random number generator
  * Uses lookup table for common values, direct calculation for edge cases
  */
-export function fastPoissonRandom(lambda: number): number {
-	return poissonTable.get(lambda)
+export function fastPoissonRandom(
+	lambda: number,
+	rnd: (max?: number, min?: number) => number = Math.random,
+): number {
+	return poissonTable.get(lambda, rnd)
 }

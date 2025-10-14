@@ -38,9 +38,12 @@ export class BuildAlveolus extends Alveolus {
 		// Demand construction materials
 		if (this.destroyed) return
 
-		// Demand each missing good
-		for (const good of Object.keys(this.remainingNeeds) as GoodType[]) {
-			if (this.storage.hasRoom(good)) this.hive.demand(good, this)
+		// Only participate in storage queues if working is enabled
+		if (this.working) {
+			// Demand each missing good
+			for (const good of Object.keys(this.remainingNeeds) as GoodType[]) {
+				if (this.storage.hasRoom(good)) this.hive.demand(good, this)
+			}
 		}
 	}
 }

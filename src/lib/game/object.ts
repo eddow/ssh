@@ -18,6 +18,10 @@ export class GameObject extends ReactiveBase {
 		super()
 	}
 	public destroyed: boolean = false
+	/** Convenience random using the owning game's RNG */
+	random(max?: number, min?: number) {
+		return this.game.random(max, min)
+	}
 	destroy() {
 		this.destroyed = true
 	}

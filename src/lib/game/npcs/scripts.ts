@@ -106,7 +106,11 @@ export class GlobalContext {
 	@contract('object')
 	aKey(object: object) {
 		const keys = Object.keys(object)
-		return keys[Math.floor(Math.random() * keys.length)]
+		const rnd = (globalThis as any).__GAME_RANDOM__ as
+			| ((max?: number, min?: number) => number)
+			| undefined
+		if (!rnd) throw new Error('Global RNG not initialized')
+		return keys[Math.floor(rnd(keys.length))]
 	}
 }
 

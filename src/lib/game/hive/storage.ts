@@ -26,16 +26,17 @@ export class StorageAlveolus extends Alveolus {
 	 * Check if this storage can store a specific good
 	 */
 	canTake(goodType: GoodType): number {
-		return this.storage.hasRoom(goodType)
+		// Only accept goods if working is enabled
+		return this.working ? this.storage.hasRoom(goodType) : 0
 	}
 
 	advertise() {
 		traces.advertising?.groupCollapsed(`Advertising ${this.name}`)
-		// For storage alveoli, check queues and resolve what it can
-		// Use the public provides and needs getters to know what goods are available
-		for (const goodType of this.hive.provides)
-			if (this.canTake(goodType)) this.hive.answerProvision(goodType, this)
 
+		// Only participate in storage queues if working is enabled
+		if (this.working)
+			for (const goodType of this.hive.provides)
+				if (this.canTake(goodType)) this.hive.answerProvision(goodType, this)
 		for (const goodType of this.hive.needs)
 			if (this.canGive(goodType)) this.hive.answerNeed(goodType, this)
 		traces.advertising?.groupEnd()

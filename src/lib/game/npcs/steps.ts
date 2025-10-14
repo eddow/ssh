@@ -227,9 +227,12 @@ export class PonderingStep extends AEvolutionStep {
 	}
 	constructor(
 		readonly character: Character,
-		duration: number = lerp(activityDurations.restMin, activityDurations.restMax, Math.random()),
+		duration?: number,
 	) {
-		super(duration)
+		super(
+			duration ??
+				lerp(activityDurations.restMin, activityDurations.restMax, character.game.random()),
+		)
 	}
 }
 

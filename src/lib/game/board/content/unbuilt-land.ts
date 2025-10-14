@@ -24,6 +24,14 @@ export class UnBuiltLand extends withTicked(TileContent) {
 	/** Project identifier (e.g., "build:sawmill") indicating pending construction */
 	public project?: string
 
+	/**
+	 * Set a project and clear any existing zone
+	 */
+	setProject(project: string): void {
+		this.project = project
+		this.tile.zone = undefined // Clear zone when project is set
+	}
+
 	get name() {
 		return this.terrain
 	}
@@ -53,7 +61,9 @@ export class UnBuiltLand extends withTicked(TileContent) {
 			const lambda = totalRate * deltaTime
 
 			// Use proper Poisson distribution for bursty generation
-			const goodsToSpawn = fastPoissonRandom(lambda)
+			const goodsToSpawn = fastPoissonRandom(lambda, (max?: number, min?: number) =>
+				this.game.random(max, min),
+			)
 
 			// Spawn the calculated number of goods
 			for (let i = 0; i < goodsToSpawn; i++) {
@@ -85,8 +95,8 @@ export class UnBuiltLand extends withTicked(TileContent) {
 		const tileCoord = toAxialCoord(this.tile.position)
 
 		// Generate random point using triangular distribution
-		const u = Math.random()
-		const v = Math.random()
+		const u = this.game.random()
+		const v = this.game.random()
 
 		const q = (u - v) * 0.5
 		const r = v - 0.5
@@ -193,9 +203,9 @@ export class UnBuiltLand extends withTicked(TileContent) {
 		if (action.startsWith('build:')) {
 			return true
 		}
-		// UnBuiltLand can accept zoning actions
+		// UnBuiltLand can accept zoning actions, but only if no project is set
 		if (action.startsWith('zone:')) {
-			return true
+			return !this.project // Cannot zone if there's already a project
 		}
 		// Can also accept other actions if they make sense
 		return false

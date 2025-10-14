@@ -128,8 +128,8 @@ class FindFunctions {
 		// Using a simple approach: generate random offset from tile center
 		const tileCoord = toAxialCoord(tile.position)
 		// Generate random point using triangular distribution
-		const u = Math.random()
-		const v = Math.random()
+		const u = this[subject].game.random()
+		const v = this[subject].game.random()
 
 		const q = (u - v) * 0.5
 		const r = v - 0.5
@@ -143,7 +143,7 @@ class FindFunctions {
 	wanderingTile() {
 		const { hex } = this[subject].game
 		const start = toAxialCoord(this[subject].tile.position)
-		const distance = 2 + Math.random() * 3 // 2-5 tiles away
+		const distance = 2 + this[subject].game.random() * 3 // 2-5 tiles away
 
 		// Find all walkable tiles within the distance range
 		const walkableTiles: { coord: AxialCoord; tile: Tile }[] = []
@@ -164,7 +164,7 @@ class FindFunctions {
 		if (walkableTiles.length === 0) return false
 
 		// Pick a random walkable tile
-		const randomIndex = Math.floor(Math.random() * walkableTiles.length)
+		const randomIndex = Math.floor(this[subject].game.random(walkableTiles.length))
 		const { coord: targetCoord, tile: targetTile } = walkableTiles[randomIndex]
 
 		return {
@@ -223,7 +223,7 @@ class FindFunctions {
 		const { hex } = this[subject].game
 		const start = toAxialCoord(this[subject].tile.position)
 		// Use findBest with a cost function: walkTime * crowding
-		// Only drop in clearing tiles (UnBuiltLand with no/harvest zone and no project)
+		// Only drop in non-clearing tiles (UnBuiltLand with no/harvest zone and no project)
 		const result = hex.findBestForCharacter(
 			start,
 			this[subject],

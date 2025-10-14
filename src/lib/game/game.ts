@@ -100,8 +100,12 @@ export class Game extends Eventful<GameEvents> {
 	public get name() {
 		return 'GameX'
 	}
+	private readonly rng: ReturnType<typeof LCG> = LCG('gameSeed', 0)
 	public lcg(seed: string | number) {
 		return LCG('gameSeed', seed)
+	}
+	public random(max?: number, min?: number) {
+		return this.rng(max, min)
 	}
 	public gameView?: GameView
 	public stage: Container
@@ -220,6 +224,10 @@ export class Game extends Eventful<GameEvents> {
 		// Create game generator
 		this.generator = new GameGenerator()
 
+		// Initialize base RNG with terrainSeed so everything is reproducible
+		;(this as any).rng = LCG('gameSeed', this.generationOptions.terrainSeed)
+		// Expose RNG to global for script helpers
+		;(globalThis as any).__GAME_RANDOM__ = (max?: number, min?: number) => this.random(max, min)
 		this.generate(this.generationOptions, this.patches)
 		this.emit('gameStart')
 
@@ -227,8 +235,8 @@ export class Game extends Eventful<GameEvents> {
 		this.ticker.add(this.tickerCallback)
 	}
 
-	public simulateObjectClick(object: InteractiveGameObject) {
-		this.emit('objectClick', {} as any, object)
+	public simulateObjectClick(object: InteractiveGameObject, event: MouseEvent = {} as any) {
+		this.emit('objectClick', event, object)
 	}
 	generate(config: GameGenerationConfig, patches: GamePatches = {}) {
 		try {
@@ -276,8 +284,8 @@ export class Game extends Eventful<GameEvents> {
 			for (const [goodType, amount] of Object.entries(tileInfo.goods)) {
 				for (let i = 0; i < amount; i++) {
 					// Generate random position within the tile using triangular distribution
-					const u = Math.random()
-					const v = Math.random()
+					const u = this.random()
+					const v = this.random()
 					const q = (u - v) * 0.5
 					const r = v - 0.5
 

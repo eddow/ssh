@@ -231,7 +231,7 @@ export class Character extends withInteractive(
 				brightnessFilter.brightness(1, false)
 			}
 		})
-		namedEffect('character.position', () => {
+		const positionEffect = namedEffect('character.position', () => {
 			const { x, y } = toWorldCoord(this.position)
 			characterSprite.position.set(x, y)
 		})
@@ -242,6 +242,7 @@ export class Character extends withInteractive(
 		// Return cleanup function
 		return () => {
 			mouseoverEffect()
+			positionEffect()
 			characterSprite.destroy()
 			game.charactersLayer.removeChild(characterSprite)
 		}

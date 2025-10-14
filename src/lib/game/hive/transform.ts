@@ -35,7 +35,7 @@ export class TransformAlveolus extends Alveolus {
 	}
 	// nextJob() replaces both alveolusSpecificJob() and keepWorking
 	nextJob(_character?: Character): TransformJob | undefined {
-		if (!this.canWork) return undefined
+		if (!this.working || !this.canWork) return undefined
 
 		return {
 			job: 'transform',
@@ -46,17 +46,27 @@ export class TransformAlveolus extends Alveolus {
 
 	advertise(): void {
 		traces.advertising?.groupCollapsed(`Advertising ${this.name}`)
+
 		const action = this.action
-		for (const [gt] of Object.entries(action.inputs))
-			while (this.storage?.hasRoom(gt as GoodType) && this.hive.demand(gt as GoodType, this));
-		for (const [gt] of Object.entries(action.output))
+		if (this.working)
+			for (const gt of Object.keys(action.inputs))
+				while (this.storage?.hasRoom(gt as GoodType) && this.hive.demand(gt as GoodType, this));
+		else
+			for (const gt of Object.keys(action.inputs))
+				while (
+					this.storage?.available(gt as GoodType) &&
+					this.hive.answerNeed(gt as GoodType, this)
+				);
+		for (const gt of Object.keys(action.output))
 			while (this.storage?.available(gt as GoodType) && this.hive.provide(gt as GoodType, this));
 		traces.advertising?.groupEnd()
 	}
 	canGive(goodType: GoodType): number {
-		return goodType in this.action.output ? this.storage.available(goodType) : 0
+		// Only provide goods if working is enabled
+		return !this.working || goodType in this.action.output ? this.storage.available(goodType) : 0
 	}
 	canTake(goodType: GoodType): number {
-		return goodType in this.action.inputs ? this.storage.hasRoom(goodType) : 0
+		// Only accept goods if working is enabled
+		return this.working && goodType in this.action.inputs ? this.storage.hasRoom(goodType) : 0
 	}
 }
