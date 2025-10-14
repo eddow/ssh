@@ -218,7 +218,7 @@ export class Hive extends ReactiveBase {
 			return content.storage
 		}
 		const border = this.board.getBorder(coord)!
-		return border.content
+		return border.content?.storage
 	}
 	private getQueue(goodType: GoodType) {
 		return this.queues.get(goodType)

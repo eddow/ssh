@@ -111,7 +111,7 @@ export class HexBoard extends withContainer(withHittable(GameObject)) {
 		assert(!isTileCoord(coord), 'coord must be a border coordinate')
 		if (!this.inBound(coord)) return undefined
 		const content = this.contents.get({ q: coord.q, r: coord.r }) as TileBorderContent | undefined
-		return content?.border ?? new TileBorder(this.game, coord)
+		return content?.border ?? new TileBorder(this, coord)
 	}
 
 	/**

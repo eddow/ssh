@@ -67,19 +67,18 @@ export function withScripted<T extends abstract new (...args: any[]) => TickedGa
 
 		update(dt: number) {
 			let remaining: number | undefined = dt
-			let uselessStepExecutor: string | false = false
+			let uselessStepExecutor: Function | false = false
 			while (remaining !== undefined && this.stepExecutor) {
 				const newRemaining = this.stepExecutor.tick(remaining)
 				if (typeof newRemaining === 'number' && !Number.isFinite(newRemaining)) debugger
 				if (newRemaining === remaining && this.stepExecutor)
-					uselessStepExecutor = this.stepExecutor.type
+					uselessStepExecutor = this.stepExecutor.constructor
 				remaining = newRemaining
 				if (remaining !== undefined) {
 					this.stepExecutor = undefined
 					this.nextStep()
-					const newType = this.stepExecutor!?.type
-					if (uselessStepExecutor === newType && newType !== 'walk')
-						throw new Error(`Useless step executor: ${newType}`)
+					const newType = this.stepExecutor!?.constructor
+					if (uselessStepExecutor === newType) throw new Error(`Useless step executor: ${newType}`)
 				}
 			}
 		}

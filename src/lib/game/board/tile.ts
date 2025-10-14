@@ -75,7 +75,9 @@ export class Tile extends withInteractive(GameObject) {
 
 		// Offload if there are free goods on tile and it's a residential zone or alveolus tile
 		// Note: harvest zones do NOT trigger offload (goods can be dropped there)
-		const hasFreeGoods = this.availableGoods.length > 0
+		// Cache the expensive computation during pathfinding
+		const freeGoodsList = this.board.freeGoods.getGoodsAt(toAxialCoord(this.position))
+		const hasFreeGoods = freeGoodsList.some((g) => !g.allocated)
 		const isResidentialOrAlveolus = this.zone === 'residential' || this.content instanceof Alveolus
 		if (hasFreeGoods && isResidentialOrAlveolus) {
 			return { job: 'offload', fatigue: 1, urgency: 10 }

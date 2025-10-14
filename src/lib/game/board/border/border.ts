@@ -1,74 +1,60 @@
-import { watch } from 'mutts/src'
-import type { Game } from '$lib/game/game'
+import type { ScopedCallback } from 'mutts/src'
 import { GameObject, withGenerator } from '$lib/game/object'
 import type { Storage } from '$lib/game/storage'
-import { renderBorderGoods } from '$lib/game/storage/goods-renderer'
-import { type Positioned, tileSize } from '$lib/utils'
-import { type Position, toAxialCoord, toWorldCoord } from '$lib/utils/position'
+import type { Positioned } from '$lib/utils'
+import { type Position, toAxialCoord } from '$lib/utils/position'
+import type { HexBoard } from '../board'
 import type { Tile } from '../tile'
 
-export interface TileBorderContent extends Storage<any> {
-	readonly border: TileBorder
-	destroy?(): void
+export abstract class TileBorderContent extends withGenerator(GameObject) {
+	abstract readonly border: TileBorder
+	abstract readonly storage?: Storage<any>
+	abstract readonly debugInfo: Record<string, any>
+
+	/**
+	 * Render the border content including goods visualization
+	 * @returns A cleanup function to be called when the content is removed
+	 */
+	abstract render(): ScopedCallback | undefined
 }
 
-export class TileBorder extends withGenerator(GameObject) {
+export class TileBorder extends GameObject {
 	readonly position: Position
-	constructor(game: Game, coord: Positioned) {
-		super(game)
-		const hex = game.hex
-		this.position = coord = toAxialCoord(coord)
+	readonly board: HexBoard
+
+	constructor(board: HexBoard, coord: Positioned) {
+		const axialCoord = toAxialCoord(coord)
+		super(board.game, `border:${axialCoord.q},${axialCoord.r}`)
+		this.board = board
+		this.position = axialCoord
 		this.tile = {
 			get a(): Tile {
-				return hex.getTile({ q: Math.ceil(coord.q), r: Math.floor(coord.r) })!
+				return board.getTile({ q: Math.ceil(axialCoord.q), r: Math.floor(axialCoord.r) })!
 			},
 			get b(): Tile {
-				return hex.getTile({ q: Math.floor(coord.q), r: Math.ceil(coord.r) })!
+				return board.getTile({ q: Math.floor(axialCoord.q), r: Math.ceil(axialCoord.r) })!
 			},
 		}
 	}
+
 	tile: {
 		get a(): Tile
 		get b(): Tile
 	}
+
 	get content(): TileBorderContent | undefined {
-		return this.game.hex.getBorderContent(toAxialCoord(this.position))
+		return this.board.getBorderContent(toAxialCoord(this.position))
 	}
+
 	set content(content: TileBorderContent | undefined) {
 		this.content?.destroy?.()
-		this.game.hex.setBorderContent(toAxialCoord(this.position), content)
+		this.board.setBorderContent(toAxialCoord(this.position), content)
 	}
-	render() {
-		// Get world coordinates of both tiles
-		const tileAWorld = toWorldCoord(this.tile.a.position)
-		const tileBWorld = toWorldCoord(this.tile.b.position)
 
-		// Calculate border center position
-		const borderCenter = {
-			x: (tileAWorld.x + tileBWorld.x) / 2,
-			y: (tileAWorld.y + tileBWorld.y) / 2,
+	get debugInfo(): Record<string, any> {
+		return {
+			position: this.position,
+			content: this.content?.debugInfo,
 		}
-
-		// Calculate relative position of tile A from the border center
-		const alveolusCenter = {
-			x: tileAWorld.x - borderCenter.x,
-			y: tileAWorld.y - borderCenter.y,
-		}
-
-		// Watch for content changes and render border goods
-		return watch(
-			() => this.content,
-			(content) => {
-				if (!content) return
-				return renderBorderGoods(
-					this.game,
-					tileSize,
-					() => content.renderedGoods(),
-					borderCenter,
-					alveolusCenter,
-				)
-			},
-			{ immediate: true },
-		)
 	}
 }

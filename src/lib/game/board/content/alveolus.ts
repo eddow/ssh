@@ -275,7 +275,7 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition, typeof 
 	get incomingGoods(): boolean {
 		// Note: because borders have 2 neighbors, if a good is incoming, it's for you (you're in one of the neighbors)
 		return this.tile.surroundings.some(
-			(s) => s.border.content instanceof AlveolusGate && s.border.content.allocatedSlots,
+			(s) => s.border.content instanceof AlveolusGate && s.border.content.storage.allocatedSlots,
 		)
 	}
 

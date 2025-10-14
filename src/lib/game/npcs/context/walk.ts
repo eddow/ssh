@@ -2,6 +2,7 @@ import type { Character } from '$lib/game/population/character'
 import { contract } from '$lib/types'
 import { axial } from '$lib/utils'
 import { type Positioned, positionRoughlyEquals, toAxialCoord } from '../../../utils/position'
+import { UnBuiltLand } from '../../board/content/unbuilt-land'
 import type { Tile } from '../../board/tile'
 import { subject } from '../scripts'
 import { MoveToStep } from '../steps'
@@ -25,10 +26,16 @@ class WalkFunctions {
 	 */
 	@contract()
 	enter() {
-		const toAxial = toAxialCoord(this[subject].tile)
+		const tile = this[subject].tile
+		const toAxial = toAxialCoord(tile)
 		const fromAxial = toAxialCoord(this[subject])
-		if (!positionRoughlyEquals(fromAxial, toAxial))
-			return new MoveToStep(axial.distance(fromAxial, toAxial), this[subject], toAxial)
+		// If tile has a deposit, target deposit entry position instead of tile center
+		const target =
+			tile.content instanceof UnBuiltLand && tile.content.deposit
+				? tile.content.depositEntryPosition
+				: toAxial
+		if (!positionRoughlyEquals(fromAxial, target))
+			return new MoveToStep(axial.distance(fromAxial, target), this[subject], target)
 	}
 	@contract('Tile')
 	stepOn(tile: Tile) {
