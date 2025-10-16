@@ -3,9 +3,9 @@ import { Sprite } from 'pixi.js'
 import type { Hive, MovingGood } from '$lib/game/hive/hive'
 import { gameIsaTypes } from '$lib/game/npcs/utils'
 import type { Character } from '$lib/game/population/character'
-import type { GoodType } from '$lib/types'
-import type { Job } from '$lib/types/base'
+import type { GoodType, Job } from '$lib/types/base'
 import { type AxialCoord, axial, epsilon, tileSize } from '$lib/utils'
+import type { GoodsRelations } from '$lib/utils/advertisement'
 import { toAxialCoord, toWorldCoord } from '$lib/utils/position'
 import { renderTileGoods, type Storage } from '../../storage'
 import { AlveolusGate } from '../border/alveolus-gate'
@@ -113,7 +113,7 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition, typeof 
 		// Check if there are FreeGoods on this tile
 		const coord = toAxialCoord(this.tile.position)
 		const freeGoods = this.tile.board.freeGoods.getGoodsAt(coord)
-		return freeGoods.length > 0
+		return freeGoods.length > 0 && !this.hive.movingGoods.get(coord)?.length
 	}
 
 	nextJob?(character?: Character): Job | undefined
@@ -289,12 +289,16 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition, typeof 
 		return this.aGoodMovement ? ({ job: 'convey', fatigue: 3, urgency: 2 } as Job) : undefined
 	}
 
+	// Called even when replacing a Building construction site
 	destroy() {
 		this.advertisingEffect?.()
 		this.advertisingEffect = undefined
 		super.destroy()
-		this.tile.content = new UnBuiltLand(this.tile, 'concrete')
+	}
+	// Not yet called (bulldozed alveolus)
+	deconstruct() {
 		for (const gate of this.gates) gate.border.content = undefined
+		this.tile.content = new UnBuiltLand(this.tile, 'concrete')
 		this.hive.removeAlveolus(this)
 	}
 
@@ -304,22 +308,16 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition, typeof 
 			.map((neighbor) => neighbor?.content)
 			.filter((c): c is Alveolus => c instanceof Alveolus)
 	}
-	abstract advertise(): void
-
-	/**
-	 * Check if this alveolus has a specific good in stock
-	 * Default implementation delegates to storage
-	 */
-	canGive(_goodType: GoodType): number {
-		return 0
-	}
-
-	/**
-	 * Check if this alveolus can store a specific good
-	 * Default implementation delegates to storage
-	 */
-	canTake(_goodType: GoodType): number {
-		return 0
+	abstract get workingGoodsRelations(): GoodsRelations
+	get goodsRelations(): GoodsRelations {
+		return this.working
+			? this.workingGoodsRelations
+			: Object.fromEntries(
+					Object.keys(this.storage.stock).map((goodType) => [
+						goodType as GoodType,
+						{ advertisement: 'provide', priority: '0-store' },
+					]),
+				)
 	}
 }
 gameIsaTypes.alveolus = (value: any) => {

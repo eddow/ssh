@@ -1,7 +1,7 @@
 import { maxWalkTime, outputBufferSize } from '$assets/constants'
 import type { Character } from '$lib/game/population/character'
 import { SpecificStorage } from '$lib/game/storage'
-import type { GoodType, HarvestJob } from '$lib/types/base'
+import type { HarvestJob } from '$lib/types/base'
 import { axialDistance, type Positioned, toAxialCoord } from '../../utils/position'
 import { UnBuiltLand } from '../board'
 import { multiplyGoodsQty } from '../board/content/utils'
@@ -33,7 +33,7 @@ export class HarvestAlveolus extends TransitAlveolus {
 	//-@computed
 	get alveoliNeedingGood() {
 		return Object.keys(this.action.output).reduce(
-			(acc, goodType) => acc + (this.hive.needs.has(goodType as GoodType) ? 1 : 0),
+			(acc, goodType) => acc + (goodType in this.hive.needs ? 1 : 0),
 			0,
 		)
 	}

@@ -43,10 +43,9 @@ class CharacterContext extends InteractiveContext<Character> {
 
 		return gatherers.some((gatherer) => {
 			// Check if the gatherer can reach this position within its radius (walk time)
-			const path = this[subject].game.hex.findPathForCharacter(
+			const path = this[subject].game.hex.findPath(
 				toAxialCoord(gatherer.tile.position),
 				toAxialCoord(currentPos),
-				this[subject],
 				(gatherer.action as Ssh.GatherAction).radius,
 				false,
 			)
@@ -55,7 +54,7 @@ class CharacterContext extends InteractiveContext<Character> {
 			if (!path) return false
 
 			// Check if the hive needs any of the produced goods
-			return producedGoods.some((good) => harvestAlveolus.hive.needs.has(good))
+			return producedGoods.some((good) => good in harvestAlveolus.hive.needs)
 		})
 	}
 }

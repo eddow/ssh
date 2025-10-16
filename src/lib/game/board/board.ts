@@ -232,6 +232,10 @@ export class HexBoard extends withContainer(withHittable(GameObject)) {
 		)
 	}
 
+	findPath(start: Positioned, goal: Positioned, maxTime: number, punctual: boolean = true) {
+		return findPath((c) => this.getNeighbors(c), start, goal, maxTime, punctual)
+	}
+
 	findNearest(
 		start: Positioned,
 		isGoal: Scoring<true>,

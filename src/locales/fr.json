@@ -46,7 +46,8 @@
 		"convey": "Convoie",
 		"foundation": "Coulage de fondation",
 		"queue": "Fait la queue",
-		"pickup": "Ramasse"
+		"pickup": "Ramasse",
+		"construct": "Construit"
 	},
 	"alveolus": {
 		"alveolus": "Alvéole",

@@ -18,7 +18,7 @@ export class GatherAlveolus extends TransitAlveolus {
 	//-@computed
 	get hasFreeGoodsToGather(): boolean {
 		// Check if there are any free goods in the world that the hive needs
-		const hiveNeeds = Array.from(this.hive.needs)
+		const hiveNeeds = Object.keys(this.hive.needs) as GoodType[]
 		if (hiveNeeds.length === 0) return false
 
 		// Use FreeGoods.findNearestGoods to check if there are any free goods available within walk time
@@ -42,7 +42,7 @@ export class GatherAlveolus extends TransitAlveolus {
 		// If called from character, find specific path to gatherable
 		let path: Positioned[] | undefined
 		let goodType: GoodType | undefined
-		let selectableGoods = Array.from(this.hive.needs)
+		let selectableGoods = Object.keys(this.hive.needs) as GoodType[]
 		if (character)
 			selectableGoods = selectableGoods.filter((good) => character.vehicle.hasRoom(good))
 		if (selectableGoods.length === 0) return undefined

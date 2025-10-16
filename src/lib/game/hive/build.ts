@@ -1,6 +1,7 @@
 import { alveoli as alveoliDefs } from '$assets/game-content'
 import { SpecificStorage } from '$lib/game/storage'
 import type { AlveolusType, GoodType } from '$lib/types'
+import type { GoodsRelations } from '$lib/utils/advertisement'
 import { Alveolus } from '../board/content/alveolus'
 import type { Tile } from '../board/tile'
 
@@ -34,16 +35,14 @@ export class BuildAlveolus extends Alveolus {
 		return Object.keys(this.remainingNeeds).length === 0 && !this.destroyed
 	}
 
-	advertise(): void {
+	get workingGoodsRelations(): GoodsRelations {
 		// Demand construction materials
-		if (this.destroyed) return
+		if (this.destroyed) return {}
 
-		// Only participate in storage queues if working is enabled
-		if (this.working) {
-			// Demand each missing good
-			for (const good of Object.keys(this.remainingNeeds) as GoodType[]) {
-				if (this.storage.hasRoom(good)) this.hive.demand(good, this)
-			}
-		}
+		return Object.fromEntries(
+			Object.keys(this.remainingNeeds)
+				.filter((goodType) => this.storage.hasRoom(goodType as GoodType))
+				.map((goodType) => [goodType as GoodType, { advertisement: 'demand', priority: '2-use' }]),
+		)
 	}
 }

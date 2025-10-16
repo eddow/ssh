@@ -1,5 +1,5 @@
-import { traces } from '$lib/debug'
 import type { GoodType } from '$lib/types'
+import type { ExchangePriority, GoodsRelations } from '$lib/utils/advertisement'
 import { Alveolus } from '../board/content/alveolus'
 import type { Tile } from '../board/tile'
 import { SlottedStorage } from '../storage/slotted-storage'
@@ -16,29 +16,24 @@ export class StorageAlveolus extends Alveolus {
 	}
 
 	/**
-	 * Check if this storage has a specific good in stock
-	 */
-	canGive(goodType: GoodType): number {
-		return this.storage.available(goodType)
-	}
-
-	/**
 	 * Check if this storage can store a specific good
 	 */
-	canTake(goodType: GoodType): number {
+	canTake(goodType: GoodType, priority: ExchangePriority) {
 		// Only accept goods if working is enabled
-		return this.working ? this.storage.hasRoom(goodType) : 0
+		return this.working && priority > '0-store' ? this.storage.hasRoom(goodType) > 0 : false
+	}
+	canGive(goodType: GoodType, priority: ExchangePriority) {
+		return priority > '0-store' ? this.storage.available(goodType) > 0 : false
 	}
 
-	advertise() {
-		traces.advertising?.groupCollapsed(`Advertising ${this.name}`)
-
-		// Only participate in storage queues if working is enabled
-		if (this.working)
-			for (const goodType of this.hive.provides)
-				if (this.canTake(goodType)) this.hive.answerProvision(goodType, this)
-		for (const goodType of this.hive.needs)
-			if (this.canGive(goodType)) this.hive.answerNeed(goodType, this)
-		traces.advertising?.groupEnd()
+	get workingGoodsRelations(): GoodsRelations {
+		return Object.fromEntries(
+			Object.keys(this.storage.stock)
+				.filter((goodType) => this.storage.available(goodType as GoodType) > 0)
+				.map((goodType) => [
+					goodType as GoodType,
+					{ advertisement: 'provide', priority: '0-store' },
+				]),
+		)
 	}
 }

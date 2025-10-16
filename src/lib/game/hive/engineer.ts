@@ -1,6 +1,7 @@
 import type { Character } from '$lib/game/population/character'
 import { SlottedStorage } from '$lib/game/storage'
 import type { ConstructJob, FoundationJob } from '$lib/types/base'
+import type { GoodsRelations } from '$lib/utils/advertisement'
 import { toAxialCoord } from '$lib/utils/position'
 import { Alveolus } from '../board/content/alveolus'
 import { UnBuiltLand } from '../board/content/unbuilt-land'
@@ -71,5 +72,7 @@ export class EngineerAlveolus extends Alveolus {
 		}
 	}
 
-	advertise(): void {}
+	get workingGoodsRelations(): GoodsRelations {
+		return {}
+	}
 }

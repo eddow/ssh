@@ -135,7 +135,7 @@ export function withTicked<T extends abstract new (...args: any[]) => any>(Base:
 			this.game.registerTickedObject(this)
 		}
 
-		abstract update(deltaTime: number): void
+		abstract update(deltaSeconds: number): void
 
 		destroy(): void {
 			this.game.unregisterTickedObject(this)

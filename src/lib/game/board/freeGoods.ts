@@ -129,9 +129,11 @@ export class FreeGoods extends withTicked(withGenerator(GameObject)) {
 		if (good.isRemoved) return
 
 		const coord = toAxialCoord(pos)
-		const newList = this.goods.get(coord)!.filter((g) => g !== good)
-		if (newList.length === 0) this.goods.delete(coord)
-		else this.goods.set(coord, newList)
+		const oldList = this.goods.get(coord)!
+		const newList = oldList.filter((g) => g !== good)
+		assert(newList.length === oldList.length - 1, 'FreeGood not found')
+		if (newList.length) this.goods.set(coord, newList)
+		else this.goods.delete(coord)
 
 		// Clean up sprite if it exists (might not exist if removed before game loaded)
 		const display = this.display.get(good)
@@ -174,14 +176,9 @@ export class FreeGoods extends withTicked(withGenerator(GameObject)) {
 		return undefined
 	}
 
-	update(deltaTime: number): void {
-		// Convert deltaTime from milliseconds to seconds
-		const deltaSeconds = deltaTime / 1000
-
+	update(deltaSeconds: number): void {
 		// Process each coordinate's goods
 		for (const [, goodsList] of this.goods.entries()) {
-			const goodsToRemove: FreeGood[] = []
-
 			for (const good of goodsList) {
 				const goodDef = goods[good.goodType]
 				const halfLife = goodDef.halfLife // in seconds
@@ -195,14 +192,7 @@ export class FreeGoods extends withTicked(withGenerator(GameObject)) {
 				const decayProbability = 1 - 2 ** (-deltaSeconds / halfLife)
 
 				// Random chance to decay
-				if (this.game.random() < decayProbability) {
-					goodsToRemove.push(good)
-				}
-			}
-
-			// Remove decayed goods
-			for (const good of goodsToRemove) {
-				this.remove({ position: good.position }, good)
+				if (this.game.random() < decayProbability) good.remove()
 			}
 		}
 	}

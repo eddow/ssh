@@ -1,13 +1,15 @@
-import { ReactiveBase, reactive, unreactive } from 'mutts/src'
-import { assert, traces } from '$lib/debug'
+import { reactive, type ScopedCallback, unreactive } from 'mutts/src'
+import { assert, namedEffect, traces } from '$lib/debug'
 import type { GoodType } from '$lib/types'
 import { type AxialCoord, findPath, type Positioned, setPop } from '$lib/utils'
+import { type Advertisement, AdvertisementManager } from '$lib/utils/advertisement'
 import { AxialKeyMap } from '$lib/utils/mem'
 import { toAxialCoord } from '../../utils/position'
 import { type HexBoard, isTileCoord } from '../board/board'
 import { Alveolus } from '../board/content/alveolus'
 import type { Tile } from '../board/tile'
 import type { AllocationBase, Storage } from '../storage'
+import type { StorageAlveolus } from './storage'
 export interface MovingGood {
 	goodType: GoodType
 	path: AxialCoord[]
@@ -20,12 +22,9 @@ export interface MovingGood {
 	hop(): AxialCoord
 	finish(): void
 }
-export type HiveDemanderQueue = { demanders: Set<Alveolus> }
-export type HiveProviderQueue = { providers: Set<Alveolus> }
-export type HiveQueue = HiveDemanderQueue | HiveProviderQueue
 
 @unreactive
-export class Hive extends ReactiveBase {
+export class Hive extends AdvertisementManager<Alveolus> {
 	private constructor(public readonly board: HexBoard) {
 		super()
 	}
@@ -42,15 +41,16 @@ export class Hive extends ReactiveBase {
 		const hivesArray = Array.from(hives)
 		// TODO: ask which hive, or detail which configuration to keep in the ui
 		const hive = hivesArray.shift()!
-		for (const hive of hivesArray) for (const alveolus of hive.alveoli) hive.attach(alveolus)
+		for (const hive of hivesArray) {
+			for (const alveolus of hive.alveoli) hive.attach(alveolus)
+			hive.destroy()
+		}
 		return hive
 	}
 	public name?: string
 	public readonly alveoli = new Set<Alveolus>()
-	private readonly queues: Map<GoodType, HiveQueue> = reactive(new Map())
 
-	// Campaign management
-	private runningCampaign: { queue: Set<Alveolus>; done: Set<Alveolus> } | undefined
+	// Structure and content
 	//-@computed
 	get byActionType() {
 		const rv: Partial<Record<Ssh.Action['type'], Alveolus[]>> = {}
@@ -61,10 +61,16 @@ export class Hive extends ReactiveBase {
 		}
 		return rv
 	}
+	private readonly advertising: ScopedCallback[] = []
 	public attach(alveolus: Alveolus) {
 		this.alveoli.add(alveolus)
 		alveolus.hive = this
 		this.invalidatePathCache()
+		this.advertising.push(
+			namedEffect(`${alveolus.name}.advertise`, () =>
+				this.advertise(alveolus, alveolus.goodsRelations),
+			),
+		)
 	}
 	/**
 	 * This hive is defined as a copy of another hive after an alveolus removal didn't divide it
@@ -72,7 +78,6 @@ export class Hive extends ReactiveBase {
 	 */
 	private copyFrom(hive: Hive) {
 		if (hive.name) this.name = hive.name
-		for (const [goodType, queue] of hive.queues) this.queues.set(goodType, queue)
 	}
 	/**
 	 * This hive is defined as a part of another hive who had just been divided by an alveolus removal
@@ -83,18 +88,6 @@ export class Hive extends ReactiveBase {
 			this.name = `${hive.name} - ${Math.floor(this.board.game.random(36 ** 3))
 				.toString(36)
 				.padStart(3, '0')}`
-		const filteredQueue = (which: 'demanders' | 'providers', queue: HiveQueue) => {
-			if (which in queue) {
-				const mySet = new Set<Alveolus>()
-				// @ts-expect-error `which` is guaranteed to be in queue
-				for (const alveolus of queue[which]) if (alveolus.hive === this) mySet.add(alveolus)
-				if (mySet.size > 0) return { [which]: mySet } as HiveQueue
-			}
-		}
-		for (const [goodType, queue] of hive.queues) {
-			const q = filteredQueue('demanders', queue) || filteredQueue('providers', queue)
-			if (q) this.queues.set(goodType, q)
-		}
 	}
 	/**
 	 * Has to be called *after* tile.content is not a alveolus anymore
@@ -118,8 +111,15 @@ export class Hive extends ReactiveBase {
 					if (!hive.alveoli.has(neighbor)) toAddSet.add(neighbor)
 			}
 		}
-		if (hives.length === 1) return hives[0].copyFrom(this)
+		if (hives.length === 1) {
+			const newHive = hives[0].copyFrom(this)
+			// Destroy the old hive since it's being replaced
+			this.destroy()
+			return newHive
+		}
 		for (let i = 0; i < hives.length - 1; i++) hives[i].partOf(this)
+		// Destroy the old hive since it's being replaced
+		this.destroy()
 	}
 	//#endregion
 
@@ -198,20 +198,11 @@ export class Hive extends ReactiveBase {
 	//#region Needy / events
 	//-@computed
 	get needs() {
-		const needsSet = new Set<GoodType>()
-		for (const [good, queue] of this.queues) {
-			if ('demanders' in queue) needsSet.add(good)
-		}
-		return needsSet
-	}
-
-	//-@computed
-	get provides() {
-		const providesSet = new Set<GoodType>()
-		for (const [good, queue] of this.queues) {
-			if ('providers' in queue) providesSet.add(good)
-		}
-		return providesSet
+		return Object.fromEntries(
+			Object.entries(this.advertisements)
+				.filter(([_, { advertisement }]) => advertisement === 'demand')
+				.map(([gt, { priority }]) => [gt as GoodType, priority]),
+		)
 	}
 
 	movingGoods = reactive(new AxialKeyMap<MovingGood[]>())
@@ -222,9 +213,6 @@ export class Hive extends ReactiveBase {
 		}
 		const border = this.board.getBorder(coord)!
 		return border.content?.storage
-	}
-	private getQueue(goodType: GoodType) {
-		return this.queues.get(goodType)
 	}
 
 	public createMovement(goodType: GoodType, provider: Alveolus, demander: Alveolus) {
@@ -279,151 +267,37 @@ export class Hive extends ReactiveBase {
 		return true
 	}
 
-	/**
-	 * Provide a good to the hive
-	 * @param goodType - The type of good to provide
-	 * @param provider - The alveolus that can provide the good
-	 * @returns true if a movement was created, false otherwise
-	 */
-	provide(goodType: GoodType, provider: Alveolus): boolean {
-		traces.advertising?.log(`Providing ${goodType}: ${provider.name}`)
-		const q = this.getQueue(goodType)
-		traces.advertising?.log(`Queue for ${goodType}:`, q)
-		if (!q) {
-			// If no demander, choose the nearest storage
-			const storages = new Set<Alveolus>()
-			for (const alveolus of this.alveoli) if (alveolus.canTake(goodType)) storages.add(alveolus)
-			if (storages.size === 0) {
-				this.queues.set(goodType, { providers: new Set([provider]) })
-				// No storage found, we have no place to put the good
-				// TODO: show the building in "overflowing" flag
-				traces.advertising?.log(`No storage found for ${goodType}, adding to queue`)
-				return false
-			}
-			const storage = this.findNearest(provider, storages, goodType)
-			assert(storage !== undefined, 'Storage found but none reachable')
-			traces.advertising?.log(
-				`Creating movement for ${goodType}: ${provider.name} -> ${storage.name}`,
-			)
-			this.createMovement(goodType, provider, storage)
-			return true
-		}
-		if ('providers' in q) {
-			q.providers.add(provider)
-			traces.advertising?.log(`Adding ${provider.name} to queue for ${goodType}`)
-			return false
-		}
-		assert('demanders' in q, 'Providers are present but none reachable')
-		return this.answerNeed(goodType, provider)
+	get generalStorages() {
+		return (this.byActionType.storage || []) as StorageAlveolus[]
+	}
+	selectMovement(
+		advertisement: Advertisement,
+		alveolus: Alveolus,
+		storages: Alveolus[],
+		goodType: GoodType,
+	): Alveolus {
+		// We consider A->B === B->A
+		const storage = this.findNearest(alveolus, new Set(storages), goodType)
+		assert(storage !== undefined, 'Storage found but none reachable')
+		traces.advertising?.log(
+			`Creating movement for ${goodType}: ${alveolus.name} -> ${storage.name}`,
+		)
+		this.createMovement(
+			goodType,
+			...((advertisement === 'provide' ? [alveolus, storage] : [storage, alveolus]) as [
+				Alveolus,
+				Alveolus,
+			]),
+		)
+		return storage
 	}
 
-	/**
-	 * Demand a good from the hive
-	 * @param goodType - The type of good to demand
-	 * @param demander - The alveolus that can demand the good
-	 * @returns true if a movement was created, false otherwise
-	 */
-	demand(goodType: GoodType, demander: Alveolus): boolean {
-		traces.advertising?.log(`Demanding ${goodType}: ${demander.name}`)
-		const q = this.getQueue(goodType)
-		if (!q) {
-			// Try to satisfy immediately from nearest storage with stock
-			const storages = new Set<Alveolus>()
-			for (const alveolus of this.alveoli) if (alveolus.canGive(goodType)) storages.add(alveolus)
-			if (storages.size === 0) {
-				this.queues.set(goodType, { demanders: new Set([demander]) })
-				traces.advertising?.log(`No storage found for ${goodType}, adding to queue`)
-				return false
-			}
-			const storage = this.findNearest(demander, storages, goodType)
-			assert(storage !== undefined, 'Storage found but none reachable')
-			traces.advertising?.log(
-				`Creating movement for ${goodType}: ${storage.name} -> ${demander.name}`,
-			)
-			this.createMovement(goodType, storage, demander)
-			return true
+	destroy() {
+		// Clean up all advertising effects
+		for (const cleanup of this.advertising) {
+			cleanup()
 		}
-		if ('demanders' in q) {
-			q.demanders.add(demander)
-			traces.advertising?.log(`Adding ${demander.name} to queue for ${goodType}`)
-			return false
-		}
-
-		// Providers exist: choose nearest and assert reachable
-		assert('providers' in q, 'Demanders are present but none reachable')
-		return this.answerProvision(goodType, demander)
-	}
-
-	/**
-	 * Answer a need for a specific good type from a storage alveolus
-	 * @param goodType The type of good needed
-	 * @param source The storage alveolus that can provide the good
-	 * @returns true if a movement was created, false otherwise
-	 */
-	public answerNeed(goodType: GoodType, source: Alveolus): boolean {
-		traces.advertising?.log(`Answering need ${goodType}: ${source.name}`)
-		const queue = this.getQueue(goodType)
-		if (!queue || !('demanders' in queue) || queue.demanders.size === 0) {
-			return false
-		}
-
-		const demander = this.findNearest(source, queue.demanders, goodType)
-		if (!demander) {
-			return false
-		}
-
-		traces.advertising?.log(`Creating movement for ${goodType}: ${source.name} -> ${demander.name}`)
-		this.createMovement(goodType, source, demander)
-		queue.demanders.delete(demander)
-		if (queue.demanders.size === 0) this.queues.delete(goodType)
-		return true
-	}
-
-	/**
-	 * Answer a provision request for a specific good type to a storage alveolus
-	 * @param goodType The type of good being provided
-	 * @param source The storage alveolus that can accept the good
-	 * @returns true if a movement was created, false otherwise
-	 */
-	public answerProvision(goodType: GoodType, source: Alveolus): boolean {
-		traces.advertising?.log(`Answering provision ${goodType}: ${source.name}`)
-		const queue = this.getQueue(goodType)
-		if (!queue || !('providers' in queue) || queue.providers.size === 0) {
-			return false
-		}
-
-		const provider = this.findNearest(source, queue.providers, goodType)
-		if (!provider) {
-			return false
-		}
-
-		traces.advertising?.log(`Creating movement for ${goodType}: ${provider.name} -> ${source.name}`)
-		this.createMovement(goodType, provider, source)
-		queue.providers.delete(provider)
-		if (queue.providers.size === 0) this.queues.delete(goodType)
-		return true
-	}
-
-	/**
-	 * Start or continue a campaign for alveolus advertisement
-	 * @param alveolus The alveolus that had external stimuli and needs to advertise
-	 */
-	campaign(...alveoli: Alveolus[]): void {
-		if (this.runningCampaign) {
-			// Add to campaign queue
-			for (const alveolus of alveoli)
-				if (!this.runningCampaign.done.has(alveolus)) this.runningCampaign.queue.add(alveolus)
-			return
-		}
-		this.runningCampaign = { queue: new Set(alveoli), done: new Set() }
-
-		while (this.runningCampaign.queue.size > 0) {
-			const alveolus = this.runningCampaign.queue.values().next().value!
-			this.runningCampaign.queue.delete(alveolus)
-			this.runningCampaign.done.add(alveolus)
-			alveolus.advertise()
-		}
-		this.runningCampaign = undefined
+		this.advertising.length = 0
 	}
 	//#endregion
 }

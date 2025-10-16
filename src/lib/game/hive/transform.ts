@@ -1,8 +1,8 @@
 import { inputBufferSize, outputBufferSize } from '$assets/constants'
-import { traces } from '$lib/debug'
 import type { Character } from '$lib/game/population/character'
 import { SpecificStorage } from '$lib/game/storage'
 import type { GoodType, TransformJob } from '$lib/types/base'
+import type { GoodsRelations } from '$lib/utils/advertisement'
 import { Alveolus } from '../board/content/alveolus'
 import { multiplyGoodsQty } from '../board/content/utils'
 import type { Tile } from '../board/tile'
@@ -43,30 +43,15 @@ export class TransformAlveolus extends Alveolus {
 			fatigue: this.getFatigueCost(),
 		}
 	}
-
-	advertise(): void {
-		traces.advertising?.groupCollapsed(`Advertising ${this.name}`)
-
-		const action = this.action
-		if (this.working)
-			for (const gt of Object.keys(action.inputs))
-				while (this.storage?.hasRoom(gt as GoodType) && this.hive.demand(gt as GoodType, this));
-		else
-			for (const gt of Object.keys(action.inputs))
-				while (
-					this.storage?.available(gt as GoodType) &&
-					this.hive.answerNeed(gt as GoodType, this)
-				);
-		for (const gt of Object.keys(action.output))
-			while (this.storage?.available(gt as GoodType) && this.hive.provide(gt as GoodType, this));
-		traces.advertising?.groupEnd()
-	}
-	canGive(goodType: GoodType): number {
-		// Only provide goods if working is enabled
-		return !this.working || goodType in this.action.output ? this.storage.available(goodType) : 0
-	}
-	canTake(goodType: GoodType): number {
-		// Only accept goods if working is enabled
-		return this.working && goodType in this.action.inputs ? this.storage.hasRoom(goodType) : 0
+	get workingGoodsRelations(): GoodsRelations {
+		// Note: need input with a priority set 1/2 on hive needing output or not
+		return Object.fromEntries([
+			...Object.keys(this.action.inputs)
+				.filter((goodType) => this.storage.hasRoom(goodType as GoodType))
+				.map((goodType) => [goodType as GoodType, { advertisement: 'demand', priority: '2-use' }]),
+			...Object.keys(this.action.output)
+				.filter((goodType) => this.storage.available(goodType as GoodType) > 0)
+				.map((goodType) => [goodType as GoodType, { advertisement: 'provide', priority: '2-use' }]),
+		])
 	}
 }

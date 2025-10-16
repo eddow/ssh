@@ -35,6 +35,7 @@ export function withScripted<T extends abstract new (...args: any[]) => TickedGa
 			} catch (error) {
 				// Present stack trace
 				console.error(this.runningScripts.map((s) => [s.name, s.state]))
+				if (error instanceof Error) console.error(error.stack)
 				throw error
 			}
 		}

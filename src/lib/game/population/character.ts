@@ -186,7 +186,7 @@ export class Character extends withInteractive(
 	}
 
 	// Update character needs levels based on time elapsed
-	update(deltaTime: number) {
+	update(deltaSeconds: number) {
 		const activity: Ssh.ActivityType = (this.stepExecutor?.type ?? 'idle') as Ssh.ActivityType
 		const hungerRate =
 			characterEvolutionRates.hunger[activity] ?? characterEvolutionRates.hunger['*'] ?? 0
@@ -194,10 +194,10 @@ export class Character extends withInteractive(
 			characterEvolutionRates.tiredness[activity] ?? characterEvolutionRates.tiredness['*'] ?? 0
 		const fatigueRate =
 			characterEvolutionRates.fatigue[activity] ?? characterEvolutionRates.fatigue['*'] ?? 0
-		this.hunger += hungerRate * deltaTime
-		this.tiredness += tirednessRate * deltaTime
-		this.fatigue += fatigueRate * deltaTime
-		super.update(deltaTime)
+		this.hunger += hungerRate * deltaSeconds
+		this.tiredness += tirednessRate * deltaSeconds
+		this.fatigue += fatigueRate * deltaSeconds
+		super.update(deltaSeconds)
 	}
 
 	findAction() {

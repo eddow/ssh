@@ -1,5 +1,4 @@
 import { unreactive } from 'mutts/src'
-import { namedEffect } from '$lib/debug'
 import type { Character } from '$lib/game/population/character'
 import type { AlveolusType, Job } from '$lib/types/base'
 import { type AxialCoord, axial, type NeighborInfo } from '$lib/utils'
@@ -33,10 +32,6 @@ export class Tile extends withInteractive(GameObject) {
 		if (content instanceof Alveolus) {
 			const hive = Hive.for(this)
 			hive.attach(content)
-			// Start advertising to the hive
-			content.advertisingEffect = namedEffect('tile.campaign', () => {
-				hive.campaign(content)
-			})
 		}
 	}
 	constructor(

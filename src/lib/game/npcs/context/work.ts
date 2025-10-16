@@ -12,6 +12,7 @@ import { subject } from '../scripts'
 import { DurationStep, MultiMoveStep, WaitForPredicateStep } from '../steps'
 import type { WorkPlan } from '.'
 
+;(window as any).debugVisualMovements = new Set<{ who: any; from: any; to: any }>()
 class WorkFunctions {
 	declare [subject]: Character
 	@contract('WorkPlan')
@@ -91,7 +92,7 @@ class WorkFunctions {
 
 		// Create unified MultiMoveStep that animates all movements
 		const description = movements.length === 1 ? `convey.${movements[0].goodType}` : `convey.cycle`
-
+		;(window as any).debugVisualMovements.add(visualMovements)
 		return new MultiMoveStep(totalTime, visualMovements, 'work', description)
 			.canceled(() => {
 				debugger
@@ -103,6 +104,7 @@ class WorkFunctions {
 				}
 			})
 			.finished(() => {
+				;(window as any).debugVisualMovements.delete(visualMovements)
 				// Complete all movements
 				for (let i = 0; i < movements.length; i++) {
 					const { mg, moving } = movingGoods[i]

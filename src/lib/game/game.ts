@@ -132,7 +132,7 @@ export class Game extends Eventful<GameEvents> {
 	public readonly hex: HexBoard
 	public readonly generator: GameGenerator
 	public readonly ticker: Ticker
-	private tickedObjects = new Set<{ update(deltaTime: number): void }>()
+	private tickedObjects = new Set<{ update(deltaSeconds: number): void }>()
 	public loaded: Promise<void>
 	private async load() {
 		this.resources = await assetsLoading
@@ -159,20 +159,20 @@ export class Game extends Eventful<GameEvents> {
 		object.destroy()
 	}
 
-	registerTickedObject(object: { update(deltaTime: number): void }) {
+	registerTickedObject(object: { update(deltaSeconds: number): void }) {
 		this.tickedObjects.add(object)
 	}
 
-	unregisterTickedObject(object: { update(deltaTime: number): void }) {
+	unregisterTickedObject(object: { update(deltaSeconds: number): void }) {
 		this.tickedObjects.delete(object)
 	}
 
 	private tickerCallback = (timer: Ticker) => {
-		const deltaTime = (25 * timer.elapsedMS) / 1000
-		if (deltaTime > 1) return // more than 1 second = paused on debugging, skip passing time when debugger paused
+		const deltaSeconds = (25 * timer.elapsedMS) / 1000
+		if (deltaSeconds > 1) return // more than 1 second = paused on debugging, skip passing time when debugger paused
 		for (const object of this.tickedObjects) {
 			if ('destroyed' in object && object.destroyed) continue
-			object.update(deltaTime)
+			object.update(deltaSeconds)
 		}
 	}
 

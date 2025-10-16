@@ -142,18 +142,18 @@ export const goods = {
 		feedingValue: 72,
 		sprites: ['berries'],
 		icon: 'berries',
-		halfLife: 3, // 30 seconds - much faster decay
+		halfLife: 300,
 	},
 	mushrooms: {
 		feedingValue: 160,
 		sprites: ['mushrooms'],
 		icon: 'mushrooms',
-		halfLife: 6, // 1 minute - faster decay
+		halfLife: 600,
 	},
 	planks: {
 		sprites: ['planks'],
 		icon: 'planks',
-		halfLife: 12, // 2 minutes - faster decay
+		halfLife: 1200,
 	},
 	stone: {
 		sprites: ['stone'],
@@ -163,6 +163,6 @@ export const goods = {
 	wood: {
 		sprites: ['wood'],
 		icon: 'wood',
-		halfLife: 9, // 1.5 minutes - faster decay
+		halfLife: 900,
 	},
 } as const satisfies Record<string, Ssh.GoodsDefinition>

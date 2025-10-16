@@ -48,7 +48,7 @@ export class UnBuiltLand extends withTicked(TileContent) {
 		super(tile.board.game, `unbuilt-${tileCoord.q}-${tileCoord.r}`)
 	}
 
-	update(deltaTime: number) {
+	update(deltaSeconds: number) {
 		// Generate goods if this tile has a deposit with generation configuration
 		if (!this.deposit) return
 
@@ -58,7 +58,7 @@ export class UnBuiltLand extends withTicked(TileContent) {
 		// Generate each good type based on its rate and deposit amount
 		for (const [goodType, rate] of Object.entries(generation)) {
 			const totalRate = (rate as number) * this.deposit.amount
-			const lambda = totalRate * deltaTime
+			const lambda = totalRate * deltaSeconds
 
 			// Use proper Poisson distribution for bursty generation
 			const goodsToSpawn = fastPoissonRandom(lambda, (max?: number, min?: number) =>
