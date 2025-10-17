@@ -1,4 +1,4 @@
-import { unreactive } from 'mutts/src'
+import { computed, unreactive } from 'mutts/src'
 import type { Character } from '$lib/game/population/character'
 import type { AlveolusType, Job } from '$lib/types/base'
 import { type AxialCoord, axial, type NeighborInfo } from '$lib/utils'
@@ -18,7 +18,7 @@ import type { Zone } from './zone'
 export class Tile extends withInteractive(GameObject) {
 	// True when the tile is exactly as produced by generation
 	public asGenerated: boolean = false
-	//-@computed
+	@computed
 	get content(): TileContent | undefined {
 		return this.board.getTileContent(toAxialCoord(this.position))
 	}
@@ -94,7 +94,7 @@ export class Tile extends withInteractive(GameObject) {
 		}
 	}
 
-	//-@computed
+	@computed
 	get clearing(): boolean {
 		return (
 			![undefined, 'harvest'].includes(this.zone) ||
@@ -159,7 +159,7 @@ export class Tile extends withInteractive(GameObject) {
 		const coord = axial.linear([0.5, thisCoord], [0.5, otherCoord])
 		return this.board.getBorder(coord)
 	}
-	//-@computed
+	@computed
 	get neighborTiles(): Tile[] {
 		return axial
 			.neighbors(toAxialCoord(this.position))
@@ -167,7 +167,7 @@ export class Tile extends withInteractive(GameObject) {
 			.filter((tile): tile is Tile => tile !== undefined)
 	}
 
-	//-@computed
+	@computed
 	get walkNeighbors(): NeighborInfo[] {
 		const coord = toAxialCoord(this.position)
 		const neighbors = axial.neighbors(coord)
@@ -184,12 +184,12 @@ export class Tile extends withInteractive(GameObject) {
 			.filter((neighbor): neighbor is NeighborInfo => neighbor !== null)
 	}
 
-	//-@computed
+	@computed
 	get freeGoods(): FreeGood[] {
 		return this.board.freeGoods.getGoodsAt(toAxialCoord(this.position))
 	}
 
-	//-@computed
+	@computed
 	get availableGoods(): FreeGood[] {
 		return this.freeGoods.filter((g) => !g.allocated)
 	}

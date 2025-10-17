@@ -1,8 +1,9 @@
+import { computed } from 'mutts/src'
 import { inputBufferSize, outputBufferSize } from '$assets/constants'
 import type { Character } from '$lib/game/population/character'
 import { SpecificStorage } from '$lib/game/storage'
 import type { GoodType, TransformJob } from '$lib/types/base'
-import type { GoodsRelations } from '$lib/utils/advertisement'
+import { type GoodsRelations, maxPriority } from '$lib/utils/advertisement'
 import { Alveolus } from '../board/content/alveolus'
 import { multiplyGoodsQty } from '../board/content/utils'
 import type { Tile } from '../board/tile'
@@ -22,7 +23,7 @@ export class TransformAlveolus extends Alveolus {
 			}),
 		)
 	}
-	//-@computed
+	@computed
 	get canWork(): boolean {
 		return (
 			// If we have all the inputs required
@@ -44,11 +45,19 @@ export class TransformAlveolus extends Alveolus {
 		}
 	}
 	get workingGoodsRelations(): GoodsRelations {
+		const demandPriority = maxPriority(
+			Object.keys(this.action.output).map((goodType) =>
+				this.hive.needs[goodType] ? '1-buffer' : '2-use',
+			),
+		)
 		// Note: need input with a priority set 1/2 on hive needing output or not
 		return Object.fromEntries([
 			...Object.keys(this.action.inputs)
 				.filter((goodType) => this.storage.hasRoom(goodType as GoodType))
-				.map((goodType) => [goodType as GoodType, { advertisement: 'demand', priority: '2-use' }]),
+				.map((goodType) => [
+					goodType as GoodType,
+					{ advertisement: 'demand', priority: demandPriority },
+				]),
 			...Object.keys(this.action.output)
 				.filter((goodType) => this.storage.available(goodType as GoodType) > 0)
 				.map((goodType) => [goodType as GoodType, { advertisement: 'provide', priority: '2-use' }]),

@@ -1,3 +1,4 @@
+import { computed } from 'mutts/src'
 import { maxWalkTime, outputBufferSize } from '$assets/constants'
 import type { Character } from '$lib/game/population/character'
 import { SpecificStorage } from '$lib/game/storage'
@@ -22,15 +23,15 @@ export class HarvestAlveolus extends TransitAlveolus {
 		)
 	}
 
-	//-@computed
+	@computed
 	get canStoreInHarvester() {
 		return this.storage.canStoreAll(this.action.output)
 	}
-	//-@computed
+	@computed
 	get hiveHasCollector() {
 		return this.hive.byActionType.gather?.length
 	}
-	//-@computed
+	@computed
 	get alveoliNeedingGood() {
 		return Object.keys(this.action.output).reduce(
 			(acc, goodType) => acc + (goodType in this.hive.needs ? 1 : 0),

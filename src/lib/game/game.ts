@@ -257,7 +257,7 @@ export class Game extends Eventful<GameEvents> {
 			if (patches.hives?.length) this.applyHivesPatches(patches.hives)
 			if (patches.freeGoods?.length) this.applyFreeGoodsPatches(patches.freeGoods)
 			if (patches.zones) this.applyZonePatches(patches.zones)
-			if (patches.projects?.length) this.applyProjectPatches(patches.projects)
+			if (patches.projects) this.applyProjectPatches(patches.projects)
 		} catch (error) {
 			console.error('Generation failed:', error)
 		}

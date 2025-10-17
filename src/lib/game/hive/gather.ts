@@ -1,3 +1,5 @@
+import { computed } from 'mutts/src'
+import { assert } from '$lib/debug'
 import type { Character } from '$lib/game/population/character'
 import type { GatherJob, GoodType } from '$lib/types/base'
 import { type Positioned, toAxialCoord } from '$lib/utils/position'
@@ -12,10 +14,10 @@ export class GatherAlveolus extends TransitAlveolus {
 		if (def.action.type !== 'gather') {
 			throw new Error('GatherAlveolus can only be created from a gather action')
 		}
-		super(tile, new SlottedStorage(6, 6))
+		super(tile, new SlottedStorage(1, 12))
 	}
 
-	//-@computed
+	@computed
 	get hasFreeGoodsToGather(): boolean {
 		// Check if there are any free goods in the world that the hive needs
 		const hiveNeeds = Object.keys(this.hive.needs) as GoodType[]
@@ -46,6 +48,41 @@ export class GatherAlveolus extends TransitAlveolus {
 		if (character)
 			selectableGoods = selectableGoods.filter((good) => character.vehicle.hasRoom(good))
 		if (selectableGoods.length === 0) return undefined
+
+		// If character already carries a good, prioritize retrieving the same good.
+		if (character) {
+			const hands = character.vehicle.stock
+			const carried = Object.entries(hands).filter(([, qty]) => (qty || 0) > 0) as [
+				GoodType,
+				number,
+			][]
+			if (carried.length > 0) {
+				assert(carried.length === 1, 'Gatherer must hold at most one good type')
+				const [inHandType] = carried[0]
+				// Only prioritize if the hive needs it and we have capacity left
+				if (selectableGoods.includes(inHandType) && character.vehicle.hasRoom(inHandType) > 0) {
+					const result = hex.freeGoods.findNearestGoods(
+						startPos,
+						startPos,
+						[inHandType],
+						this.action.radius,
+					)
+					if (result) {
+						path = result.path
+						goodType = inHandType
+						return (
+							path && {
+								job: 'gather',
+								path,
+								goodType,
+								urgency: 1.5,
+								fatigue: this.getFatigueCost(),
+							}
+						)
+					}
+				}
+			}
+		}
 
 		const goodCounts = Object.fromEntries(selectableGoods.map((good) => [good, 0])) as Partial<
 			Record<GoodType, number>

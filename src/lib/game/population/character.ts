@@ -33,7 +33,14 @@ export class Character extends withInteractive(
 ) {
 	readonly triggerLevels = characterTriggerLevels
 
-	public assignedAlveolus: Alveolus | undefined = undefined
+	#assignedAlveolus: Alveolus | undefined
+	public get assignedAlveolus(): Alveolus | undefined {
+		return this.#assignedAlveolus
+	}
+	public set assignedAlveolus(value: Alveolus | undefined) {
+		assert(!value !== !this.#assignedAlveolus, 'assigned alveolus mismatch')
+		this.#assignedAlveolus = value
+	}
 
 	// Character needs levels (starting at 0, incrementing 1 per second)
 	public hunger: number = 0

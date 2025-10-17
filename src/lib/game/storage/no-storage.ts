@@ -20,7 +20,6 @@ export class NoStorage extends Storage<any> {
 		return 0
 	}
 
-	//-@computed
 	get stock(): { [k in GoodType]?: number } {
 		return {}
 	}

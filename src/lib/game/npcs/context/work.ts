@@ -22,7 +22,6 @@ interface MovementData {
 	moving: any
 }
 
-const dbgMovements = new Set<MovementData>()
 class WorkFunctions {
 	declare [subject]: Character
 	@contract('WorkPlan')
@@ -93,9 +92,6 @@ class WorkFunctions {
 				moving,
 			})
 		}
-		for (const movement of movementData) {
-			dbgMovements.add(movement)
-		}
 
 		// Calculate time: O(n²) for cycles, O(n) for single movements
 		let totalTime = 0
@@ -143,10 +139,6 @@ class WorkFunctions {
 						)
 					}
 				}
-				for (const movement of movementData) {
-					dbgMovements.delete(movement)
-				}
-				console.log('dbgMovements', dbgMovements)
 				alveolus.hive.checkTotalWoodish('convey-finished', alveolus)
 			})
 			.final(() => {

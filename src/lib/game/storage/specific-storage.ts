@@ -1,4 +1,4 @@
-import { atomic, reactive, unreactive } from 'mutts/src'
+import { atomic, computed, reactive, unreactive } from 'mutts/src'
 import { assert } from '$lib/debug'
 import type { Goods } from '$lib/types/base'
 import { GoodType } from '$lib/types/base'
@@ -82,7 +82,7 @@ export class SpecificStorage extends Storage<SpecificAllocation> {
 		this.maxAmounts = { ...maxAmounts }
 	}
 
-	//-@computed
+	@computed
 	get allocatedSlots(): boolean {
 		return Object.values(this._allocated).some((qty) => qty > 0)
 	}
@@ -99,7 +99,7 @@ export class SpecificStorage extends Storage<SpecificAllocation> {
 		return maxAmount - currentAmount - allocated
 	}
 
-	//-@computed
+	@computed
 	get isEmpty(): boolean {
 		return Object.values(this._goods).every((qty) => qty === 0)
 	}
@@ -132,7 +132,7 @@ export class SpecificStorage extends Storage<SpecificAllocation> {
 		return toRemove
 	}
 
-	//-@computed
+	//@computed
 	get stock(): { [k in GoodType]?: number } {
 		return { ...this._goods }
 	}
@@ -156,22 +156,14 @@ export class SpecificStorage extends Storage<SpecificAllocation> {
 	@atomic
 	allocate(goods: Goods, reason: any): SpecificAllocation {
 		const actualGoods: Goods = {}
-		let hasAnyAllocation = false
 
 		for (const [goodType, qty] of Object.entries(goods) as [GoodType, number][]) {
 			assert(qty && qty > 0, 'qty must be set')
 
-			const room = this.hasRoom(goodType)
-			const take = Math.min(qty, room)
-			if (take > 0) {
-				this._allocated[goodType] = (this._allocated[goodType] || 0) + take
-				actualGoods[goodType] = take
-				hasAnyAllocation = true
-			}
-		}
+			assert(this.hasRoom(goodType) >= qty, `Insufficient room to allocate for ${goodType}`)
 
-		if (!hasAnyAllocation) {
-			throw new AllocationError(`Insufficient room to allocate any goods`, reason)
+			this._allocated[goodType] = (this._allocated[goodType] || 0) + qty
+			actualGoods[goodType] = qty
 		}
 
 		return new SpecificAllocation(this, actualGoods, reason)

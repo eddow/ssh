@@ -10,6 +10,7 @@ export const chopSaw = {
 				{ alveolus: 'gather', coord: [1, 0] },
 				{ alveolus: 'sawmill', coord: [1, 1] },
 				{ alveolus: 'engineer', coord: [2, 0] },
+				{ alveolus: 'storage', coord: [0, 1] },
 			],
 		},
 	],
@@ -24,7 +25,6 @@ export const chopSaw = {
 	projects: {
 		'build:storage': [
 			[-1, 1],
-			[0, 1],
 			[0, 2],
 		],
 	},

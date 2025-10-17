@@ -40,7 +40,7 @@ const transferPlanHandler: PlanHandler<TransferPlan> = {
 			assert('storage' in content, 'planDropStored only works with TileContent that has storage')
 
 			vehicleAllocation = vehicle.reserve(goods, `planDropStored`)
-			allocation = content.storage?.allocate(goods, `planDropStored`)
+			allocation = content.storage!.allocate(goods, `planDropStored`)
 		} else if (description === 'grab') {
 			// Grab plan: allocate vehicle space and reserve source storage
 			assert(target, 'target must be set for storage grab')

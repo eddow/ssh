@@ -16,11 +16,33 @@ interface StorageBase {
 	canGive(goodType: GoodType, priority: ExchangePriority): boolean
 }
 
+export function maxPriority(priorities: ExchangePriority[]): ExchangePriority {
+	return priorities.reduce<ExchangePriority>((max, priority) => {
+		return priority[0] > max[0] ? priority : max
+	}, '0-store')
+}
+
+function ensureBucket<T>(buckets: T[][], index: number) {
+	while (buckets.length <= index) buckets.push([] as T[])
+}
+
+function getMaxPriorityBucket<T>(buckets: T[][]): { index: number; list: T[] } | undefined {
+	for (let i = buckets.length - 1; i >= 0; i--) {
+		const list = buckets[i]
+		if (list && list.length > 0) return { index: i, list }
+	}
+	return undefined
+}
+
+function isAllBucketsEmpty<T>(buckets: T[][]): boolean {
+	return buckets.every((b) => b.length === 0)
+}
+
 export abstract class AdvertisementManager<Advertiser> {
+	// New version: advertisers are grouped by numeric priority index
 	advertisements: PerGood<{
 		advertisement: Advertisement
-		priority: ExchangePriority
-		advertisers: Advertiser[]
+		advertisers: Advertiser[][]
 	}> = {}
 	private lastAds = new Map<Advertiser, GoodsRelations>()
 	abstract readonly generalStorages: (StorageBase & Advertiser)[]
@@ -36,50 +58,65 @@ export abstract class AdvertisementManager<Advertiser> {
 			const lastAds = this.lastAds.get(advertiser)!
 			for (const goodType in lastAds) {
 				if (!assertGoodType(goodType)) continue
-				const thisAd = this.advertisements[goodType]
-				if (
-					thisAd &&
-					lastAds[goodType]!.advertisement === thisAd.advertisement &&
-					lastAds[goodType]!.priority === thisAd.priority
-				) {
-					thisAd.advertisers = thisAd.advertisers.filter((a) => a !== advertiser)
-					if (thisAd.advertisers.length === 0) delete this.advertisements[goodType]
+				const last = lastAds[goodType]!
+				const current = this.advertisements[goodType]
+				if (current && current.advertisement === last.advertisement) {
+					const lastIndex = Number(last.priority[0])
+					ensureBucket(current.advertisers, lastIndex)
+					const bucket = current.advertisers[lastIndex]
+					const idx = bucket.indexOf(advertiser as any)
+					if (idx !== -1) bucket.splice(idx, 1)
+					if (isAllBucketsEmpty(current.advertisers)) delete this.advertisements[goodType]
 				}
 			}
 		}
 		this.lastAds.set(advertiser, ads)
 		for (const [goodType, ad] of Object.entries(ads)) {
 			if (!assertGoodType(goodType)) continue
-			const thisAd = this.advertisements[goodType]
+			const existing = this.advertisements[goodType]
 
-			if (thisAd && thisAd.advertisement !== ad.advertisement) {
-				const selected = this.selectMovement(
-					ad.advertisement,
-					advertiser,
-					thisAd.advertisers,
-					goodType,
-				)
-				thisAd.advertisers = thisAd.advertisers.filter((a) => a !== selected)
-				if (thisAd.advertisers.length === 0) delete this.advertisements[goodType]
+			if (existing && existing.advertisement !== ad.advertisement) {
+				const maxBucket = getMaxPriorityBucket(existing.advertisers)
+				if (maxBucket && maxBucket.list.length > 0) {
+					const selected = this.selectMovement(
+						ad.advertisement,
+						advertiser,
+						maxBucket.list as Advertiser[],
+						goodType,
+					)
+					const list = maxBucket.list as Advertiser[]
+					const removeIdx = list.indexOf(selected)
+					if (removeIdx !== -1) list.splice(removeIdx, 1)
+					if (isAllBucketsEmpty(existing.advertisers)) delete this.advertisements[goodType]
+				}
 			} else {
-				// In specific case when we have something produced and don't know where to put it, try to find a general storage
+				// Try general storages first if applicable
 				const availableGeneralStorages = this.generalStorages.filter(
 					ad.advertisement === 'provide'
-						? (s) => s.canTake(goodType, ad.priority)
-						: (s) => s.canGive(goodType, ad.priority),
+						? (s) => s.canTake(goodType as GoodType, ad.priority)
+						: (s) => s.canGive(goodType as GoodType, ad.priority),
 				)
 				if (availableGeneralStorages.length > 0) {
-					this.selectMovement(ad.advertisement, advertiser, availableGeneralStorages, goodType)
-				} else if (thisAd) {
-					assert(thisAd.advertisement === ad.advertisement, 'Advertisement type mismatch')
-					// TODO: Have several priority->advertisers
-					// TODO: if some advertisers have more priority than me, try this.canGive/canTake
-					assert(thisAd.priority === ad.priority, 'Priority mismatch')
-					thisAd.advertisers.push(advertiser)
+					this.selectMovement(
+						ad.advertisement,
+						advertiser,
+						availableGeneralStorages as unknown as Advertiser[],
+						goodType,
+					)
+				} else if (existing) {
+					assert(existing.advertisement === ad.advertisement, 'Advertisement type mismatch')
+					const index = Number(ad.priority[0])
+					ensureBucket(existing.advertisers, index)
+					existing.advertisers[index].push(advertiser)
+					// TODO: try to balance the buckets by creating movements?
 				} else {
+					const advertisers: Advertiser[][] = []
+					const index = Number(ad.priority[0])
+					ensureBucket(advertisers, index)
+					advertisers[index].push(advertiser)
 					this.advertisements[goodType] = {
-						advertisers: [advertiser],
-						...ad,
+						advertisement: ad.advertisement,
+						advertisers,
 					}
 				}
 			}

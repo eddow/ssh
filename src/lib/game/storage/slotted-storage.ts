@@ -1,4 +1,4 @@
-import { atomic, reactive, unreactive } from 'mutts/src'
+import { atomic, computed, reactive, unreactive } from 'mutts/src'
 import { assert } from '$lib/debug'
 import type { Goods, GoodType } from '$lib/types/base'
 import type { RenderedGoodSlot, RenderedGoodSlots } from './goods-renderer'
@@ -30,7 +30,7 @@ class SlottedAllocation implements AllocationBase {
 			const amount = this.allocation[i]
 			if (amount === 0) continue
 			const slot = this.storage.slots[i]
-			if (!slot) continue
+			assert(!!slot, 'cancel: slot missing for allocated/reserved entry')
 			if (amount > 0) {
 				// Ensure the allocation exists
 				assert(slot.allocated >= amount, 'cancel: allocated less than cancel amount')
@@ -55,7 +55,7 @@ class SlottedAllocation implements AllocationBase {
 			const amount = this.allocation[i]
 			if (amount === 0) continue
 			const slot = this.storage.slots[i]
-			if (!slot) continue
+			assert(!!slot, 'fulfill: slot missing for allocated/reserved entry')
 			if (amount > 0) {
 				// Positive amount means allocate->present
 				assert(slot.allocated >= amount, 'fulfill: allocated less than fulfill amount')
@@ -96,7 +96,7 @@ export interface Slot {
 }
 
 export class SlottedStorage extends Storage<SlottedAllocation> {
-	public slots: (Slot | undefined)[]
+	public readonly slots: (Slot | undefined)[]
 
 	constructor(
 		maxSlots: number,
@@ -106,7 +106,7 @@ export class SlottedStorage extends Storage<SlottedAllocation> {
 		this.slots = reactive(Array(maxSlots).fill(undefined))
 	}
 
-	//-@computed
+	@computed
 	get allocatedSlots(): boolean {
 		return this.slots.some((slot) => slot?.allocated)
 	}
@@ -126,7 +126,7 @@ export class SlottedStorage extends Storage<SlottedAllocation> {
 		return totalCapacity
 	}
 
-	//-@computed
+	@computed
 	get isEmpty(): boolean {
 		return this.slots.every((slot) => slot === undefined || slot.quantity === 0)
 	}
@@ -151,7 +151,7 @@ export class SlottedStorage extends Storage<SlottedAllocation> {
 			if (remaining <= 0) break
 			if (this.slots[i] === undefined) {
 				const canAdd = Math.min(remaining, this.maxQuantityPerSlot)
-				this.slots[i] = { goodType, quantity: canAdd, allocated: 0, reserved: 0 }
+				this.slots[i] = reactive({ goodType, quantity: canAdd, allocated: 0, reserved: 0 })
 				remaining -= canAdd
 			}
 		}
@@ -180,16 +180,12 @@ export class SlottedStorage extends Storage<SlottedAllocation> {
 		return qty - remaining
 	}
 
-	//TODO: //-@computed
-	// When computed, we can have an empty stock on a nearly filled storage
+	@computed // When computed, we can have an empty stock on a nearly filled storage
 	get stock(): { [k in GoodType]?: number } {
 		const result: { [k in GoodType]?: number } = {}
 
-		for (const slot of this.slots) {
-			if (slot && slot.quantity > 0) {
-				result[slot.goodType] = (result[slot.goodType] || 0) + slot.quantity
-			}
-		}
+		for (const slot of this.slots)
+			if (slot?.quantity) result[slot.goodType] = (result[slot.goodType] || 0) + slot.quantity
 
 		return result
 	}
@@ -205,13 +201,12 @@ export class SlottedStorage extends Storage<SlottedAllocation> {
 	@atomic
 	allocate(goods: Goods, reason: any): SlottedAllocation {
 		const alloc: number[] = Array(this.slots.length).fill(0)
-		let hasAnyAllocation = false
 
 		for (const [goodType, qty] of Object.entries(goods) as [GoodType, number][]) {
 			assert(qty, 'qty must be set')
+			assert(this.hasRoom(goodType) >= qty, `Insufficient room to allocate for ${goodType}`)
 
-			let remaining = Math.min(qty, this.hasRoom(goodType))
-			if (remaining <= 0) continue
+			let remaining = qty
 
 			// Allocate in existing slots first
 			for (let i = 0; i < this.slots.length && remaining > 0; i++) {
@@ -234,11 +229,7 @@ export class SlottedStorage extends Storage<SlottedAllocation> {
 				remaining -= take
 			}
 
-			if (qty - remaining > 0) hasAnyAllocation = true
-		}
-
-		if (!hasAnyAllocation) {
-			throw new AllocationError(`Insufficient room to allocate any goods`, reason)
+			assert(!remaining, `Insufficient room to allocate for ${goodType}`)
 		}
 
 		return new SlottedAllocation(this, alloc, reason)

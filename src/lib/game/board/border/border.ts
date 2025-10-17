@@ -1,4 +1,4 @@
-import type { ScopedCallback } from 'mutts/src'
+import { type ScopedCallback, unreactive } from 'mutts/src'
 import { GameObject, withGenerator } from '$lib/game/object'
 import type { Storage } from '$lib/game/storage'
 import type { Positioned } from '$lib/utils'
@@ -18,6 +18,7 @@ export abstract class TileBorderContent extends withGenerator(GameObject) {
 	abstract render(): ScopedCallback | undefined
 }
 
+@unreactive
 export class TileBorder extends GameObject {
 	readonly position: Position
 	readonly board: HexBoard

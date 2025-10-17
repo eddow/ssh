@@ -1,5 +1,6 @@
-import { type ScopedCallback, unreactive } from 'mutts/src'
+import { computed, type ScopedCallback, unreactive } from 'mutts/src'
 import { Sprite } from 'pixi.js'
+import { assert } from '$lib/debug'
 import type { Hive, MovingGood } from '$lib/game/hive/hive'
 import { gameIsaTypes } from '$lib/game/npcs/utils'
 import type { Character } from '$lib/game/population/character'
@@ -23,7 +24,14 @@ interface LocalMovingGood extends MovingGood {
 export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition, typeof TileContent>(
 	TileContent,
 ) {
-	public assignedWorker: Character | undefined
+	#assignedWorker: Character | undefined
+	public get assignedWorker(): Character | undefined {
+		return this.#assignedWorker
+	}
+	public set assignedWorker(value: Character | undefined) {
+		assert(!value !== !this.#assignedWorker, 'assigned worker mismatch')
+		this.#assignedWorker = value
+	}
 	public tile: Tile
 	public declare hive: Hive
 	public storage: Storage<any>
@@ -108,7 +116,7 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition, typeof 
 		return false
 	}
 
-	//-@computed
+	@computed
 	get isBurdened(): boolean {
 		// Check if there are FreeGoods on this tile
 		const coord = toAxialCoord(this.tile.position)
@@ -145,7 +153,7 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition, typeof 
 	 * - Returns a cycle of movements (A->B, B->C, C->A) if circular blockade detected
 	 * - Returns undefined if no movements available
 	 */
-	//-@computed
+	@computed
 	get aGoodMovement(): LocalMovingGood[] | undefined {
 		const hive = this.hive
 		const here = toAxialCoord(this.tile.position)
@@ -273,10 +281,17 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition, typeof 
 
 		return undefined
 	}
-	//TODO: //-@computed
-	// when computed, work.npcs:61 throws debugger and then deadlock
+	@computed
 	get incomingGoods(): boolean {
-		// Note: because borders have 2 neighbors, if a good is incoming, it's for you (you're in one of the neighbors)
+		if (
+			this.tile.surroundings.some(
+				(s) => s.border.content instanceof AlveolusGate && s.border.content.storage.allocatedSlots,
+			)
+		) {
+			debugger
+		}
+		// Note: because borders have 2 neighbors and we check this when no movement is occurring,
+		//  if a good is incoming, it's for you (you're in one of the neighbors)
 		return this.tile.surroundings.some(
 			(s) => s.border.content instanceof AlveolusGate && s.border.content.storage.allocatedSlots,
 		)
@@ -302,13 +317,14 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition, typeof 
 		this.hive.removeAlveolus(this)
 	}
 
-	//-@computed
+	@computed
 	get neighborAlveoli(): Alveolus[] {
 		return this.tile.neighborTiles
 			.map((neighbor) => neighbor?.content)
 			.filter((c): c is Alveolus => c instanceof Alveolus)
 	}
 	abstract get workingGoodsRelations(): GoodsRelations
+	//@computed
 	get goodsRelations(): GoodsRelations {
 		return this.working
 			? this.workingGoodsRelations

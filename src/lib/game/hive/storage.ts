@@ -20,10 +20,10 @@ export class StorageAlveolus extends Alveolus {
 	 */
 	canTake(goodType: GoodType, priority: ExchangePriority) {
 		// Only accept goods if working is enabled
-		return this.working && priority > '0-store' ? this.storage.hasRoom(goodType) > 0 : false
+		return this.working && Number(priority[0]) > 0 ? this.storage.hasRoom(goodType) > 0 : false
 	}
 	canGive(goodType: GoodType, priority: ExchangePriority) {
-		return priority > '0-store' ? this.storage.available(goodType) > 0 : false
+		return Number(priority[0]) > 0 ? this.storage.available(goodType) > 0 : false
 	}
 
 	get workingGoodsRelations(): GoodsRelations {

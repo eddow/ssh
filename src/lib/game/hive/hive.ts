@@ -12,7 +12,6 @@ import { toAxialCoord } from '../../utils/position'
 import type { AlveolusGate } from '../board'
 import { type HexBoard, isTileCoord } from '../board/board'
 import { Alveolus } from '../board/content/alveolus'
-import type { FreeGood } from '../board/freeGoods'
 import type { Tile } from '../board/tile'
 import type { AllocationBase, Storage } from '../storage'
 import type { StorageAlveolus } from './storage'
@@ -55,10 +54,10 @@ export class Hive extends AdvertisementManager<Alveolus> {
 		return hive
 	}
 	public name?: string
-	public readonly alveoli = new Set<Alveolus>()
+	public readonly alveoli = reactive(new Set<Alveolus>())
 
 	// Structure and content
-	//-@computed
+	//@computed
 	get byActionType() {
 		const rv: Partial<Record<Ssh.Action['type'], Alveolus[]>> = {}
 		for (const alveolus of this.alveoli) {
@@ -205,12 +204,25 @@ export class Hive extends AdvertisementManager<Alveolus> {
 		return [border.tile.a.position, border.tile.b.position]
 	}
 	//#region Needy / events
-	//-@computed
+	//@computed
 	get needs() {
 		return Object.fromEntries(
 			Object.entries(this.advertisements)
 				.filter(([_, { advertisement }]) => advertisement === 'demand')
-				.map(([gt, { priority }]) => [gt as GoodType, priority]),
+				.map(([gt, { advertisers }]) => {
+					// highest non-empty priority index represents the current priority
+					let highest = 0
+					for (let i = advertisers.length - 1; i >= 0; i--) {
+						if (advertisers[i] && advertisers[i].length > 0) {
+							highest = i
+							break
+						}
+					}
+					const asPriority: ExchangePriority = (['0-store', '1-buffer', '2-use'] as const)[
+						highest as 0 | 1 | 2
+					]
+					return [gt as GoodType, asPriority]
+				}),
 		)
 	}
 
@@ -300,7 +312,8 @@ export class Hive extends AdvertisementManager<Alveolus> {
 		)
 		return storage
 	}
-
+	checkTotalWoodish(..._dbg: any[]) {}
+	/* Old which hunting system for checking woodish(wood+plank) total amount in hive and check invariability
 	public lastCounted = { moving: 0, storage: 0, free: 0, gates: 0 }
 	checkTotalWoodish(..._dbg: any[]) {
 		const counted = {
@@ -331,20 +344,19 @@ export class Hive extends AdvertisementManager<Alveolus> {
 				)
 				.reduce((acc, qty) => acc + qty, 0),
 		}
-		//const total = counted.free + counted.storage + counted.gates //+ counted.moving
+		const total = counted.free + counted.storage + counted.gates //+ counted.moving
 		if (
 			//this.lastCounted.moving !== counted.moving ||
 			this.lastCounted.storage !== counted.storage ||
 			this.lastCounted.free !== counted.free ||
 			this.lastCounted.gates !== counted.gates
 		) {
-			/* Old which hunting system for checking woodish(wood+plank) total amount in hive and check invariability
 			const oldTotal = this.lastCounted.free + this.lastCounted.storage + this.lastCounted.gates //+ this.lastCounted.moving
 			if (oldTotal > total) console.warn(`Woodish: ${oldTotal} -> ${total}`, counted, ...dbg)
-			else console.log(`Woodish: ${oldTotal} -> ${total}`, counted, ...dbg)*/
+			else console.log(`Woodish: ${oldTotal} -> ${total}`, counted, ...dbg)
 			this.lastCounted = counted
 		}
-	}
+	}*/
 	advertise(
 		advertiser: Alveolus,
 		ads: Partial<

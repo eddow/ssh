@@ -1,3 +1,4 @@
+import { computed } from 'mutts/src'
 import { alveoli as alveoliDefs } from '$assets/game-content'
 import { SpecificStorage } from '$lib/game/storage'
 import type { AlveolusType, GoodType } from '$lib/types'
@@ -18,7 +19,7 @@ export class BuildAlveolus extends Alveolus {
 		this.target = target
 	}
 
-	//-@computed
+	@computed
 	get remainingNeeds(): Record<string, number> {
 		const targetDef = alveoliDefs[this.target]
 		const cost = targetDef.construction?.goods || {}
@@ -30,7 +31,7 @@ export class BuildAlveolus extends Alveolus {
 		return needs
 	}
 
-	//-@computed
+	@computed
 	get isReady(): boolean {
 		return Object.keys(this.remainingNeeds).length === 0 && !this.destroyed
 	}
