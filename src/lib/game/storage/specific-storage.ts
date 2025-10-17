@@ -34,9 +34,11 @@ class SpecificAllocation implements AllocationBase {
 
 			if (qty > 0) {
 				const curAlloc = this.storage._allocated[goodType] || 0
+				assert(curAlloc >= qty, 'cancel: allocated less than cancel qty')
 				this.storage._allocated[goodType] = curAlloc - qty
 			} else if (qty < 0) {
 				const curRes = this.storage._reserved[goodType] || 0
+				assert(curRes >= -qty, 'cancel: reserved less than cancel qty')
 				this.storage._reserved[goodType] = curRes + qty
 			}
 		}
@@ -53,17 +55,17 @@ class SpecificAllocation implements AllocationBase {
 
 			if (qty > 0) {
 				const curAlloc = this.storage._allocated[goodType] || 0
-				const use = Math.min(qty, curAlloc)
-				if (use <= 0) continue
-				this.storage._allocated[goodType] = curAlloc - use
-				this.storage._goods[goodType] = (this.storage._goods[goodType] || 0) + use
+				assert(curAlloc >= qty, 'fulfill: allocated less than fulfill qty')
+				this.storage._allocated[goodType] = curAlloc - qty
+				this.storage._goods[goodType] = (this.storage._goods[goodType] || 0) + qty
 			} else if (qty < 0) {
 				const want = -qty
 				const curRes = this.storage._reserved[goodType] || 0
-				const use = Math.min(want, curRes, this.storage._goods[goodType] || 0)
-				if (use <= 0) continue
-				this.storage._reserved[goodType] = curRes - use
-				this.storage._goods[goodType] = (this.storage._goods[goodType] || 0) - use
+				const have = this.storage._goods[goodType] || 0
+				assert(curRes >= want, 'fulfill: reserved less than fulfill qty')
+				assert(have >= want, 'fulfill: goods less than fulfill qty')
+				this.storage._reserved[goodType] = curRes - want
+				this.storage._goods[goodType] = have - want
 			}
 		}
 	}

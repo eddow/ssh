@@ -16,6 +16,7 @@ export class Finalized {
 	#finished: (() => void)[] = []
 	#canceled: (() => void)[] = []
 	#final: (() => void)[] = []
+	public status: 'pending' | 'finished' | 'canceled' = 'pending'
 	final(final: () => void) {
 		this.#final.push(final)
 		return this
@@ -31,10 +32,12 @@ export class Finalized {
 	@atomic
 	cancel() {
 		for (const callback of [...this.#canceled, ...this.#final]) callback()
+		this.status = 'canceled'
 	}
 	@atomic
 	finish() {
 		for (const callback of [...this.#finished, ...this.#final]) callback()
+		this.status = 'finished'
 	}
 }
 export abstract class ASingleStep extends Finalized {

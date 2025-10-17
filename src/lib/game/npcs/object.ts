@@ -1,5 +1,6 @@
 import { unreactive } from 'mutts/src'
 import type { ExecutionContext } from 'npc-script/src'
+import { assert } from '$lib/debug'
 import type { Game } from '../game'
 import type { GameObject, TickedGameObject, withTicked } from '../object'
 import { ScriptExecution } from './scripts'
@@ -76,6 +77,8 @@ export function withScripted<T extends abstract new (...args: any[]) => TickedGa
 					uselessStepExecutor = this.stepExecutor.constructor*/
 				remaining = newRemaining
 				if (remaining !== undefined) {
+					this.tile.content?.hive?.checkTotalWoodish(this.stepExecutor)
+					assert(this.stepExecutor.status !== 'pending', 'Step executor is not pending')
 					this.stepExecutor = undefined
 					this.nextStep()
 					//const newType = this.stepExecutor!?.constructor

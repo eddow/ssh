@@ -6,7 +6,7 @@ import { ButtonGroup, RadioButton, Toolbar, ToolbarButton, ToolbarGroup } from '
 // Icons now handled by IconifyIcon component
 import { onMount } from 'svelte'
 import * as gameContent from '$assets/game-content'
-import ResourceImage from '$components/parts/resourceImage.svelte'
+import ResourceImage from '$components/parts/ResourceImage.svelte'
 import DarkMode from '$components/parts/system/dark-mode.svelte'
 import FlagLanguageSelector from '$components/parts/system/FlagLanguageSelector.svelte'
 import { configuration, games, interactionMode } from '$lib/globals.svelte'

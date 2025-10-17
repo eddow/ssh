@@ -13,7 +13,8 @@
 		"bothButtonsPan": "Boutons gauche+droite enfoncés = panoramique"
 	},
 	"game": {
-		"gameTitle": "Jeu {game}"
+		"gameTitle": "Jeu {game}",
+		"noSelection": "Rien..."
 	},
 	"tile": {
 		"content": "Contenu",
@@ -64,8 +65,8 @@
 	"deposit": "Ressources",
 	"goods": {
 		"": "Marchandises",
-		"loose": "Marchandises libres",
-		"stored": "Marchandises stockées"
+		"loose": "Au sol",
+		"stored": "En stock"
 	},
 	"project": "Projet",
 	"clearing": "Dégagement",

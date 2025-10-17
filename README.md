@@ -38,6 +38,6 @@ Active WIP. Systems and naming may change (e.g., convey/collect flows). Expect b
 # TODO
 
 - slotted-storage specific job: defrag
-- Construction sites should display after cleanup (before: background unbuilt)
 - "purge" button on gatherer: remove all goods (drop free somewhere?)
 - separate game/render concerns
+- I.vehicle have plenty of mushrooms/berries allocated, but nothing -> has no room and cannot "makeRoom"

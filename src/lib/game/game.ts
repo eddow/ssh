@@ -23,6 +23,7 @@ import { Alveolus } from './board'
 import { HexBoard } from './board/board'
 import { Deposit, UnBuiltLand } from './board/content/unbuilt-land'
 import { Tile } from './board/tile'
+import type { Zone } from './board/zone'
 import {
 	type GameGenerationConfig,
 	GameGenerator,
@@ -72,13 +73,13 @@ export type GameGenerationOptions = {
 }
 
 export interface AlveolusPatch {
-	coord: { q: number; r: number }
+	coord: [number, number]
 	goods?: Partial<Record<GoodType, number>>
 	alveolus: AlveolusType
 }
 
 export interface TilePatch {
-	coord: { q: number; r: number }
+	coord: [number, number]
 	deposit?: {
 		type: DepositType
 		amount: number
@@ -94,6 +95,11 @@ export interface GamePatches {
 		goodType: GoodType
 		position: { q: number; r: number }
 	}>
+	zones?: {
+		harvest?: Array<[number, number]>
+		residential?: Array<[number, number]>
+	}
+	projects?: Record<string, Array<[number, number]>>
 }
 
 export class Game extends Eventful<GameEvents> {
@@ -179,7 +185,7 @@ export class Game extends Eventful<GameEvents> {
 	constructor(
 		private readonly generationOptions: GameGenerationOptions = {
 			boardSize: 12,
-			terrainSeed: 12345,
+			terrainSeed: 1234,
 			characterCount: 1,
 			characterRadius: 200,
 		},
@@ -214,7 +220,6 @@ export class Game extends Eventful<GameEvents> {
 		this.stage.addChild(this.freeGoodsLayer)
 		this.stage.addChild(this.charactersLayer)
 		this.stage.addChild(this.selectionOverlayLayer)
-
 		// Create hex board
 		this.hex = new HexBoard(this)
 
@@ -223,16 +228,17 @@ export class Game extends Eventful<GameEvents> {
 
 		// Create game generator
 		this.generator = new GameGenerator()
+		this.loaded.then(() => {
+			// Initialize base RNG with terrainSeed so everything is reproducible
+			;(this as any).rng = LCG('gameSeed', this.generationOptions.terrainSeed)
+			// Expose RNG to global for script helpers
+			;(globalThis as any).__GAME_RANDOM__ = (max?: number, min?: number) => this.random(max, min)
+			this.generate(this.generationOptions, this.patches)
+			this.emit('gameStart')
 
-		// Initialize base RNG with terrainSeed so everything is reproducible
-		;(this as any).rng = LCG('gameSeed', this.generationOptions.terrainSeed)
-		// Expose RNG to global for script helpers
-		;(globalThis as any).__GAME_RANDOM__ = (max?: number, min?: number) => this.random(max, min)
-		this.generate(this.generationOptions, this.patches)
-		this.emit('gameStart')
-
-		// Register the main ticker callback and start the game ticker after everything is built
-		this.ticker.add(this.tickerCallback)
+			// Register the main ticker callback and start the game ticker after everything is built
+			this.ticker.add(this.tickerCallback)
+		})
 	}
 
 	public simulateObjectClick(object: InteractiveGameObject, event: MouseEvent = {} as any) {
@@ -250,6 +256,8 @@ export class Game extends Eventful<GameEvents> {
 			if (patches.tiles?.length) this.applyTilePatches(patches.tiles)
 			if (patches.hives?.length) this.applyHivesPatches(patches.hives)
 			if (patches.freeGoods?.length) this.applyFreeGoodsPatches(patches.freeGoods)
+			if (patches.zones) this.applyZonePatches(patches.zones)
+			if (patches.projects?.length) this.applyProjectPatches(patches.projects)
 		} catch (error) {
 			console.error('Generation failed:', error)
 		}
@@ -303,7 +311,8 @@ export class Game extends Eventful<GameEvents> {
 
 	private applyTilePatches(patches: NonNullable<GamePatches['tiles']>) {
 		for (const p of patches) {
-			const tile = this.hex.getTile(p.coord)
+			const coord = { q: p.coord[0], r: p.coord[1] }
+			const tile = this.hex.getTile(coord)
 			if (!tile) continue
 			const content = tile.content
 			if (content instanceof UnBuiltLand) {
@@ -328,7 +337,8 @@ export class Game extends Eventful<GameEvents> {
 		for (const hive of hives) {
 			let hiveInstance: Hive | undefined
 			for (const a of hive.alveoli) {
-				const tile = this.hex.getTile(a.coord)
+				const coord = { q: a.coord[0], r: a.coord[1] }
+				const tile = this.hex.getTile(coord)
 				if (!tile) continue
 				const AlveolusCtor = alveolusClass[a.alveolus as keyof typeof alveolusClass]
 				if (!AlveolusCtor) continue
@@ -345,22 +355,52 @@ export class Game extends Eventful<GameEvents> {
 		}
 	}
 
+	private applyZonePatches(zones: NonNullable<GamePatches['zones']>) {
+		for (const [zone, coords] of Object.entries(zones)) {
+			for (const coord of coords) {
+				const coordObj = { q: coord[0], r: coord[1] }
+				this.hex.zoneManager.setZone(coordObj, zone as Zone)
+			}
+		}
+	}
+
+	private applyProjectPatches(projects: NonNullable<GamePatches['projects']>) {
+		for (const [projectType, coords] of Object.entries(projects)) {
+			for (const coord of coords) {
+				const coordObj = { q: coord[0], r: coord[1] }
+				const tile = this.hex.getTile(coordObj)
+				if (!tile) continue
+				const content = tile.content
+				if (content instanceof UnBuiltLand) {
+					content.setProject(projectType)
+					tile.asGenerated = false
+				}
+			}
+		}
+	}
+
 	public saveGameData(): GamePatches {
 		const tiles: Array<TilePatch> = []
 		const hives = new Map<Hive, Array<AlveolusPatch>>()
 		const freeGoodsPatches: GamePatches['freeGoods'] = []
+		const zones: GamePatches['zones'] = {
+			harvest: [],
+			residential: [],
+		}
+		const projects: GamePatches['projects'] = {}
 
 		// Enumerate using hex board contents map by sampling existing tiles
 		for (let q = -this.hex.boardSize; q <= this.hex.boardSize; q++) {
 			for (let r = -this.hex.boardSize; r <= this.hex.boardSize; r++) {
-				const tile = this.hex.getTile({ q, r })
+				const coord = { q, r }
+				const tile = this.hex.getTile(coord)
 				if (!tile || tile.asGenerated) continue
 				const content = tile.content
 				if (!content) continue
 				// Serialize minimal content state
 				if (content instanceof UnBuiltLand) {
 					tiles.push({
-						coord: { q, r },
+						coord: [q, r],
 						deposit: content.deposit
 							? {
 									type:
@@ -370,15 +410,31 @@ export class Game extends Eventful<GameEvents> {
 								}
 							: undefined,
 					})
+
+					// Save project information
+					if (content.project) {
+						if (!projects[content.project]) {
+							projects[content.project] = []
+						}
+						projects[content.project].push([q, r])
+					}
 				} else if (content instanceof Alveolus) {
 					// Assume alveolus-like content decorated by GcClassed with resourceName accessible via .name
 					const alveolusName = content.name
 					if (!hives.has(content.hive)) hives.set(content.hive, [])
 					hives.get(content.hive)!.push({
-						coord: { q, r },
+						coord: [q, r],
 						alveolus: alveolusName as AlveolusType,
 						goods: content.storage?.stock || {},
 					})
+				}
+
+				// Save zone information
+				const zone = this.hex.zoneManager.getZone(coord)
+				if (zone === 'harvest') {
+					zones.harvest!.push([q, r])
+				} else if (zone === 'residential') {
+					zones.residential!.push([q, r])
 				}
 			}
 		}
@@ -401,6 +457,8 @@ export class Game extends Eventful<GameEvents> {
 			tiles,
 			hives: Array.from(hives.entries()).map(([hive, alveoli]) => ({ name: hive.name, alveoli })),
 			freeGoods: freeGoodsPatches,
+			zones,
+			projects,
 		}
 	}
 

@@ -32,12 +32,14 @@ class SlottedAllocation implements AllocationBase {
 			const slot = this.storage.slots[i]
 			if (!slot) continue
 			if (amount > 0) {
-				const reduce = Math.min(amount, slot.allocated)
-				slot.allocated -= reduce
+				// Ensure the allocation exists
+				assert(slot.allocated >= amount, 'cancel: allocated less than cancel amount')
+				slot.allocated -= amount
 				if (slot.quantity + slot.allocated === 0) this.storage.slots[i] = undefined
 			} else {
-				const reduce = Math.min(-amount, slot.reserved)
-				slot.reserved -= reduce
+				const need = -amount
+				assert(slot.reserved >= need, 'cancel: reserved less than cancel amount')
+				slot.reserved -= need
 				// quantity unchanged on cancel of negative allocation
 				if (slot.quantity + slot.allocated === 0) this.storage.slots[i] = undefined
 			}
@@ -55,11 +57,12 @@ class SlottedAllocation implements AllocationBase {
 			const slot = this.storage.slots[i]
 			if (!slot) continue
 			if (amount > 0) {
-				const use = Math.min(amount, slot.allocated)
+				// Positive amount means allocate->present
+				assert(slot.allocated >= amount, 'fulfill: allocated less than fulfill amount')
 				const roomHere = this.storage.maxQuantityPerSlot - slot.quantity
-				const toPresent = Math.min(use, roomHere)
-				slot.quantity += toPresent
-				slot.allocated -= toPresent
+				assert(roomHere >= amount, 'fulfill: not enough room in slot')
+				slot.quantity += amount
+				slot.allocated -= amount
 				if (slot.quantity + slot.allocated === 0) {
 					assert(
 						slot.reserved === 0 && slot.allocated === 0 && slot.quantity === 0,
@@ -69,9 +72,10 @@ class SlottedAllocation implements AllocationBase {
 				}
 			} else {
 				const want = -amount
-				const use = Math.min(want, slot.reserved, slot.quantity)
-				slot.quantity -= use
-				slot.reserved -= use
+				assert(slot.reserved >= want, 'fulfill: reserved less than fulfill amount')
+				assert(slot.quantity >= want, 'fulfill: quantity less than fulfill amount')
+				slot.quantity -= want
+				slot.reserved -= want
 				if (slot.quantity + slot.allocated === 0) {
 					assert(
 						slot.reserved === 0 && slot.allocated === 0 && slot.quantity === 0,

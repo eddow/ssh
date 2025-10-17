@@ -2,11 +2,17 @@ import { reactive, type ScopedCallback, unreactive } from 'mutts/src'
 import { assert, namedEffect, traces } from '$lib/debug'
 import type { GoodType } from '$lib/types'
 import { type AxialCoord, findPath, type Positioned, setPop } from '$lib/utils'
-import { type Advertisement, AdvertisementManager } from '$lib/utils/advertisement'
+import {
+	type Advertisement,
+	AdvertisementManager,
+	type ExchangePriority,
+} from '$lib/utils/advertisement'
 import { AxialKeyMap } from '$lib/utils/mem'
 import { toAxialCoord } from '../../utils/position'
+import type { AlveolusGate } from '../board'
 import { type HexBoard, isTileCoord } from '../board/board'
 import { Alveolus } from '../board/content/alveolus'
+import type { FreeGood } from '../board/freeGoods'
 import type { Tile } from '../board/tile'
 import type { AllocationBase, Storage } from '../storage'
 import type { StorageAlveolus } from './storage'
@@ -27,6 +33,7 @@ export interface MovingGood {
 export class Hive extends AdvertisementManager<Alveolus> {
 	private constructor(public readonly board: HexBoard) {
 		super()
+		namedEffect(`${this.name}.checkTotalWoodish`, () => this.checkTotalWoodish('effect'))
 	}
 	// Path cache for complete paths between alveoli
 	private pathCache = new Map<string, AxialCoord[]>()
@@ -62,8 +69,10 @@ export class Hive extends AdvertisementManager<Alveolus> {
 		return rv
 	}
 	private readonly advertising: ScopedCallback[] = []
+	private readonly gates = new Set<AlveolusGate>()
 	public attach(alveolus: Alveolus) {
 		this.alveoli.add(alveolus)
+		for (const gate of alveolus.gates) this.gates.add(gate)
 		alveolus.hive = this
 		this.invalidatePathCache()
 		this.advertising.push(
@@ -290,6 +299,64 @@ export class Hive extends AdvertisementManager<Alveolus> {
 			]),
 		)
 		return storage
+	}
+
+	public lastCounted = { moving: 0, storage: 0, free: 0, gates: 0 }
+	checkTotalWoodish(..._dbg: any[]) {
+		const counted = {
+			moving: Array.from(this.movingGoods.values())
+				.reduce((acc, list) => [...acc, ...list.map((mg) => mg.goodType)], [] as GoodType[])
+				.filter((goodType) => ['wood', 'planks'].includes(goodType)).length,
+			storage: Array.from(this.alveoli)
+				.flatMap((alveolus) =>
+					Object.entries(alveolus.storage.stock)
+						.filter(([goodType]) => ['wood', 'planks'].includes(goodType))
+						.map(([_, qty]) => qty),
+				)
+				.reduce((acc, qty) => acc + qty, 0),
+			free: Array.from(this.alveoli)
+				.reduce(
+					(acc, alveolus) => [
+						...acc,
+						...alveolus.game.hex.freeGoods.getGoodsAt(alveolus.tile.position),
+					],
+					[] as FreeGood[],
+				)
+				.filter((good) => ['wood', 'planks'].includes(good.goodType)).length,
+			gates: Array.from(this.gates)
+				.flatMap((gate) =>
+					Object.entries(gate.storage.stock)
+						.filter(([goodType]) => ['wood', 'planks'].includes(goodType))
+						.map(([_, qty]) => qty),
+				)
+				.reduce((acc, qty) => acc + qty, 0),
+		}
+		//const total = counted.free + counted.storage + counted.gates //+ counted.moving
+		if (
+			//this.lastCounted.moving !== counted.moving ||
+			this.lastCounted.storage !== counted.storage ||
+			this.lastCounted.free !== counted.free ||
+			this.lastCounted.gates !== counted.gates
+		) {
+			/* Old which hunting system for checking woodish(wood+plank) total amount in hive and check invariability
+			const oldTotal = this.lastCounted.free + this.lastCounted.storage + this.lastCounted.gates //+ this.lastCounted.moving
+			if (oldTotal > total) console.warn(`Woodish: ${oldTotal} -> ${total}`, counted, ...dbg)
+			else console.log(`Woodish: ${oldTotal} -> ${total}`, counted, ...dbg)*/
+			this.lastCounted = counted
+		}
+	}
+	advertise(
+		advertiser: Alveolus,
+		ads: Partial<
+			Record<
+				'berries' | 'mushrooms' | 'planks' | 'stone' | 'wood',
+				{ advertisement: Advertisement; priority: ExchangePriority }
+			>
+		>,
+	): void {
+		this.checkTotalWoodish('advertise-before', advertiser)
+		super.advertise(advertiser, ads)
+		this.checkTotalWoodish('advertise-after', advertiser)
 	}
 
 	destroy() {

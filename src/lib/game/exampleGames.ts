@@ -5,12 +5,27 @@ export const chopSaw = {
 		{
 			name: 'ChopSaw',
 			alveoli: [
-				{ alveolus: 'tree_chopper', coord: { q: 0, r: 0 } },
-				{ alveolus: 'gather', coord: { q: 1, r: 0 } },
-				{ alveolus: 'stonecutter', coord: { q: 0, r: -1 } },
-				{ alveolus: 'sawmill', coord: { q: 1, r: 1 } },
-				{ alveolus: 'engineer', coord: { q: 2, r: 0 } },
+				{ alveolus: 'tree_chopper', coord: [0, 0] },
+				{ alveolus: 'stonecutter', coord: [0, -1] },
+				{ alveolus: 'gather', coord: [1, 0] },
+				{ alveolus: 'sawmill', coord: [1, 1] },
+				{ alveolus: 'engineer', coord: [2, 0] },
 			],
 		},
 	],
+	zones: {
+		harvest: [
+			[-1, 2],
+			[-2, 2],
+			[-2, 3],
+			[-3, 3],
+		],
+	},
+	projects: {
+		'build:storage': [
+			[-1, 1],
+			[0, 1],
+			[0, 2],
+		],
+	},
 } satisfies GamePatches

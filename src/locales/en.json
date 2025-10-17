@@ -13,7 +13,8 @@
 		"bothButtonsPan": "Both left+right down = pan"
 	},
 	"game": {
-		"gameTitle": "Game {game}"
+		"gameTitle": "Game {game}",
+		"noSelection": "Nothing..."
 	},
 	"tile": {
 		"content": "Content",
@@ -64,8 +65,8 @@
 	"deposit": "Resources",
 	"goods": {
 		"": "Goods",
-		"loose": "Loose goods",
-		"stored": "Stored goods"
+		"loose": "On the ground",
+		"stored": "In stock"
 	},
 	"project": "Project",
 	"clearing": "Clearing",

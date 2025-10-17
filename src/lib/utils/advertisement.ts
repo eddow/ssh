@@ -72,6 +72,8 @@ export abstract class AdvertisementManager<Advertiser> {
 					this.selectMovement(ad.advertisement, advertiser, availableGeneralStorages, goodType)
 				} else if (thisAd) {
 					assert(thisAd.advertisement === ad.advertisement, 'Advertisement type mismatch')
+					// TODO: Have several priority->advertisers
+					// TODO: if some advertisers have more priority than me, try this.canGive/canTake
 					assert(thisAd.priority === ad.priority, 'Priority mismatch')
 					thisAd.advertisers.push(advertiser)
 				} else {

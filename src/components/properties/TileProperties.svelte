@@ -1,67 +1,67 @@
 <script lang="ts">
-	import { Badge } from 'flowbite-svelte'
-	import { alveoli } from '$assets/game-content'
-	import EntityBadge from '$components/parts/EntityBadge.svelte'
-	import GoodsList from '$components/parts/GoodsList.svelte'
-	import PropertyGrid from '$components/parts/PropertyGrid.svelte'
-	import PropertyGridRow from '$components/parts/PropertyGridRow.svelte'
-	import AlveolusProperties from '$components/properties/AlveolusProperties.svelte'
-	import UnBuiltProperties from '$components/properties/UnBuiltProperties.svelte'
-	import { Alveolus } from '$lib/game/board/content/alveolus'
-	import { UnBuiltLand } from '$lib/game/board/content/unbuilt-land'
-	import type { Tile } from '$lib/game/board/tile'
-	import { T } from '$lib/i18n'
-	import { p2s } from '$lib/mutts.svelte'
-	import { computeStyleFromTexture } from '$lib/utils/images'
+import { Badge } from 'flowbite-svelte'
+import { alveoli } from '$assets/game-content'
+import EntityBadge from '$components/parts/EntityBadge.svelte'
+import GoodsList from '$components/parts/GoodsList.svelte'
+import PropertyGrid from '$components/parts/PropertyGrid.svelte'
+import PropertyGridRow from '$components/parts/PropertyGridRow.svelte'
+import AlveolusProperties from '$components/properties/AlveolusProperties.svelte'
+import UnBuiltProperties from '$components/properties/UnBuiltProperties.svelte'
+import { Alveolus } from '$lib/game/board/content/alveolus'
+import { UnBuiltLand } from '$lib/game/board/content/unbuilt-land'
+import type { Tile } from '$lib/game/board/tile'
+import { T } from '$lib/i18n'
+import { p2s } from '$lib/mutts.svelte'
+import { computeStyleFromTexture } from '$lib/utils/images'
 
-	let { tile }: { tile: Tile } = $props()
-	let tileContent = $derived.by(p2s(() => tile.content))
-	let stock = $derived.by(p2s(() => tile.content!.storage?.stock))
-	// Aggregate unallocated free goods on the ground into a GoodType -> count map
-	let freeStock = $derived.by(
-		p2s(() => {
-			const counts: Record<string, number> = {}
-			for (const fg of tile.freeGoods) {
-				if (fg.allocated) continue
-				counts[fg.goodType] = (counts[fg.goodType] || 0) + 1
-			}
-			return counts as any
-		})
-	)
-
-	// Get alveolus type info for display
-	let contentInfo = $derived.by(
-		p2s(() => {
-			if (tileContent instanceof Alveolus) {
-				const type = tileContent.name as keyof typeof alveoli
-				return {
-					type,
-					sprite: alveoli[type]?.sprites?.[0],
-					name: $T.alveoli[type],
-					terrain: 'concrete'
-				}
-			}
-			return {
-				terrain: tileContent instanceof UnBuiltLand ? tileContent.terrain : 'concrete'
-			}
-		})
-	)
-	// Get terrain background using game texture system
-	let terrainBackgroundStyle = $state('')
-
-	$effect(() => {
-		if (contentInfo?.terrain) {
-			;(async () => {
-				await tile.board.game.loaded
-				const texture = tile.board.game.getTexture(`terrain-${contentInfo.terrain}`)
-				terrainBackgroundStyle = computeStyleFromTexture(texture, {
-					backgroundRepeat: 'repeat'
-				})
-			})()
-		} else {
-			terrainBackgroundStyle = ''
+let { tile }: { tile: Tile } = $props()
+let tileContent = $derived.by(p2s(() => tile.content))
+let stock = $derived.by(p2s(() => tile.content!.storage?.stock))
+// Aggregate unallocated free goods on the ground into a GoodType -> count map
+let freeStock = $derived.by(
+	p2s(() => {
+		const counts: Record<string, number> = {}
+		for (const fg of tile.freeGoods) {
+			if (fg.allocated) continue
+			counts[fg.goodType] = (counts[fg.goodType] || 0) + 1
 		}
-	})
+		return counts as any
+	}),
+)
+
+// Get alveolus type info for display
+let contentInfo = $derived.by(
+	p2s(() => {
+		if (tileContent instanceof Alveolus) {
+			const type = tileContent.name as keyof typeof alveoli
+			return {
+				type,
+				sprite: alveoli[type]?.sprites?.[0],
+				name: $T.alveoli[type],
+				terrain: 'concrete',
+			}
+		}
+		return {
+			terrain: tileContent instanceof UnBuiltLand ? tileContent.terrain : 'concrete',
+		}
+	}),
+)
+// Get terrain background using game texture system
+let terrainBackgroundStyle = $state('')
+
+$effect(() => {
+	if (contentInfo?.terrain) {
+		;(async () => {
+			await tile.board.game.loaded
+			const texture = tile.board.game.getTexture(`terrain-${contentInfo.terrain}`)
+			terrainBackgroundStyle = computeStyleFromTexture(texture, {
+				backgroundRepeat: 'repeat',
+			})
+		})()
+	} else {
+		terrainBackgroundStyle = ''
+	}
+})
 </script>
 
 {#if tileContent}

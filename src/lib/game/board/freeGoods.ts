@@ -58,6 +58,7 @@ export class FreeGoods extends withTicked(withGenerator(GameObject)) {
 	private readonly goods = reactive(new AxialKeyMap<FreeGood[]>([], () => []))
 	private readonly display = new Map<FreeGood, { sprite: Sprite; cleanup: ScopedCallback }>()
 	private readonly fgContainer: Container = new Container()
+	private readonly woodishes = new Set<FreeGood>()
 	render() {
 		this.game.freeGoodsLayer.addChild(this.fgContainer)
 		return () => {
@@ -96,30 +97,32 @@ export class FreeGoods extends withTicked(withGenerator(GameObject)) {
 		this.goods.set(coord, [...(this.goods.get(coord) || []), good])
 
 		// Create sprite after game is loaded
-		this.game.loaded.then(() => {
-			const sprite = new Sprite(this.game.getTexture(good.goodType))
-			sprite.anchor.set(0.5, 0.5) // Center the sprite anchor
-			this.fgContainer.addChild(sprite)
-			this.game.hex.resizeSprite(sprite, 0.8)
-			this.display.set(good, {
-				sprite,
-				cleanup: namedEffect('freeGood.render', () => {
-					const { x, y } = toWorldCoord(good.position)
-					sprite.position.set(x, y)
+		const sprite = new Sprite(this.game.getTexture(good.goodType))
+		sprite.anchor.set(0.5, 0.5) // Center the sprite anchor
+		if (['wood', 'planks'].includes(good.goodType)) {
+			this.woodishes.add(good)
+			//console.trace('woodishes', this.woodishes.size, 'added', good)
+		}
+		this.fgContainer.addChild(sprite)
+		this.game.hex.resizeSprite(sprite, 0.8)
+		this.display.set(good, {
+			sprite,
+			cleanup: namedEffect('freeGood.render', () => {
+				const { x, y } = toWorldCoord(good.position)
+				sprite.position.set(x, y)
 
-					// Apply reddish tint when allocated (like reserved goods in storage)
-					if (good.allocated) {
-						sprite.tint = 0xff6666 // Light red tint
-						sprite.alpha = 0.7
-					} else {
-						sprite.tint = 0xffffff // White (no tint)
-						sprite.alpha = 1.0
-					}
+				// Apply reddish tint when allocated (like reserved goods in storage)
+				if (good.allocated) {
+					sprite.tint = 0xff6666 // Light red tint
+					sprite.alpha = 0.7
+				} else {
+					sprite.tint = 0xffffff // White (no tint)
+					sprite.alpha = 1.0
+				}
 
-					// Return cleanup function (no-op in this case since we're just setting properties)
-					return () => {}
-				}),
-			})
+				// Return cleanup function (no-op in this case since we're just setting properties)
+				return () => {}
+			}),
 		})
 
 		return good
@@ -140,6 +143,10 @@ export class FreeGoods extends withTicked(withGenerator(GameObject)) {
 		if (display) {
 			display.cleanup()
 			display.sprite.destroy()
+			if (['wood', 'planks'].includes(good.goodType)) {
+				this.woodishes.delete(good)
+				//console.trace('woodishes', this.woodishes.size, 'deleted', good)
+			}
 			this.display.delete(good)
 		}
 	}

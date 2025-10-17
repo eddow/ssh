@@ -1,3 +1,4 @@
+import { atomic } from 'mutts/src'
 import { alveoli } from '$assets/game-content'
 import { assert } from '$lib/debug'
 import { UnBuiltLand } from '$lib/game/board/content/unbuilt-land'
@@ -12,7 +13,16 @@ import { subject } from '../scripts'
 import { DurationStep, MultiMoveStep, WaitForPredicateStep } from '../steps'
 import type { WorkPlan } from '.'
 
-;(window as any).debugVisualMovements = new Set<{ who: any; from: any; to: any }>()
+// Unified handling for both single and multiple movements
+// Prepare all movements: fulfill source, allocate hop, create moving good
+interface MovementData {
+	mg: any
+	hopAlloc: any
+	hop: AxialCoord
+	moving: any
+}
+
+const dbgMovements = new Set<MovementData>()
 class WorkFunctions {
 	declare [subject]: Character
 	@contract('WorkPlan')
@@ -47,6 +57,7 @@ class WorkFunctions {
 		)
 	}
 	@contract('object?')
+	@atomic
 	conveyStep() {
 		const character = this[subject]
 		const alveolus = character.assignedAlveolus!
@@ -54,17 +65,14 @@ class WorkFunctions {
 			alveolus === character.tile.content,
 			'Character must be assigned to the alveolus on the same tile',
 		)
+		alveolus.hive.checkTotalWoodish('convey-before', alveolus)
 		// Get movement(s) - either a single movement or a cycle
 		const movements = alveolus.aGoodMovement
 		if (!movements || movements.length === 0) return
 
 		const hive = alveolus.hive
 
-		// Unified handling for both single and multiple movements
-		// Prepare all movements: fulfill source, allocate hop, create moving good
-		const allocations: Array<{ mg: any; hopAlloc: any; hop: AxialCoord }> = []
-		const movingGoods: Array<{ mg: any; moving: any }> = []
-		const visualMovements: Array<{ who: any; from: any; to: any }> = []
+		const movementData: MovementData[] = []
 
 		for (const mg of movements) {
 			mg.allocations.source.fulfill()
@@ -78,25 +86,37 @@ class WorkFunctions {
 
 			const moving = character.game.hex.freeGoods.add(alveolus.tile, mg.goodType, mg.from)
 
-			allocations.push({ mg, hopAlloc, hop })
-			movingGoods.push({ mg, moving })
-			visualMovements.push({ who: moving, from: mg.from, to: hop })
+			movementData.push({
+				mg,
+				hopAlloc,
+				hop,
+				moving,
+			})
+		}
+		for (const movement of movementData) {
+			dbgMovements.add(movement)
 		}
 
 		// Calculate time: O(n²) for cycles, O(n) for single movements
 		let totalTime = 0
-		for (let i = 0; i < movements.length; i++) {
-			const distance = axial.distance(movements[i].from, allocations[i].hop)
-			totalTime += character.vehicle.transferTime * distance * movements.length
+		for (let i = 0; i < movementData.length; i++) {
+			const distance = axial.distance(movementData[i].mg.from, movementData[i].hop)
+			totalTime += character.vehicle.transferTime * distance * movementData.length
 		}
 
+		alveolus.hive.checkTotalWoodish('convey-in-progress', alveolus)
 		// Create unified MultiMoveStep that animates all movements
-		const description = movements.length === 1 ? `convey.${movements[0].goodType}` : `convey.cycle`
-		;(window as any).debugVisualMovements.add(visualMovements)
+		const description =
+			movementData.length === 1 ? `convey.${movementData[0].mg.goodType}` : `convey.cycle`
+		const visualMovements = movementData.map(({ moving, mg, hop }) => ({
+			who: moving,
+			from: mg.from,
+			to: hop,
+		}))
 		return new MultiMoveStep(totalTime, visualMovements, 'work', description)
 			.canceled(() => {
 				debugger
-				for (const { mg, hopAlloc } of allocations) {
+				for (const { mg, hopAlloc } of movementData) {
 					hopAlloc?.cancel()
 					mg.allocations.source.cancel()
 					mg.allocations.target.cancel()
@@ -104,11 +124,9 @@ class WorkFunctions {
 				}
 			})
 			.finished(() => {
-				;(window as any).debugVisualMovements.delete(visualMovements)
+				alveolus.hive.checkTotalWoodish('convey-finishing', alveolus)
 				// Complete all movements
-				for (let i = 0; i < movements.length; i++) {
-					const { mg, moving } = movingGoods[i]
-					const { hopAlloc, hop } = allocations[i]
+				for (const { mg, moving, hopAlloc, hop } of movementData) {
 					const nextStorage = hive.storageAt(hop)
 
 					moving.remove()
@@ -125,9 +143,14 @@ class WorkFunctions {
 						)
 					}
 				}
+				for (const movement of movementData) {
+					dbgMovements.delete(movement)
+				}
+				console.log('dbgMovements', dbgMovements)
+				alveolus.hive.checkTotalWoodish('convey-finished', alveolus)
 			})
 			.final(() => {
-				for (const { moving } of movingGoods) {
+				for (const { moving } of movementData) {
 					if (!moving.isRemoved) debugger
 				}
 			})
