@@ -6,7 +6,9 @@ export interface AllocationBase {
 	cancel(): void
 	fulfill(): void
 }
-export abstract class Storage<Allocation extends AllocationBase> extends ReactiveBase {
+export abstract class Storage<
+	Allocation extends AllocationBase = AllocationBase,
+> extends ReactiveBase {
 	/**
 	 * Check how much of a good can be stored
 	 * @param goodType - The type of good to check
@@ -52,6 +54,11 @@ export abstract class Storage<Allocation extends AllocationBase> extends Reactiv
 	 * Get all goods currently stored (stock totals, includes reserved)
 	 */
 	abstract get stock(): Goods
+
+	/**
+	 * Get all goods currently available (unreserved quantities only)
+	 */
+	abstract get availables(): Goods
 
 	/**
 	 * Get currently available (unreserved) quantity for a good type

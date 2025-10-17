@@ -8,7 +8,7 @@ import type { Tile } from '../tile'
 
 export abstract class TileBorderContent extends withGenerator(GameObject) {
 	abstract readonly border: TileBorder
-	abstract readonly storage?: Storage<any>
+	abstract readonly storage?: Storage
 	abstract readonly debugInfo: Record<string, any>
 
 	/**

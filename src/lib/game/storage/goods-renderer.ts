@@ -29,10 +29,12 @@ export function renderTileGoods(
 	size: number,
 	getSlots: () => RenderedGoodSlots,
 	worldPosition: { x: number; y: number },
+	targetContainer?: Container,
 ): ScopedCallback | undefined {
 	const root = new Container()
 	root.position.set(worldPosition.x, worldPosition.y)
-	game.storedGoodsLayer.addChild(root)
+	const container = targetContainer ?? game.storedGoodsLayer
+	container.addChild(root)
 
 	const effectCleanup = namedEffect('tile.storage.render', () => {
 		const sprites: (Sprite | Graphics)[] = []
@@ -122,7 +124,7 @@ export function renderTileGoods(
 
 	return () => {
 		effectCleanup?.()
-		game.storedGoodsLayer.removeChild(root)
+		container.removeChild(root)
 		root.destroy({ children: false })
 	}
 }

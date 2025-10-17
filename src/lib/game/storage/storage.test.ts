@@ -94,6 +94,20 @@ describe.each([
 			expect(storage.available('wood')).toBe(7)
 			expect(storage.stock).toEqual({ wood: 7 })
 		})
+
+		it('should provide availables getter with unreserved goods only', () => {
+			storage.addGood('wood', 10)
+			storage.addGood('stone', 5)
+			expect(storage.availables).toEqual({ wood: 10, stone: 5 })
+
+			const reservation = storage.reserve({ wood: 3, stone: 2 }, 'test')
+			expect(storage.availables).toEqual({ wood: 7, stone: 3 })
+			expect(storage.stock).toEqual({ wood: 10, stone: 5 }) // Stock includes reserved
+
+			reservation.fulfill()
+			expect(storage.availables).toEqual({ wood: 7, stone: 3 })
+			expect(storage.stock).toEqual({ wood: 7, stone: 3 })
+		})
 	})
 
 	describe('Allocation System', () => {

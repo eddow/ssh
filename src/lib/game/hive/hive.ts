@@ -227,7 +227,7 @@ export class Hive extends AdvertisementManager<Alveolus> {
 	}
 
 	movingGoods = reactive(new AxialKeyMap<MovingGood[]>())
-	storageAt(coord: Positioned): Storage<any> | undefined {
+	storageAt(coord: Positioned): Storage | undefined {
 		if (isTileCoord(toAxialCoord(coord))) {
 			const content = this.board.getTileContent(coord) as Alveolus
 			return content.storage

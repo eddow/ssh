@@ -18,10 +18,10 @@ class InventoryFunctions {
 		const { vehicle } = character
 		assert(vehicle, 'tile.vehicle must be set')
 
-		const available = vehicle.available(goodType) ?? 0
+		const available = vehicle.storage.available(goodType) ?? 0
 		let amount = Math.min(available, maxAmount)
 		if (amount <= 0) throw new Error('No goods to drop')
-		const vehicleTransfer = vehicle.reserve({ [goodType]: amount }, `drop.${goodType}`)
+		const vehicleTransfer = vehicle.storage.reserve({ [goodType]: amount }, `drop.${goodType}`)
 		if (character.tile.content instanceof Alveolus) debugger
 		return new DurationStep(amount * vehicle.transferTime, 'convey', `drop.${goodType}`)
 			.finished(() => {
@@ -49,7 +49,7 @@ class InventoryFunctions {
 		for (const [goodType, requestedQuantity] of Object.entries(goods) as [GoodType, number][]) {
 			if (!requestedQuantity || requestedQuantity <= 0) continue
 
-			const available = vehicle.available(goodType) ?? 0
+			const available = vehicle.storage.available(goodType) ?? 0
 			const canStore = content.storage?.hasRoom(goodType) || 0
 			const amount = Math.min(available, canStore, requestedQuantity)
 
@@ -85,7 +85,7 @@ class InventoryFunctions {
 		for (const [goodType, requestedQuantity] of Object.entries(goods) as [GoodType, number][]) {
 			if (!requestedQuantity || requestedQuantity <= 0) continue
 
-			const canGrab = vehicle.hasRoom(goodType)
+			const canGrab = vehicle.storage.hasRoom(goodType)
 			if (canGrab <= 0) continue // Skip this good type if no room
 
 			const available = content.storage?.available(goodType) ?? 0
@@ -114,14 +114,16 @@ class InventoryFunctions {
 		const vehicle = character.vehicle
 		assert(vehicle, 'character.vehicle must be set')
 
-		const canGrab = goodType ? vehicle.hasRoom(goodType) : 1
+		const canGrab = goodType ? vehicle.storage.hasRoom(goodType) : 1
 		if (canGrab <= 0) throw new Error('No room in vehicle to grab goods')
 
 		// Check for FreeGoods on the tile - always grab exactly 1
 		const coord = toAxialCoord(source)
 		const freeGoods = character.game.hex.freeGoods.getGoodsAt(coord)
 		const matchingFreeGoods = freeGoods.filter(
-			goodType ? (good) => good.goodType === goodType : (good) => vehicle.hasRoom(good.goodType),
+			goodType
+				? (good) => good.goodType === goodType
+				: (good) => vehicle.storage.hasRoom(good.goodType),
 		)
 
 		if (matchingFreeGoods.length === 0) {
@@ -163,6 +165,16 @@ class InventoryFunctions {
 		}
 
 		return new DurationStep(totalAmount * vehicle.transferTime, 'convey', description)
+			.finished(() => {
+				// Fulfill the allocations when the step completes
+				action.allocation?.fulfill()
+				action.vehicleAllocation?.fulfill()
+			})
+			.canceled(() => {
+				// Cancel the allocations when the step is canceled
+				action.allocation?.cancel()
+				action.vehicleAllocation?.cancel()
+			})
 	}
 }
 

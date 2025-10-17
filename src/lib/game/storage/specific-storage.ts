@@ -137,6 +137,18 @@ export class SpecificStorage extends Storage<SpecificAllocation> {
 		return { ...this._goods }
 	}
 
+	@computed
+	get availables(): { [k in GoodType]?: number } {
+		const result: { [k in GoodType]?: number } = {}
+		for (const [goodType, quantity] of Object.entries(this._goods)) {
+			const available = quantity - (this._reserved[goodType as GoodType] || 0)
+			if (available > 0) {
+				result[goodType as GoodType] = available
+			}
+		}
+		return result
+	}
+
 	available(goodType: GoodType): number {
 		return (this._goods[goodType] || 0) - (this._reserved[goodType] || 0)
 	}

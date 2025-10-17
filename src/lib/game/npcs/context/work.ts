@@ -163,7 +163,7 @@ class WorkFunctions {
 		// Check if character can store any of the output goods
 		const outputGoods = alveolus.action.output
 		const canStoreAny = Object.keys(outputGoods).some(
-			(goodType) => this[subject].vehicle.hasRoom(goodType as GoodType) > 0,
+			(goodType) => this[subject].carry.hasRoom(goodType as GoodType) > 0,
 		)
 		if (!canStoreAny) return
 		deposit.amount -= 1
@@ -175,7 +175,7 @@ class WorkFunctions {
 		).finished(() => {
 			// Add all output goods to character inventory
 			Object.entries(alveolus.action.output).forEach(([goodType, qty]) => {
-				this[subject].vehicle.addGood(goodType as GoodType, qty)
+				this[subject].carry.addGood(goodType as GoodType, qty)
 			})
 		})
 	}

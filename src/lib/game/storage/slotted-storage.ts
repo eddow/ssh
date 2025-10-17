@@ -190,6 +190,22 @@ export class SlottedStorage extends Storage<SlottedAllocation> {
 		return result
 	}
 
+	@computed
+	get availables(): { [k in GoodType]?: number } {
+		const result: { [k in GoodType]?: number } = {}
+
+		for (const slot of this.slots) {
+			if (slot?.quantity) {
+				const available = Math.max(0, slot.quantity - slot.reserved)
+				if (available > 0) {
+					result[slot.goodType] = (result[slot.goodType] || 0) + available
+				}
+			}
+		}
+
+		return result
+	}
+
 	available(goodType: GoodType): number {
 		let total = 0
 		for (const slot of this.slots) {

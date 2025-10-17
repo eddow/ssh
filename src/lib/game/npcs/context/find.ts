@@ -183,7 +183,7 @@ class FindFunctions {
 		const { hex } = this[subject].game
 		const start = toAxialCoord(this[subject].tile.position)
 		const selectableGoods = Object.keys(gatherer.hive.needs).filter((good) =>
-			this[subject].vehicle.hasRoom(good as GoodType),
+			this[subject].carry.hasRoom(good as GoodType),
 		)
 		if (!selectableGoods.length) return false as const
 		// Count all goods within walk time using findNearest exploration

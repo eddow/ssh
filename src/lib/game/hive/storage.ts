@@ -28,12 +28,10 @@ export class StorageAlveolus extends Alveolus {
 
 	get workingGoodsRelations(): GoodsRelations {
 		return Object.fromEntries(
-			Object.keys(this.storage.stock)
-				.filter((goodType) => this.storage.available(goodType as GoodType) > 0)
-				.map((goodType) => [
-					goodType as GoodType,
-					{ advertisement: 'provide', priority: '0-store' },
-				]),
+			Object.keys(this.storage.availables).map((goodType) => [
+				goodType as GoodType,
+				{ advertisement: 'provide', priority: '0-store' },
+			]),
 		)
 	}
 }

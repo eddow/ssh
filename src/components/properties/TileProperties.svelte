@@ -53,7 +53,7 @@ $effect(() => {
 	if (contentInfo?.terrain) {
 		;(async () => {
 			await tile.board.game.loaded
-			const texture = tile.board.game.getTexture(`terrain-${contentInfo.terrain}`)
+			const texture = tile.board.game.getTexture(`terrain.${contentInfo.terrain}`)
 			terrainBackgroundStyle = computeStyleFromTexture(texture, {
 				backgroundRepeat: 'repeat',
 			})

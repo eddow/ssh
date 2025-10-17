@@ -34,11 +34,11 @@ function harvest(jobPlan)
 		loop
 		walk.enter
 		work.harvestStep
-		if not I.vehicle.isEmpty then
+		if not I.carry.isEmpty then
 			if isGatherable(alveolus) then
 				inventory.dropAllFree
 			else
-				inventory.dropStored I.vehicle.stock, alveolus.tile
+				inventory.dropStored I.carry.stock, alveolus.tile
 			end if
 		end if
 	loop
@@ -75,10 +75,10 @@ function gather(jobPlan)
 		inventory.grabFree nextJob.goodType, nextJob.path[nextJob.path.length - 1], nextJob.path
 	loop
 	// bring back to alveolus tile (hive edge) if we have goods
-	if not I.vehicle.isEmpty then
+	if not I.carry.isEmpty then
 		path = find.path(alveolus.tile, false)
 		if not path then error "No path found to alveolus"
-		inventory.dropStored I.vehicle.stock, alveolus.tile, path, false
+		inventory.dropStored I.carry.stock, alveolus.tile, path, false
 	end if
 end function
 

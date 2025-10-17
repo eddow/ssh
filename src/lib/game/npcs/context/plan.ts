@@ -39,7 +39,7 @@ const transferPlanHandler: PlanHandler<TransferPlan> = {
 			assert(content, 'target content must be set')
 			assert('storage' in content, 'planDropStored only works with TileContent that has storage')
 
-			vehicleAllocation = vehicle.reserve(goods, `planDropStored`)
+			vehicleAllocation = vehicle.storage.reserve(goods, `planDropStored`)
 			allocation = content.storage!.allocate(goods, `planDropStored`)
 		} else if (description === 'grab') {
 			// Grab plan: allocate vehicle space and reserve source storage
@@ -48,7 +48,7 @@ const transferPlanHandler: PlanHandler<TransferPlan> = {
 			assert(content, 'target content must be set')
 			assert('storage' in content, 'planGrabStored only works with TileContent that has storage')
 
-			vehicleAllocation = vehicle.allocate(goods, `planGrab`)
+			vehicleAllocation = vehicle.storage.allocate(goods, `planGrab`)
 			allocation = content.storage?.reserve(goods, `planGrabStored`)
 		}
 
@@ -98,7 +98,10 @@ const pickupPlanHandler: PlanHandler<PickupPlan> = {
 		}
 
 		const freeGoodToGrab = matchingFreeGoods[0]
-		const vehicleAllocation = vehicle.allocate({ [goodType]: 1 }, `planGrabFree.${goodType}`)
+		const vehicleAllocation = vehicle.storage.allocate(
+			{ [goodType]: 1 },
+			`planGrabFree.${goodType}`,
+		)
 		const allocation = freeGoodToGrab.allocate(`planGrabFree.${goodType}`)
 		plan.releaseStopper = namedEffect('plan.releaseStopper', () => {
 			if (freeGoodToGrab.isRemoved) character.cancelPlan(plan)

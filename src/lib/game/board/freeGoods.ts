@@ -97,7 +97,7 @@ export class FreeGoods extends withTicked(withGenerator(GameObject)) {
 		this.goods.set(coord, [...(this.goods.get(coord) || []), good])
 
 		// Create sprite after game is loaded
-		const sprite = new Sprite(this.game.getTexture(good.goodType))
+		const sprite = new Sprite(this.game.getTexture(`goods.${good.goodType}`))
 		sprite.anchor.set(0.5, 0.5) // Center the sprite anchor
 		if (['wood', 'planks'].includes(good.goodType)) {
 			this.woodishes.add(good)

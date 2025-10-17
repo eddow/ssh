@@ -121,7 +121,7 @@ export class UnBuiltLand extends withTicked(TileContent) {
 		return this.terrain === 'water' ? Number.POSITIVE_INFINITY : 1
 	}
 	get background() {
-		return `terrain-${this.terrain}`
+		return `terrain.${this.terrain}`
 	}
 
 	/**

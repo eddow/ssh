@@ -214,7 +214,7 @@ export class EatStep extends AEvolutionStep {
 		super(activityDurations.eating)
 		assert('feedingValue' in goodsCatalog[food], `Food ${food} has no feeding value`)
 		this.feedingValue = goodsCatalog[food].feedingValue as number
-		assert(this.character.vehicle.removeGood(food, 1) === 1, "Didn't have food he is trying to eat")
+		assert(this.character.carry.removeGood(food, 1) === 1, "Didn't have food he is trying to eat")
 	}
 	evolve(_: number, dt: number): void {
 		this.character.hunger = Math.max(0, this.character.hunger - this.feedingValue * dt)

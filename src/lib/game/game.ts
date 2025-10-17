@@ -10,7 +10,7 @@ import {
 	Ticker,
 } from 'pixi.js'
 import * as gameContent from '$assets/game-content'
-import { prefix, resources } from '$assets/resources'
+import { prefix, type ResourceTree, resources } from '$assets/resources'
 import { assert } from '$lib/debug'
 import { interactionMode, mrg } from '$lib/globals.svelte'
 import { registerPixiApp, unregisterPixiApp } from '$lib/hmr-pixi'
@@ -36,7 +36,23 @@ import { Population } from './population/population'
 
 unreactive(gameContent)
 
-const assetsToLoad = Object.entries(resources)
+// Helper function to flatten the tree structure into dot-separated keys
+export function flattenResources(tree: ResourceTree, prefix = ''): Record<string, string> {
+	const result: Record<string, string> = {}
+
+	for (const [key, value] of Object.entries(tree)) {
+		const fullKey = prefix ? `${prefix}.${key}` : key
+
+		if (typeof value === 'string') {
+			result[fullKey] = value
+		} else {
+			Object.assign(result, flattenResources(value, fullKey))
+		}
+	}
+
+	return result
+}
+const assetsToLoad = Object.entries(flattenResources(resources))
 export const assetUrls = Object.fromEntries(
 	assetsToLoad.map(([key, resource]) => [key, `${prefix}${resource}`]),
 )
@@ -174,7 +190,7 @@ export class Game extends Eventful<GameEvents> {
 	}
 
 	private tickerCallback = (timer: Ticker) => {
-		const deltaSeconds = (25 * timer.elapsedMS) / 1000
+		const deltaSeconds = (5 * timer.elapsedMS) / 1000
 		if (deltaSeconds > 1) return // more than 1 second = paused on debugging, skip passing time when debugger paused
 		for (const object of this.tickedObjects) {
 			if ('destroyed' in object && object.destroyed) continue

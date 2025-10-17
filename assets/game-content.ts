@@ -30,7 +30,7 @@ export const deposits = {
 	berry_bush: {
 		maxAmount: 18,
 		regenerate: 0.01,
-		sprites: ['bushes/bush1'],
+		sprites: ['objects.bushes/bush1'],
 		generation: {
 			berries: 0.000214, // Balanced for 1 berry per bush at equilibrium
 		},
@@ -38,28 +38,28 @@ export const deposits = {
 	rock: {
 		maxAmount: 18,
 		sprites: [
-			'rocks/rock1',
-			'rocks/rock2',
-			'rocks/rock3',
-			'rocks/rock4',
-			'rocks/rock5',
-			'rocks/rock6',
+			'objects.rocks/rock1',
+			'objects.rocks/rock2',
+			'objects.rocks/rock3',
+			'objects.rocks/rock4',
+			'objects.rocks/rock5',
+			'objects.rocks/rock6',
 		],
 	},
 	tree: {
 		maxAmount: 12,
 		sprites: [
-			'trees/tree1',
-			'trees/tree2',
-			'trees/tree3',
-			'trees/tree4',
-			'trees/tree5',
-			'trees/tree6',
-			'trees/tree7',
-			'trees/tree8',
-			'trees/tree9',
-			'trees/tree10',
-			'trees/tree11',
+			'objects.trees/tree1',
+			'objects.trees/tree2',
+			'objects.trees/tree3',
+			'objects.trees/tree4',
+			'objects.trees/tree5',
+			'objects.trees/tree6',
+			'objects.trees/tree7',
+			'objects.trees/tree8',
+			'objects.trees/tree9',
+			'objects.trees/tree10',
+			'objects.trees/tree11',
 		],
 		regenerate: 0.01,
 		generation: {
@@ -73,8 +73,8 @@ export const alveoli = {
 		preparationTime: 2,
 		action: { type: 'harvest', deposit: 'tree', output: { wood: 1 } },
 		workTime: 3,
-		sprites: ['chopper'],
-		icon: 'chopper',
+		sprites: ['buildings.chopper'],
+		icon: 'buildings.chopper',
 		construction: {
 			goods: { stone: 2 }, // No wood/plank cost for the wood-chopper itself
 			time: 4,
@@ -84,8 +84,8 @@ export const alveoli = {
 		preparationTime: 3,
 		action: { type: 'harvest', deposit: 'rock', output: { stone: 1 } },
 		workTime: 4,
-		sprites: ['cutter'],
-		icon: 'cutter',
+		sprites: ['buildings.cutter'],
+		icon: 'buildings.cutter',
 		construction: {
 			goods: { wood: 2, planks: 1 }, // No stone cost for the stone cutter
 			time: 5,
@@ -95,8 +95,8 @@ export const alveoli = {
 		preparationTime: 1,
 		action: { type: 'transform', inputs: { wood: 1 }, output: { planks: 1 } },
 		workTime: 2,
-		sprites: ['sawmill'],
-		icon: 'sawmill',
+		sprites: ['buildings.sawmill'],
+		icon: 'buildings.sawmill',
 		construction: {
 			goods: { wood: 3, stone: 2 }, // No planks cost for the sawmill
 			time: 6,
@@ -106,8 +106,8 @@ export const alveoli = {
 		preparationTime: 1,
 		action: { type: 'storage', capacity: 3, slots: 6 },
 		workTime: 0,
-		sprites: ['store'],
-		icon: 'store',
+		sprites: ['buildings.store'],
+		icon: 'buildings.store',
 		construction: {
 			goods: { wood: 2, planks: 2, stone: 1 },
 			time: 6,
@@ -117,8 +117,8 @@ export const alveoli = {
 		preparationTime: 1,
 		action: { type: 'gather', radius: 3 },
 		workTime: 2,
-		sprites: ['transit'],
-		icon: 'transit',
+		sprites: ['buildings.transit'],
+		icon: 'buildings.transit',
 		construction: {
 			goods: { wood: 1, planks: 1, stone: 1 },
 			time: 5,
@@ -128,8 +128,8 @@ export const alveoli = {
 		preparationTime: 1,
 		action: { type: 'engineer', radius: 6 },
 		workTime: 2,
-		sprites: ['engineer'],
-		icon: 'engineer',
+		sprites: ['buildings.engineer'],
+		icon: 'buildings.engineer',
 		construction: {
 			goods: { wood: 1, stone: 1 },
 			time: 4,
@@ -140,29 +140,38 @@ export const alveoli = {
 export const goods = {
 	berries: {
 		feedingValue: 72,
-		sprites: ['berries'],
-		icon: 'berries',
+		sprites: ['goods.berries'],
+		icon: 'goods.berries',
 		halfLife: 300,
 	},
 	mushrooms: {
 		feedingValue: 160,
-		sprites: ['mushrooms'],
-		icon: 'mushrooms',
+		sprites: ['goods.mushrooms'],
+		icon: 'goods.mushrooms',
 		halfLife: 600,
 	},
 	planks: {
-		sprites: ['planks'],
-		icon: 'planks',
+		sprites: ['goods.planks'],
+		icon: 'goods.planks',
 		halfLife: 1200,
 	},
 	stone: {
-		sprites: ['stone'],
-		icon: 'stone',
+		sprites: ['goods.stone'],
+		icon: 'goods.stone',
 		halfLife: Infinity, // infinite half-life
 	},
 	wood: {
-		sprites: ['wood'],
-		icon: 'wood',
+		sprites: ['goods.wood'],
+		icon: 'goods.wood',
 		halfLife: 900,
 	},
 } as const satisfies Record<string, Ssh.GoodsDefinition>
+
+export const vehicles = {
+	'by-hands': {
+		sprites: ['vehicles.byHands'],
+		storage: { capacity: 1, slots: 2 },
+		walkTime: 1, // Time to walk by foot
+		transferTime: 1, // Time to grab/drop items by hand
+	},
+} as const satisfies Record<string, Ssh.VehicleDefinition>

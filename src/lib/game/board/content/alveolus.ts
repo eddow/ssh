@@ -34,12 +34,12 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition, typeof 
 	}
 	public tile: Tile
 	public declare hive: Hive
-	public storage: Storage<any>
+	public storage: Storage
 	// Configurable properties removed - walkway and conveyor are no longer used
 	public advertisingEffect?: ScopedCallback
 	public working: boolean = true
 
-	constructor(tile: Tile, storage: Storage<any>) {
+	constructor(tile: Tile, storage: Storage) {
 		const tileCoord = toAxialCoord(tile.position)
 		super(tile.board.game, `alveolus:${tileCoord.q},${tileCoord.r}`)
 		this.storage = storage
@@ -64,7 +64,7 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition, typeof 
 		return 1
 	}
 	get background() {
-		return 'concrete'
+		return 'terrain.concrete'
 	}
 	get gates(): AlveolusGate[] {
 		return this.tile.surroundings

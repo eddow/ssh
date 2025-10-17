@@ -1,5 +1,5 @@
 import { reactive, type ScopedCallback } from 'mutts/src'
-import { ColorMatrixFilter, Sprite } from 'pixi.js'
+import { ColorMatrixFilter, Container, Sprite } from 'pixi.js'
 import { characterEvolutionRates, characterTriggerLevels, maxWalkTime } from '$assets/constants'
 import { goods as goodsCatalog } from '$assets/game-content'
 import { assert, namedEffect } from '$lib/debug'
@@ -10,6 +10,7 @@ import { axialDistance, type Position, toAxialCoord, toWorldCoord } from '../../
 import type { Alveolus } from '../board/content/alveolus'
 import type { Tile } from '../board/tile'
 import type { Game } from '../game'
+import type { Storage } from '../storage'
 
 // Simple job scoring functions
 function calculateJobScore(_character: Character, job: Job): number {
@@ -24,8 +25,8 @@ import { withScripted } from '../npcs/object'
 // biome-ignore lint/correctness/noUnusedImports: We need `subject` for mixins tranquility: all propertyKeys are known
 import { type ScriptExecution, subject } from '../npcs/scripts'
 import { GameObject, withGenerator, withInteractive, withTicked } from '../object'
-import { ByHands } from './vehicle/by-hands'
-import type { Vehicle } from './vehicle/vehicle'
+import { renderTileGoods } from '../storage/goods-renderer'
+import { Vehicle } from './vehicle/vehicle'
 
 @reactive
 export class Character extends withInteractive(
@@ -70,7 +71,7 @@ export class Character extends withInteractive(
 		if (queueStep) this.stepExecutor = queueStep
 
 		// Create vehicle (by hands for now) - direct instantiation like Tile->TileContent
-		this.vehicle = new ByHands(this)
+		this.vehicle = new Vehicle.class['by-hands'](this)
 	}
 
 	/** Attempt to step onto a tile, managing board occupancy. */
@@ -156,9 +157,9 @@ export class Character extends withInteractive(
 
 	get carriedFood(): GoodType | undefined {
 		return maxBy(
-			Object.entries(this.vehicle.stock) as [GoodType, number][],
+			Object.entries(this.carry.stock) as [GoodType, number][],
 			([goodType]) =>
-				(this.vehicle.available(goodType) > 0 &&
+				(this.carry.available(goodType) > 0 &&
 					'feedingValue' in goodsCatalog[goodType] &&
 					(goodsCatalog[goodType].feedingValue as number)) ||
 				undefined,
@@ -179,7 +180,10 @@ export class Character extends withInteractive(
 		return {
 			name: this.name,
 			coord: this.position,
-			vehicle: this.vehicle.debugInfo,
+			vehicle: {
+				name: this.vehicle.name,
+				storage: this.carry,
+			},
 		}
 	}
 
@@ -210,7 +214,7 @@ export class Character extends withInteractive(
 	findAction() {
 		if (this.hunger > this.triggerLevels.hunger.high) return this.scriptsContext.selfCare.goEat()
 
-		if (Object.values(this.vehicle.stock).some((qty) => qty > 0))
+		if (Object.values(this.carry.stock).some((qty) => qty > 0))
 			return this.scriptsContext.inventory.dropAllFree()
 		const tryAnActivity =
 			this.fatigue < this.triggerLevels.fatigue.high ? this.findBestJob() : undefined // goRest
@@ -221,10 +225,22 @@ export class Character extends withInteractive(
 	render(): ScopedCallback | undefined {
 		const { game } = this
 
+		// Create a container to keep character and vehicle together
+		const group = new Container()
+
 		// Create character sprite
 		const characterSprite = new Sprite(game.getTexture('character'))
 		characterSprite.anchor.set(0.5, 0.5)
 		game.hex.resizeSprite(characterSprite, 1.2)
+		group.addChild(characterSprite)
+
+		// Create vehicle sprite (by hands)
+		const vehicleSprite = new Sprite(game.getTexture('vehicles.byHands'))
+		vehicleSprite.anchor.set(0.5, 0.5)
+		// Slightly smaller than character and offset down a bit
+		game.hex.resizeSprite(vehicleSprite, 0.9)
+		vehicleSprite.position.set(0, characterSprite.height * 0.15)
+		group.addChild(vehicleSprite)
 
 		// Hover highlight similar to tiles
 		const brightnessFilter = new ColorMatrixFilter()
@@ -240,18 +256,38 @@ export class Character extends withInteractive(
 		})
 		const positionEffect = namedEffect('character.position', () => {
 			const { x, y } = toWorldCoord(this.position)
-			characterSprite.position.set(x, y)
+			group.position.set(x, y)
+		})
+
+		// Vehicle-specific effect hook (reserved for future state-driven visuals)
+		const vehicleEffect = namedEffect('character.vehicle', () => {
+			// In the future, react to vehicle changes (e.g., carried goods) and update sprite
+			void vehicleSprite
 		})
 
 		// Add to characters layer
-		game.charactersLayer.addChild(characterSprite)
+		game.charactersLayer.addChild(group)
+
+		// Render the vehicle's goods inside the group; smaller, centered, lower half, above vehicle
+		const goodsCleanup = renderTileGoods(
+			game,
+			characterSprite.height * 0.7,
+			() => this.carry.renderedGoods(),
+			{ x: 0, y: characterSprite.height * 0.15 }, // relative to group center
+			group,
+		)
 
 		// Return cleanup function
 		return () => {
 			mouseoverEffect()
 			positionEffect()
-			characterSprite.destroy()
-			game.charactersLayer.removeChild(characterSprite)
+			vehicleEffect()
+			goodsCleanup?.()
+			group.destroy({ children: true })
+			game.charactersLayer.removeChild(group)
 		}
+	}
+	get carry(): Storage {
+		return this.vehicle.storage
 	}
 }

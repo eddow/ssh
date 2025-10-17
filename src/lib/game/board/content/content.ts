@@ -16,7 +16,7 @@ export abstract class TileContent extends withGenerator(GameObject) {
 	abstract readonly walkTime: number
 	abstract readonly background: string
 	// Optional storage - undefined for tiles that don't store goods
-	abstract storage?: Storage<any>
+	abstract storage?: Storage
 	/**
 	 * Render the tile content including both background and content
 	 * @returns A cleanup function to be called when the content is removed

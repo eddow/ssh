@@ -45,13 +45,12 @@ export class GatherAlveolus extends TransitAlveolus {
 		let path: Positioned[] | undefined
 		let goodType: GoodType | undefined
 		let selectableGoods = Object.keys(this.hive.needs) as GoodType[]
-		if (character)
-			selectableGoods = selectableGoods.filter((good) => character.vehicle.hasRoom(good))
+		if (character) selectableGoods = selectableGoods.filter((good) => character.carry.hasRoom(good))
 		if (selectableGoods.length === 0) return undefined
 
 		// If character already carries a good, prioritize retrieving the same good.
 		if (character) {
-			const hands = character.vehicle.stock
+			const hands = character.carry.stock
 			const carried = Object.entries(hands).filter(([, qty]) => (qty || 0) > 0) as [
 				GoodType,
 				number,
@@ -59,8 +58,9 @@ export class GatherAlveolus extends TransitAlveolus {
 			if (carried.length > 0) {
 				assert(carried.length === 1, 'Gatherer must hold at most one good type')
 				const [inHandType] = carried[0]
+				if (!character.carry.hasRoom(inHandType)) return undefined
 				// Only prioritize if the hive needs it and we have capacity left
-				if (selectableGoods.includes(inHandType) && character.vehicle.hasRoom(inHandType) > 0) {
+				if (selectableGoods.includes(inHandType) && character.carry.hasRoom(inHandType) > 0) {
 					const result = hex.freeGoods.findNearestGoods(
 						startPos,
 						startPos,

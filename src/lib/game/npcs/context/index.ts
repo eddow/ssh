@@ -24,7 +24,7 @@ class CharacterContext extends InteractiveContext<Character> {
 	}
 	@contract('GoodType?')
 	haveRoom(goodType?: GoodType): number {
-		return this[subject].vehicle.hasRoom(goodType)
+		return this[subject].carry.hasRoom(goodType)
 	}
 	@contract('HarvestAlveolus')
 	isGatherable(harvestAlveolus: HarvestAlveolus) {

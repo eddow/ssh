@@ -3,7 +3,7 @@ import type { RenderedGoodSlots } from './goods-renderer'
 import { AllocationError } from './guard'
 import { Storage } from './storage'
 
-export class NoStorage extends Storage<any> {
+export class NoStorage extends Storage {
 	hasRoom(_goodType?: GoodType): number {
 		return 0
 	}
@@ -21,6 +21,10 @@ export class NoStorage extends Storage<any> {
 	}
 
 	get stock(): { [k in GoodType]?: number } {
+		return {}
+	}
+
+	get availables(): { [k in GoodType]?: number } {
 		return {}
 	}
 

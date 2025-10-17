@@ -9,7 +9,7 @@ declare namespace Ssh {
 	interface SpecificStorage {
 		[goodType: string]: number
 	}
-	type StorageAction = SlottedStorageAction | SpecificStorageAction
+	type StorageSpec = SlottedStorage | SpecificStorage
 	interface DepositDefinition {
 		maxAmount: number
 		regenerate?: number
@@ -36,22 +36,15 @@ declare namespace Ssh {
 		type: 'engineer'
 		radius: number
 	}
-	interface SlottedStorageAction {
+	type StorageAction = {
 		type: 'storage'
-		capacity: number
-		slots: number
-	}
-	interface SpecificStorageAction {
-		type: 'storage'
-		[goodType: string]: number
-	}
+	} & StorageSpec
 	type Action =
 		| HarvestingAction
 		| TransformationAction
 		| GatherAction
 		| EngineerAction
-		| SlottedStorageAction
-		| SpecificStorageAction
+		| StorageAction
 
 	interface AlveolusDefinition<ActionType extends Action = Action> {
 		preparationTime: number
@@ -69,6 +62,13 @@ declare namespace Ssh {
 		icon: Sprite
 		sprites: Sprite[]
 		halfLife: number
+	}
+
+	interface VehicleDefinition {
+		sprites: Sprite[]
+		storage: StorageSpec
+		walkTime: number
+		transferTime: number
 	}
 	interface TerrainDefinition {
 		generation?: {
