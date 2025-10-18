@@ -130,7 +130,6 @@ const pickupPlanHandler: PlanHandler<PickupPlan> = {
 		// Clear allocations back to undefined
 		delete plan.vehicleAllocation
 		delete plan.allocation
-		plan.releaseStopper?.()
 	},
 }
 
@@ -170,15 +169,18 @@ class PlanFunctions {
 
 	// No @contract decorators needed - Plan types are simple interfaces
 	begin(plan: Plan) {
+		this[subject].log(`Begin plan: ${plan.type}`)
 		planHandlers[plan.type].begin(plan, this[subject])
 	}
 
 	conclude(plan: Plan) {
+		this[subject].log(`Conclude plan: ${plan.type}`)
 		if ('releaseStopper' in plan) plan.releaseStopper?.()
 		planHandlers[plan.type].conclude?.(plan, this[subject])
 	}
 
 	cancel(plan: Plan) {
+		this[subject].log(`Cancel plan: ${plan.type}`)
 		planHandlers[plan.type].cancel?.(plan, this[subject])
 	}
 

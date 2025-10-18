@@ -3,7 +3,6 @@ function goWork(jobPlan, path)
 	plan jobPlan
 		inventory.dropAllFree
 		if tile != target.tile then do
-			log tile, target.tile
 			walk.until path
 		while tile != target.tile
 			path = find.path(target.tile, false)
@@ -69,6 +68,7 @@ function gather(jobPlan)
 	do
 		nextJob = work.myNextJob()
 	while I.keepWorking and nextJob
+		log "Gather more:", nextJob.goodType
 		// Use path and goodType from nextJob
 		if not nextJob.path then error "No path found to gather"
 		if not nextJob.goodType then error "No good type to gather"
@@ -76,9 +76,12 @@ function gather(jobPlan)
 	loop
 	// bring back to alveolus tile (hive edge) if we have goods
 	if not I.carry.isEmpty then
+		log "Dropping goods to alveolus"
 		path = find.path(alveolus.tile, false)
 		if not path then error "No path found to alveolus"
 		inventory.dropStored I.carry.stock, alveolus.tile, path, false
+	else
+		log "Empty handed, no goods to drop"
 	end if
 end function
 

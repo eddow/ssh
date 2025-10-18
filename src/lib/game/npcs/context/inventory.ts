@@ -165,16 +165,6 @@ class InventoryFunctions {
 		}
 
 		return new DurationStep(totalAmount * vehicle.transferTime, 'convey', description)
-			.finished(() => {
-				// Fulfill the allocations when the step completes
-				action.allocation?.fulfill()
-				action.vehicleAllocation?.fulfill()
-			})
-			.canceled(() => {
-				// Cancel the allocations when the step is canceled
-				action.allocation?.cancel()
-				action.vehicleAllocation?.cancel()
-			})
 	}
 }
 

@@ -3,13 +3,18 @@ import { Game, type GameEvents, type InteractiveGameObject } from './game'
 import { chopSaw as patches } from './game/exampleGames'
 
 const storedConfig = localStorage.getItem('configuration')
+interface Configuration {
+	darkMode: boolean
+	timeControl: 'pause' | 'play' | 'fast-forward' | 'gonzales'
+}
 export const configuration = $state(
 	storedConfig
 		? JSON.parse(storedConfig)
 		: {
 				darkMode: window.matchMedia('(prefers-color-scheme: dark)').matches,
+				timeControl: 'play',
 			},
-)
+) as Configuration
 export const debugInfo = $state({} as Record<string, any>)
 
 type GamedEvents = {

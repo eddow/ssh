@@ -12,7 +12,7 @@ import {
 import * as gameContent from '$assets/game-content'
 import { prefix, type ResourceTree, resources } from '$assets/resources'
 import { assert } from '$lib/debug'
-import { interactionMode, mrg } from '$lib/globals.svelte'
+import { configuration, interactionMode, mrg } from '$lib/globals.svelte'
 import { registerPixiApp, unregisterPixiApp } from '$lib/hmr-pixi'
 import type { AlveolusType, DepositType, GoodType } from '$lib/types'
 import { axial, axialRectangle, cartesian, fromCartesian } from '$lib/utils/axial'
@@ -35,7 +35,13 @@ import type { HittableGameObject, InteractiveGameObject } from './object'
 import { Population } from './population/population'
 
 unreactive(gameContent)
-
+const timeMultiplier = {
+	pause: 0,
+	play: 1,
+	'fast-forward': 2,
+	gonzales: 4,
+} as const
+const rootSpeed = 3
 // Helper function to flatten the tree structure into dot-separated keys
 export function flattenResources(tree: ResourceTree, prefix = ''): Record<string, string> {
 	const result: Record<string, string> = {}
@@ -190,8 +196,26 @@ export class Game extends Eventful<GameEvents> {
 	}
 
 	private tickerCallback = (timer: Ticker) => {
-		const deltaSeconds = (5 * timer.elapsedMS) / 1000
+		let deltaSeconds =
+			((rootSpeed * timer.elapsedMS) / 1000) * timeMultiplier[configuration.timeControl]
 		if (deltaSeconds > 1) return // more than 1 second = paused on debugging, skip passing time when debugger paused
+
+		// Apply time control multiplier
+		switch (configuration.timeControl) {
+			case 'pause':
+				deltaSeconds = 0
+				break
+			case 'play':
+				// Normal speed (no change)
+				break
+			case 'fast-forward':
+				deltaSeconds *= 2
+				break
+			case 'gonzales':
+				deltaSeconds *= 4
+				break
+		}
+
 		for (const object of this.tickedObjects) {
 			if ('destroyed' in object && object.destroyed) continue
 			object.update(deltaSeconds)

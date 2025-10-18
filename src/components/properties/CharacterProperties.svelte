@@ -1,67 +1,67 @@
 <script lang="ts">
-	import { Badge } from 'flowbite-svelte'
-	import GoodsList from '$components/parts/GoodsList.svelte'
-	import PropertyGrid from '$components/parts/PropertyGrid.svelte'
-	import PropertyGridRow from '$components/parts/PropertyGridRow.svelte'
-	import StatProgressBar from '$components/parts/StatProgressBar.svelte'
-	import { AEvolutionStep, ALerpStep } from '$lib/game/npcs/steps'
-	import type { Character } from '$lib/game/population/character'
-	import { T } from '$lib/i18n'
-	import { p2s } from '$lib/mutts.svelte'
+import { Badge } from 'flowbite-svelte'
+import GoodsList from '$components/parts/GoodsList.svelte'
+import PropertyGrid from '$components/parts/PropertyGrid.svelte'
+import PropertyGridRow from '$components/parts/PropertyGridRow.svelte'
+import StatProgressBar from '$components/parts/StatProgressBar.svelte'
+import { AEvolutionStep, ALerpStep } from '$lib/game/npcs/steps'
+import type { Character } from '$lib/game/population/character'
+import { T } from '$lib/i18n'
+import { p2s } from '$lib/mutts.svelte'
 
-	let { character }: { character: Character } = $props()
-	const actions = $derived.by(p2s(() => character.actionDescription))
-	const state = $derived.by(
-		p2s(() => ({
-			hunger: character.hunger,
-			Tiredness: character.tiredness,
-			fatigue: character.fatigue,
-			triggerLevels: character.triggerLevels,
-			stepType: character.stepExecutor?.type as Ssh.ActivityType | undefined,
-			stepDescription: (character.stepExecutor?.description || undefined) as string | undefined,
-			step: character.stepExecutor instanceof AEvolutionStep ? character.stepExecutor : undefined,
-			goods: character.carry.stock
-		}))
-	)
+let { character }: { character: Character } = $props()
+const actions = $derived.by(p2s(() => character.actionDescription))
+const state = $derived.by(
+	p2s(() => ({
+		hunger: character.hunger,
+		Tiredness: character.tiredness,
+		fatigue: character.fatigue,
+		triggerLevels: character.triggerLevels,
+		stepType: character.stepExecutor?.type as Ssh.ActivityType | undefined,
+		stepDescription: (character.stepExecutor?.description || undefined) as string | undefined,
+		step: character.stepExecutor instanceof AEvolutionStep ? character.stepExecutor : undefined,
+		goods: character.carry.stock,
+	})),
+)
 
-	const stepEvolution = $derived(
-		state?.step && !(state.step instanceof ALerpStep)
-			? Math.max(0, Math.min(1, state.step.evolution))
-			: 0
-	)
-	// TODO: This is generic stuff, move it to a common place ?
-	type FlowbiteBadgeColor =
-		| 'primary'
-		| 'secondary'
-		| 'gray'
-		| 'red'
-		| 'orange'
-		| 'amber'
-		| 'yellow'
-		| 'lime'
-		| 'green'
-		| 'emerald'
-		| 'teal'
-		| 'cyan'
-		| 'sky'
-		| 'blue'
-		| 'indigo'
-		| 'violet'
-		| 'purple'
-		| 'fuchsia'
-		| 'pink'
-		| 'rose'
+const stepEvolution = $derived(
+	state?.step && !(state.step instanceof ALerpStep)
+		? Math.max(0, Math.min(1, state.step.evolution))
+		: 0,
+)
+// TODO: This is generic stuff, move it to a common place ?
+type FlowbiteBadgeColor =
+	| 'primary'
+	| 'secondary'
+	| 'gray'
+	| 'red'
+	| 'orange'
+	| 'amber'
+	| 'yellow'
+	| 'lime'
+	| 'green'
+	| 'emerald'
+	| 'teal'
+	| 'cyan'
+	| 'sky'
+	| 'blue'
+	| 'indigo'
+	| 'violet'
+	| 'purple'
+	| 'fuchsia'
+	| 'pink'
+	| 'rose'
 
-	const activityBadgeColors: Record<Ssh.ActivityType, FlowbiteBadgeColor> = {
-		walk: 'yellow',
-		work: 'red',
-		eat: 'green',
-		sleep: 'purple',
-		rest: 'indigo',
-		convey: 'blue',
-		idle: 'gray',
-		gather: 'pink'
-	}
+const activityBadgeColors: Record<Ssh.ActivityType, FlowbiteBadgeColor> = {
+	walk: 'yellow',
+	work: 'red',
+	eat: 'green',
+	sleep: 'purple',
+	rest: 'indigo',
+	convey: 'blue',
+	idle: 'gray',
+	gather: 'pink',
+}
 </script>
 
 <div class="character-properties">

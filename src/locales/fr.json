@@ -10,7 +10,13 @@
 		"selection": "Sélection",
 		"none": "Aucun",
 		"wheelZoomLookAt": "Molette = zoom + regarder",
-		"bothButtonsPan": "Boutons gauche+droite enfoncés = panoramique"
+		"bothButtonsPan": "Boutons gauche+droite enfoncés = panoramique",
+		"timeControl": {
+			"pause": "Pause",
+			"play": "Lecture",
+			"fastForward": "Avance rapide",
+			"gonzales": "Avance très rapide"
+		}
 	},
 	"game": {
 		"gameTitle": "Jeu {game}",
