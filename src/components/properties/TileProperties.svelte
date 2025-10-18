@@ -11,12 +11,15 @@ import { Alveolus } from '$lib/game/board/content/alveolus'
 import { UnBuiltLand } from '$lib/game/board/content/unbuilt-land'
 import type { Tile } from '$lib/game/board/tile'
 import { T } from '$lib/i18n'
-import { p2s } from '$lib/mutts.svelte'
+import { m2s, p2s } from '$lib/mutts.svelte'
 import { computeStyleFromTexture } from '$lib/utils/images'
 
 let { tile }: { tile: Tile } = $props()
+//*
 let tileContent = $derived.by(p2s(() => tile.content))
-let stock = $derived.by(p2s(() => tile.content!.storage?.stock))
+let stock = $derived.by(p2s(() => tile.content!.storage?.stock)) /*/
+	let tileContent = $derived(m2s(tile.content))
+	let stock = $derived(m2s(tile.content!.storage?.stock))//*/
 // Aggregate unallocated free goods on the ground into a GoodType -> count map
 let freeStock = $derived.by(
 	p2s(() => {
@@ -110,7 +113,7 @@ $effect(() => {
 				{#if tileContent instanceof UnBuiltLand}
 					<UnBuiltProperties content={tileContent} />
 				{:else if tileContent instanceof Alveolus}
-					<AlveolusProperties content={tileContent} game={tile.board.game} />
+					<AlveolusProperties content={tileContent} />
 				{/if}
 			</PropertyGrid>
 		</div>

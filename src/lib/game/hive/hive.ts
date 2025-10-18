@@ -32,7 +32,6 @@ export interface MovingGood {
 export class Hive extends AdvertisementManager<Alveolus> {
 	private constructor(public readonly board: HexBoard) {
 		super()
-		namedEffect(`${this.name}.checkTotalWoodish`, () => this.checkTotalWoodish('effect'))
 	}
 	// Path cache for complete paths between alveoli
 	private pathCache = new Map<string, AxialCoord[]>()
@@ -86,6 +85,7 @@ export class Hive extends AdvertisementManager<Alveolus> {
 	 */
 	private copyFrom(hive: Hive) {
 		if (hive.name) this.name = hive.name
+		this.movingGoods = hive.movingGoods
 	}
 	/**
 	 * This hive is defined as a part of another hive who had just been divided by an alveolus removal
@@ -96,6 +96,8 @@ export class Hive extends AdvertisementManager<Alveolus> {
 			this.name = `${hive.name} - ${Math.floor(this.board.game.random(36 ** 3))
 				.toString(36)
 				.padStart(3, '0')}`
+		// TODO: What to do with movingGoods?
+		// TODO: destroying an alveolus (and its borders) should "free" the goods
 	}
 	/**
 	 * Has to be called *after* tile.content is not a alveolus anymore
@@ -312,51 +314,6 @@ export class Hive extends AdvertisementManager<Alveolus> {
 		)
 		return storage
 	}
-	checkTotalWoodish(..._dbg: any[]) {}
-	/* Old which hunting system for checking woodish(wood+plank) total amount in hive and check invariability
-	public lastCounted = { moving: 0, storage: 0, free: 0, gates: 0 }
-	checkTotalWoodish(..._dbg: any[]) {
-		const counted = {
-			moving: Array.from(this.movingGoods.values())
-				.reduce((acc, list) => [...acc, ...list.map((mg) => mg.goodType)], [] as GoodType[])
-				.filter((goodType) => ['wood', 'planks'].includes(goodType)).length,
-			storage: Array.from(this.alveoli)
-				.flatMap((alveolus) =>
-					Object.entries(alveolus.storage.stock)
-						.filter(([goodType]) => ['wood', 'planks'].includes(goodType))
-						.map(([_, qty]) => qty),
-				)
-				.reduce((acc, qty) => acc + qty, 0),
-			free: Array.from(this.alveoli)
-				.reduce(
-					(acc, alveolus) => [
-						...acc,
-						...alveolus.game.hex.freeGoods.getGoodsAt(alveolus.tile.position),
-					],
-					[] as FreeGood[],
-				)
-				.filter((good) => ['wood', 'planks'].includes(good.goodType)).length,
-			gates: Array.from(this.gates)
-				.flatMap((gate) =>
-					Object.entries(gate.storage.stock)
-						.filter(([goodType]) => ['wood', 'planks'].includes(goodType))
-						.map(([_, qty]) => qty),
-				)
-				.reduce((acc, qty) => acc + qty, 0),
-		}
-		const total = counted.free + counted.storage + counted.gates //+ counted.moving
-		if (
-			//this.lastCounted.moving !== counted.moving ||
-			this.lastCounted.storage !== counted.storage ||
-			this.lastCounted.free !== counted.free ||
-			this.lastCounted.gates !== counted.gates
-		) {
-			const oldTotal = this.lastCounted.free + this.lastCounted.storage + this.lastCounted.gates //+ this.lastCounted.moving
-			if (oldTotal > total) console.warn(`Woodish: ${oldTotal} -> ${total}`, counted, ...dbg)
-			else console.log(`Woodish: ${oldTotal} -> ${total}`, counted, ...dbg)
-			this.lastCounted = counted
-		}
-	}*/
 	advertise(
 		advertiser: Alveolus,
 		ads: Partial<
@@ -366,9 +323,7 @@ export class Hive extends AdvertisementManager<Alveolus> {
 			>
 		>,
 	): void {
-		this.checkTotalWoodish('advertise-before', advertiser)
 		super.advertise(advertiser, ads)
-		this.checkTotalWoodish('advertise-after', advertiser)
 	}
 
 	destroy() {

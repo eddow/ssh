@@ -36,3 +36,25 @@ export function p2s<T extends object | any[] | undefined>(getter: () => T): () =
 
 	return () => (initialized ? value : getter())
 }
+export function m2s<T extends Record<string, any>>(obj: T): T {
+	// Start with a shallow clone of the object's own properties
+	const reactiveState = $state({ ...obj })
+	$effect(() =>
+		watch(obj, (newVal) => {
+			Object.assign(reactiveState, newVal)
+		}),
+	)
+	// Return a Proxy that syncs changes with the reactive state
+	return new Proxy<T>(obj, {
+		get(_target, prop) {
+			// For other properties, return from the reactive state
+			return reactiveState[prop as keyof T]
+		},
+		set(target, prop, value) {
+			// Update both the original object and the reactive state
+			target[prop as keyof T] = value
+			reactiveState[prop as keyof T] = value
+			return true
+		},
+	})
+}

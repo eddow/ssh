@@ -284,10 +284,10 @@ export class SlottedStorage extends Storage<SlottedAllocation> {
 		return new SlottedAllocation(this, alloc, reason)
 	}
 
-	canStoreAll(_goods: Goods): boolean {
+	canStoreAll(goods: Goods): boolean {
 		// Prepare remaining requirements per good type
 		const remaining: { [k: string]: number } = {}
-		for (const [t, q] of Object.entries(_goods)) {
+		for (const [t, q] of Object.entries(goods)) {
 			if (!q || q <= 0) continue
 			remaining[t] = q
 		}

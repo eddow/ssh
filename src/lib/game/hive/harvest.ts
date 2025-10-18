@@ -42,12 +42,12 @@ export class HarvestAlveolus extends TransitAlveolus {
 	// Returns detailed job info including path when called from character
 	nextJob(character?: Character): HarvestJob | undefined {
 		if (!this.working) return undefined
-		const startPos = character ? toAxialCoord(character.position) : toAxialCoord(this.tile.position)
+		const startPos = toAxialCoord(character ? character.position : this.tile.position)
 		const hex = this.tile.game.hex
 		const searchDistance = character ? maxWalkTime : 6
 
 		// Helper to find deposit with priority
-		const findDeposit = (priority: 'construction' | 'clearing' | 'zone' | 'any') => {
+		const findDeposit = (priority: 'clearing' | 'any') => {
 			const searchFn = (coord: Positioned) => {
 				const tile = hex.getTile(coord)
 				if (!(tile?.content instanceof UnBuiltLand)) return false

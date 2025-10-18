@@ -1,4 +1,4 @@
-import { computed, unreactive } from 'mutts/src'
+import { computed, reactive, unreactive } from 'mutts/src'
 import type { ExecutionContext } from 'npc-script/src'
 import { assert } from '$lib/debug'
 import type { Game } from '../game'
@@ -19,7 +19,7 @@ export function withScripted<T extends abstract new (...args: any[]) => TickedGa
 			})
 		}
 		public stepExecutor: ASingleStep | undefined
-		public runningScripts: ScriptExecution[] = []
+		public runningScripts: ScriptExecution[] = reactive([])
 		get runningScript() {
 			return this.runningScripts[0]
 		}
@@ -77,7 +77,6 @@ export function withScripted<T extends abstract new (...args: any[]) => TickedGa
 					uselessStepExecutor = this.stepExecutor.constructor*/
 				remaining = newRemaining
 				if (remaining !== undefined) {
-					this.tile.content?.hive?.checkTotalWoodish(this.stepExecutor)
 					assert(this.stepExecutor.status !== 'pending', 'Step executor is not pending')
 					this.stepExecutor = undefined
 					this.nextStep()

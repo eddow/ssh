@@ -163,7 +163,7 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition, typeof 
 			const storage = hive.storageAt(mg.path[0])
 			return storage?.hasRoom(mg.goodType) || mg.path.length === 1
 		}
-
+		// TODO: take a random movement or keep it arbitrary?
 		// Collect movements at the tile itself
 		const atHere = hive.movingGoods.get(here)
 		if (atHere) {
@@ -300,7 +300,6 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition, typeof 
 	private conveyJob(): Job | undefined {
 		// Provide a convey job only when there are pass-through movements via borders
 		// Now handles circular blockades - aGoodMovement will return a cycle to untangle
-		// TODO: the chosen movement should be random, not arbitrary
 		return this.aGoodMovement ? ({ job: 'convey', fatigue: 3, urgency: 2 } as Job) : undefined
 	}
 

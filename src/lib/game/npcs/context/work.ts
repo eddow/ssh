@@ -64,7 +64,6 @@ class WorkFunctions {
 			alveolus === character.tile.content,
 			'Character must be assigned to the alveolus on the same tile',
 		)
-		alveolus.hive.checkTotalWoodish('convey-before', alveolus)
 		// Get movement(s) - either a single movement or a cycle
 		const movements = alveolus.aGoodMovement
 		if (!movements || movements.length === 0) return
@@ -100,7 +99,6 @@ class WorkFunctions {
 			totalTime += character.vehicle.transferTime * distance * movementData.length
 		}
 
-		alveolus.hive.checkTotalWoodish('convey-in-progress', alveolus)
 		// Create unified MultiMoveStep that animates all movements
 		const description =
 			movementData.length === 1 ? `convey.${movementData[0].mg.goodType}` : `convey.cycle`
@@ -120,7 +118,6 @@ class WorkFunctions {
 				}
 			})
 			.finished(() => {
-				alveolus.hive.checkTotalWoodish('convey-finishing', alveolus)
 				// Complete all movements
 				for (const { mg, moving, hopAlloc, hop } of movementData) {
 					const nextStorage = hive.storageAt(hop)
@@ -139,7 +136,6 @@ class WorkFunctions {
 						)
 					}
 				}
-				alveolus.hive.checkTotalWoodish('convey-finished', alveolus)
 			})
 			.final(() => {
 				for (const { moving } of movementData) {

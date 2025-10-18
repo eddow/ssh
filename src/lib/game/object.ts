@@ -1,6 +1,6 @@
 // Library used by Pixi
 import EventEmitter from 'eventemitter3'
-import { ReactiveBase, type ScopedCallback, unreactive } from 'mutts/src'
+import { ReactiveBase, type ScopedCallback, unreactive, unwrap } from 'mutts/src'
 import { namedEffect } from '$lib/debug'
 import type { Position } from '../utils/position'
 import type { Tile } from './board/tile'
@@ -71,17 +71,28 @@ export function withInteractive<T extends abstract new (...args: any[]) => GameO
 			game.register(this, uid)
 		}
 
+		lastTopic: any | undefined = undefined
+		logAbout(topic: any, ...args: any[]) {
+			let line: string
+			try {
+				line = args.map((a) => a.toString()).join(' ')
+			} catch {
+				// Fallback if JSON serialization fails
+				line = String(args)
+			}
+			if (topic === undefined || unwrap(this.lastTopic) === unwrap(topic)) {
+				this.logs[this.logs.length - 1] = line
+			} else {
+				this.logs.push(line)
+			}
+			this.lastTopic = topic
+		}
+
 		/**
 		 * Append a log line to this object's logs
 		 */
 		log(...args: any[]) {
-			try {
-				const line = args.map((a) => a.toString()).join(' ')
-				this.logs.push(line)
-			} catch {
-				// Fallback if JSON serialization fails
-				this.logs.push(String(args))
-			}
+			this.logAbout(undefined, ...args)
 		}
 
 		abstract canInteract(action: string): boolean

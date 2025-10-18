@@ -169,18 +169,18 @@ class PlanFunctions {
 
 	// No @contract decorators needed - Plan types are simple interfaces
 	begin(plan: Plan) {
-		this[subject].log(`Begin plan: ${plan.type}`)
+		this[subject].logAbout(plan, `${plan.type}: begun`)
 		planHandlers[plan.type].begin(plan, this[subject])
 	}
 
 	conclude(plan: Plan) {
-		this[subject].log(`Conclude plan: ${plan.type}`)
+		this[subject].logAbout(plan, `${plan.type}: concluded`)
 		if ('releaseStopper' in plan) plan.releaseStopper?.()
 		planHandlers[plan.type].conclude?.(plan, this[subject])
 	}
 
 	cancel(plan: Plan) {
-		this[subject].log(`Cancel plan: ${plan.type}`)
+		this[subject].logAbout(plan, `${plan.type}: cancelled`)
 		planHandlers[plan.type].cancel?.(plan, this[subject])
 	}
 

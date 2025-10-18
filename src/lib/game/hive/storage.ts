@@ -2,16 +2,20 @@ import type { GoodType } from '$lib/types'
 import type { ExchangePriority, GoodsRelations } from '$lib/utils/advertisement'
 import { Alveolus } from '../board/content/alveolus'
 import type { Tile } from '../board/tile'
+import { SpecificStorage } from '../storage'
 import { SlottedStorage } from '../storage/slotted-storage'
 
 export class StorageAlveolus extends Alveolus {
-	declare action: Ssh.SlottedStorageAction
+	declare action: Ssh.StorageAction
 	constructor(tile: Tile) {
 		const def: Ssh.AlveolusDefinition = new.target.prototype
 		if (def.action.type !== 'storage') {
 			throw new Error('StorageAlveolus can only be created from a storage action')
 		}
-		const storage = new SlottedStorage(def.action.slots, def.action.capacity)
+		const storage =
+			'slots' in def.action
+				? new SlottedStorage(def.action.slots, def.action.capacity)
+				: new SpecificStorage(def.action)
 		super(tile, storage)
 	}
 

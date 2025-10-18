@@ -41,7 +41,7 @@ const timeMultiplier = {
 	'fast-forward': 2,
 	gonzales: 4,
 } as const
-const rootSpeed = 3
+const rootSpeed = 2
 // Helper function to flatten the tree structure into dot-separated keys
 export function flattenResources(tree: ResourceTree, prefix = ''): Record<string, string> {
 	const result: Record<string, string> = {}

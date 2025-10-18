@@ -133,7 +133,6 @@ class InventoryFunctions {
 		// Return plan without allocations - they will be created in plan.begin()
 		return {
 			type: 'pickup' as const,
-			// TODO: random?
 			goodType: matchingFreeGoods[0].goodType,
 			target: source,
 		}

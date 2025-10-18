@@ -1,4 +1,5 @@
 import type { ScopedCallback } from 'mutts/src'
+import { Graphics } from 'pixi.js'
 import { renderBorderGoods } from '$lib/game/storage/goods-renderer'
 import { SlottedStorage } from '$lib/game/storage/slotted-storage'
 import { tileSize } from '$lib/utils'
@@ -51,7 +52,7 @@ export class AlveolusGate extends TileBorderContent {
 		// Calculate border center position
 		const borderCenter = {
 			x: (tileAWorld.x + tileBWorld.x) / 2,
-			y: (tileBWorld.y + tileBWorld.y) / 2,
+			y: (tileAWorld.y + tileBWorld.y) / 2,
 		}
 
 		// Calculate relative position of tile A from the border center
@@ -60,13 +61,65 @@ export class AlveolusGate extends TileBorderContent {
 			y: tileAWorld.y - borderCenter.y,
 		}
 
+		// Create a container for both the line and the goods
+		const root = this.game.storedGoodsLayer
+		const lineGraphics = new Graphics()
+		root.addChild(lineGraphics)
+
+		// Calculate the two end positions for the line using the same logic as renderBorderGoods
+		const alveolus2Center = { x: -alveolusCenter.x, y: -alveolusCenter.y }
+
+		// Calculate the line connecting the two alveoli centers
+		const centerLine = {
+			dx: alveolus2Center.x - alveolusCenter.x,
+			dy: alveolus2Center.y - alveolusCenter.y,
+		}
+
+		// Calculate the perpendicular direction (border line direction)
+		// Rotate the center line by 90 degrees: (dx, dy) -> (-dy, dx)
+		const borderDirection = {
+			dx: -centerLine.dy,
+			dy: centerLine.dx,
+		}
+
+		// Normalize the border direction
+		const borderLength = Math.sqrt(borderDirection.dx ** 2 + borderDirection.dy ** 2)
+		const normalizedBorder = {
+			dx: borderDirection.dx / borderLength,
+			dy: borderDirection.dy / borderLength,
+		}
+
+		// Calculate the two end positions for the line (where goods would be displayed)
+		const lineLength = tileSize * 0.8 // Scale by size like in renderBorderGoods
+		const startPos = {
+			x: borderCenter.x - (lineLength / 2) * normalizedBorder.dx,
+			y: borderCenter.y - (lineLength / 2) * normalizedBorder.dy,
+		}
+		const endPos = {
+			x: borderCenter.x + (lineLength / 2) * normalizedBorder.dx,
+			y: borderCenter.y + (lineLength / 2) * normalizedBorder.dy,
+		}
+
+		// Draw the yellow line
+		lineGraphics
+			.moveTo(startPos.x, startPos.y)
+			.lineTo(endPos.x, endPos.y)
+			.stroke({ color: 0xffff00, width: 2, alpha: 0.7 })
+
 		// Render border goods using the storage
-		return renderBorderGoods(
+		const goodsCleanup = renderBorderGoods(
 			this.game,
 			tileSize,
 			() => this.storage.renderedGoods(),
 			borderCenter,
 			alveolusCenter,
 		)
+
+		// Return cleanup function that removes both the line and goods
+		return () => {
+			goodsCleanup?.()
+			root.removeChild(lineGraphics)
+			lineGraphics.destroy()
+		}
 	}
 }

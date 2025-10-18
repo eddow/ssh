@@ -1,5 +1,6 @@
 <script lang="ts">
-import { Badge } from 'flowbite-svelte'
+import { Badge, badge } from 'flowbite-svelte'
+import type { VariantProps } from 'tailwind-variants'
 import GoodsList from '$components/parts/GoodsList.svelte'
 import PropertyGrid from '$components/parts/PropertyGrid.svelte'
 import PropertyGridRow from '$components/parts/PropertyGridRow.svelte'
@@ -29,30 +30,10 @@ const stepEvolution = $derived(
 		? Math.max(0, Math.min(1, state.step.evolution))
 		: 0,
 )
-// TODO: This is generic stuff, move it to a common place ?
-type FlowbiteBadgeColor =
-	| 'primary'
-	| 'secondary'
-	| 'gray'
-	| 'red'
-	| 'orange'
-	| 'amber'
-	| 'yellow'
-	| 'lime'
-	| 'green'
-	| 'emerald'
-	| 'teal'
-	| 'cyan'
-	| 'sky'
-	| 'blue'
-	| 'indigo'
-	| 'violet'
-	| 'purple'
-	| 'fuchsia'
-	| 'pink'
-	| 'rose'
 
-const activityBadgeColors: Record<Ssh.ActivityType, FlowbiteBadgeColor> = {
+type BadgeColor = VariantProps<typeof badge>['color']
+
+const activityBadgeColors: Record<Ssh.ActivityType, BadgeColor> = {
 	walk: 'yellow',
 	work: 'red',
 	eat: 'green',

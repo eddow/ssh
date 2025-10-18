@@ -115,7 +115,7 @@ export const alveoli = {
 	},
 	gather: {
 		preparationTime: 1,
-		action: { type: 'gather', radius: 3 },
+		action: { type: 'gather', radius: 9 },
 		workTime: 2,
 		sprites: ['buildings.transit'],
 		icon: 'buildings.transit',

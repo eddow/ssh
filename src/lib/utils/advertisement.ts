@@ -108,7 +108,10 @@ export abstract class AdvertisementManager<Advertiser> {
 					const index = Number(ad.priority[0])
 					ensureBucket(existing.advertisers, index)
 					existing.advertisers[index].push(advertiser)
-					// TODO: try to balance the buckets by creating movements?
+					/* TODO: try to balance the buckets by creating movements
+					1- check this.canGive/canTake
+					2- check the others (from extreme priority to this.priority+-1) with their respective canGive/canTake
+					*/
 				} else {
 					const advertisers: Advertiser[][] = []
 					const index = Number(ad.priority[0])

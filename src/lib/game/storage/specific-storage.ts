@@ -77,7 +77,7 @@ export class SpecificStorage extends Storage<SpecificAllocation> {
 	public readonly _reserved: { [k in GoodType]?: number } = reactive({})
 	public readonly maxAmounts: { [k in GoodType]?: number }
 
-	constructor(maxAmounts: { [k in GoodType]?: number }) {
+	constructor(maxAmounts: Ssh.SpecificStorage) {
 		super()
 		this.maxAmounts = { ...maxAmounts }
 	}

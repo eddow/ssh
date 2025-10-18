@@ -1,11 +1,16 @@
 import { computed } from 'mutts/src'
-import { assert } from '$lib/debug'
 import type { Character } from '$lib/game/population/character'
-import type { GatherJob, GoodType } from '$lib/types/base'
+import type { GatherJob, Goods, GoodType } from '$lib/types/base'
 import { type Positioned, toAxialCoord } from '$lib/utils/position'
 import type { Tile } from '../board/tile'
 import { SlottedStorage } from '../storage'
 import { TransitAlveolus } from './transit'
+
+function goodsWith(goods: Goods, other: GoodType, qty: number = 1): Goods {
+	const rv = { ...goods }
+	rv[other] = (goods[other] || 0) + qty
+	return rv
+}
 
 export class GatherAlveolus extends TransitAlveolus {
 	declare action: Ssh.GatherAction
@@ -45,48 +50,14 @@ export class GatherAlveolus extends TransitAlveolus {
 		let path: Positioned[] | undefined
 		let goodType: GoodType | undefined
 		let selectableGoods = Object.keys(this.hive.needs) as GoodType[]
-		if (character) selectableGoods = selectableGoods.filter((good) => character.carry.hasRoom(good))
+		const carry = character?.carry
+		if (carry)
+			selectableGoods = selectableGoods.filter(
+				(good) => carry.hasRoom(good) && this.storage.canStoreAll(goodsWith(carry.stock, good)),
+			)
 		if (selectableGoods.length === 0) return undefined
 
-		// If character already carries a good, prioritize retrieving the same good.
-		if (character) {
-			const hands = character.carry.stock
-			const carried = Object.entries(hands).filter(([, qty]) => (qty || 0) > 0) as [
-				GoodType,
-				number,
-			][]
-			if (carried.length > 0) {
-				assert(carried.length === 1, 'Gatherer must hold at most one good type')
-				const [inHandType] = carried[0]
-				if (!character.carry.hasRoom(inHandType)) return undefined
-				// Only prioritize if the hive needs it and we have capacity left
-				if (selectableGoods.includes(inHandType) && character.carry.hasRoom(inHandType) > 0) {
-					const result = hex.freeGoods.findNearestGoods(
-						startPos,
-						startPos,
-						[inHandType],
-						this.action.radius,
-					)
-					if (result) {
-						path = result.path
-						goodType = inHandType
-						return (
-							path && {
-								job: 'gather',
-								path,
-								goodType,
-								urgency: 1.5,
-								fatigue: this.getFatigueCost(),
-							}
-						)
-					}
-				}
-			}
-		}
-
-		const goodCounts = Object.fromEntries(selectableGoods.map((good) => [good, 0])) as Partial<
-			Record<GoodType, number>
-		>
+		const goodCounts = Object.fromEntries(selectableGoods.map((good) => [good, 0])) as Goods
 
 		// Count goods within range
 		hex.findNearest(

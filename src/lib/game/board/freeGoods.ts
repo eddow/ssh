@@ -58,7 +58,6 @@ export class FreeGoods extends withTicked(withGenerator(GameObject)) {
 	private readonly goods = reactive(new AxialKeyMap<FreeGood[]>([], () => []))
 	private readonly display = new Map<FreeGood, { sprite: Sprite; cleanup: ScopedCallback }>()
 	private readonly fgContainer: Container = new Container()
-	private readonly woodishes = new Set<FreeGood>()
 	render() {
 		this.game.freeGoodsLayer.addChild(this.fgContainer)
 		return () => {
@@ -99,10 +98,6 @@ export class FreeGoods extends withTicked(withGenerator(GameObject)) {
 		// Create sprite after game is loaded
 		const sprite = new Sprite(this.game.getTexture(`goods.${good.goodType}`))
 		sprite.anchor.set(0.5, 0.5) // Center the sprite anchor
-		if (['wood', 'planks'].includes(good.goodType)) {
-			this.woodishes.add(good)
-			//console.trace('woodishes', this.woodishes.size, 'added', good)
-		}
 		this.fgContainer.addChild(sprite)
 		this.game.hex.resizeSprite(sprite, 0.8)
 		this.display.set(good, {
@@ -143,10 +138,6 @@ export class FreeGoods extends withTicked(withGenerator(GameObject)) {
 		if (display) {
 			display.cleanup()
 			display.sprite.destroy()
-			if (['wood', 'planks'].includes(good.goodType)) {
-				this.woodishes.delete(good)
-				//console.trace('woodishes', this.woodishes.size, 'deleted', good)
-			}
 			this.display.delete(good)
 		}
 	}
