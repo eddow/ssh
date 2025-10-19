@@ -68,4 +68,10 @@ export abstract class Storage<
 	/** Render a visualization of stored goods */
 	abstract renderedGoods(): RenderedGoodSlots
 	abstract get allocatedSlots(): boolean
+
+	/**
+	 * Check if storage is fragmented (goods can be re-organized)
+	 * @returns the fragmented GoodType if storage is fragmented, undefined otherwise
+	 */
+	abstract get fragmented(): GoodType | undefined
 }

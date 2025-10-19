@@ -37,6 +37,7 @@ export const baseGameScope = scope({
 		'gather',
 		'construct',
 		'foundation',
+		'defragment',
 	),
 	ActivityType: type.enumerated('idle', 'walk', 'work', 'eat', 'sleep', 'ponder'),
 	NeedType: type.enumerated('hunger', 'tiredness', 'fatigue'),
@@ -183,6 +184,13 @@ export interface FoundationJob {
 	path?: Positioned[] // Path to site needing foundation
 }
 
+export interface DefragmentJob {
+	job: 'defragment'
+	goodType: GoodType
+	urgency: number
+	fatigue: number
+}
+
 // Job is the union of all job types
 export type Job =
 	| HarvestJob
@@ -192,6 +200,7 @@ export type Job =
 	| ConstructJob
 	| OffloadJob
 	| FoundationJob
+	| DefragmentJob
 
 // WorkPlan is Job with Plan type and target alveolus
 export type WorkPlan = Job & {

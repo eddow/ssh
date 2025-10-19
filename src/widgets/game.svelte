@@ -69,7 +69,6 @@ let gameView = $state<GameView | undefined>(undefined)
 $effect(() =>
 	size.subscribe((size) => {
 		if (gameView) {
-			gameView.stage.pivot.set(-size.width / 2, -size.height / 2)
 			if (gameView.pixi?.renderer) gameView.pixi.renderer.resize(size.width, size.height)
 		}
 	}),

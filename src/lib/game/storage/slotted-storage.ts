@@ -111,6 +111,38 @@ export class SlottedStorage extends Storage<SlottedAllocation> {
 		return this.slots.some((slot) => slot?.allocated)
 	}
 
+	@computed
+	get fragmented(): GoodType | undefined {
+		// Group slots by good type and check for fragmentation
+		const slotsByGoodType = new Map<GoodType, Slot[]>()
+
+		for (const slot of this.slots) {
+			if (!slot) continue
+			if (!slotsByGoodType.has(slot.goodType)) {
+				slotsByGoodType.set(slot.goodType, [])
+			}
+			slotsByGoodType.get(slot.goodType)!.push(slot)
+		}
+
+		// Check if any good type has multiple slots that can be defragmented
+		for (const [goodType, slots] of slotsByGoodType) {
+			if (slots.length < 2) continue // Need at least 2 slots to be fragmented
+
+			// Count slots that have quantity > 0 and final quantity < maximum
+			const defragmentableSlots = slots.filter((slot) => {
+				const finalQuantity = slot.quantity - slot.reserved + slot.allocated
+				return slot.quantity > 0 && finalQuantity < this.maxQuantityPerSlot
+			})
+
+			// Need at least 2 slots that can be defragmented
+			if (defragmentableSlots.length >= 2) {
+				return goodType // Return the fragmented good type
+			}
+		}
+
+		return undefined
+	}
+
 	hasRoom(goodType?: GoodType): number {
 		let totalCapacity = 0
 		for (const slot of this.slots) {
@@ -224,15 +256,28 @@ export class SlottedStorage extends Storage<SlottedAllocation> {
 
 			let remaining = qty
 
-			// Allocate in existing slots first
-			for (let i = 0; i < this.slots.length && remaining > 0; i++) {
+			// Create list of slots with their final quantities for sorting
+			const slotCandidates: { index: number; slot: Slot; finalQuantity: number }[] = []
+			for (let i = 0; i < this.slots.length; i++) {
 				const slot = this.slots[i]
 				if (!slot || slot.goodType !== goodType) continue
 				const free = this.maxQuantityPerSlot - slot.quantity - slot.allocated
 				if (free <= 0) continue
+				const finalQuantity = slot.quantity - slot.reserved + slot.allocated
+				slotCandidates.push({ index: i, slot, finalQuantity })
+			}
+
+			// Sort by final quantity (lowest first) for allocation
+			slotCandidates.sort((a, b) => a.finalQuantity - b.finalQuantity)
+
+			// Allocate in existing slots (sorted by lowest final quantity)
+			for (const { index, slot } of slotCandidates) {
+				if (remaining <= 0) break
+				const free = this.maxQuantityPerSlot - slot.quantity - slot.allocated
+				if (free <= 0) continue
 				const take = Math.min(remaining, free)
 				slot.allocated += take
-				alloc[i] += take
+				alloc[index] += take
 				remaining -= take
 			}
 
@@ -262,15 +307,28 @@ export class SlottedStorage extends Storage<SlottedAllocation> {
 			let remaining = Math.min(qty, this.available(goodType))
 			if (remaining <= 0) continue
 
-			// Reserve goods that are present but not yet reserved
-			for (let i = 0; i < this.slots.length && remaining > 0; i++) {
+			// Create list of slots with their final quantities for sorting
+			const slotCandidates: { index: number; slot: Slot; finalQuantity: number }[] = []
+			for (let i = 0; i < this.slots.length; i++) {
 				const slot = this.slots[i]
 				if (!slot || slot.goodType !== goodType) continue
 				const freeReservable = Math.max(0, slot.quantity - slot.reserved)
 				if (freeReservable <= 0) continue
+				const finalQuantity = slot.quantity - slot.reserved + slot.allocated
+				slotCandidates.push({ index: i, slot, finalQuantity })
+			}
+
+			// Sort by final quantity (highest first) for reservation
+			slotCandidates.sort((a, b) => b.finalQuantity - a.finalQuantity)
+
+			// Reserve goods that are present but not yet reserved (sorted by highest final quantity)
+			for (const { index, slot } of slotCandidates) {
+				if (remaining <= 0) break
+				const freeReservable = Math.max(0, slot.quantity - slot.reserved)
+				if (freeReservable <= 0) continue
 				const take = Math.min(remaining, freeReservable)
 				slot.reserved += take
-				alloc[i] -= take // negative marks reservation
+				alloc[index] -= take // negative marks reservation
 				remaining -= take
 			}
 

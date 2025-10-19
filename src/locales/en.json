@@ -66,7 +66,12 @@
 		"walkway": "Walkway",
 		"conveyor": "Conveyor",
 		"walkwayTooltip": "Allow characters to walk through this alveolus",
-		"conveyorTooltip": "Allow unrelated goods to pass through this alveolus"
+		"conveyorTooltip": "Allow unrelated goods to pass through this alveolus",
+		"commands": "Commands",
+		"working": "Working",
+		"workingTooltip": "Toggle working state",
+		"cleanUp": "Clean up",
+		"cleanUpTooltip": "Clean up alveolus"
 	},
 	"deposit": "Resources",
 	"goods": {

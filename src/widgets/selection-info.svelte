@@ -19,7 +19,6 @@ import {
 	unregisterObjectInfoPanel,
 } from '$lib/globals.svelte'
 import { T } from '$lib/i18n'
-import { p2s } from '$lib/mutts.svelte'
 import { toWorldCoord } from '$lib/utils/position'
 
 let {
@@ -92,7 +91,9 @@ function handleLogScroll() {
 
 function goTo() {
 	const { x, y } = toWorldCoord(object!.position)
-	game.gameView?.stage.position.set(-x, -y)
+	const gameView = game.gameView
+	if (!gameView) return
+	gameView.goTo(x, y)
 }
 function mouseIn() {
 	mrg.hoveredObject = object

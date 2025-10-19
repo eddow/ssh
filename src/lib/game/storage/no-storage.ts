@@ -12,6 +12,10 @@ export class NoStorage extends Storage {
 		return false
 	}
 
+	get fragmented(): GoodType | undefined {
+		return undefined
+	}
+
 	addGood(_goodType: GoodType, _qty: number): number {
 		return 0
 	}

@@ -4,6 +4,7 @@ import { assert } from '$lib/debug'
 import { UnBuiltLand } from '$lib/game/board/content/unbuilt-land'
 import { alveolusClass } from '$lib/game/hive'
 import { BuildAlveolus } from '$lib/game/hive/build'
+import type { StorageAlveolus } from '$lib/game/hive/storage'
 import type { TransformAlveolus } from '$lib/game/hive/transform'
 import type { Character } from '$lib/game/population/character'
 import type { AllocationBase } from '$lib/game/storage'
@@ -55,7 +56,7 @@ class WorkFunctions {
 			() => !!this[subject].assignedAlveolus!.aGoodMovement,
 		)
 	}
-	@contract('object?')
+	@contract()
 	@atomic
 	conveyStep() {
 		const character = this[subject]
@@ -201,6 +202,27 @@ class WorkFunctions {
 			})
 			.canceled(() => {
 				for (const allocation of allocations) allocation.cancel()
+			})
+	}
+	@contract()
+	defragmentStep() {
+		const alveolus = this[subject].assignedAlveolus as StorageAlveolus
+		assert(alveolus.action.type === 'storage', 'assignedAlveolus must be a StorageAlveolus')
+		const fragmentedGoodType = alveolus.storage.fragmented
+		assert(fragmentedGoodType, 'alveolus must be fragmented')
+		const take = alveolus.storage.allocate({ [fragmentedGoodType]: 1 }, { type: 'defragment.take' })
+		const arrange = alveolus.storage.reserve(
+			{ [fragmentedGoodType]: 1 },
+			{ type: 'defragment.arrange' },
+		)
+		return new DurationStep(alveolus.workTime, 'work', `defragment.${alveolus.name}`)
+			.finished(() => {
+				take.fulfill()
+				arrange.fulfill()
+			})
+			.canceled(() => {
+				take.cancel()
+				arrange.cancel()
 			})
 	}
 	@contract()

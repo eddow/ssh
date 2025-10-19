@@ -26,6 +26,7 @@ export const CharacterContract = {
 		transform: ['WorkPlan'],
 		construct: ['WorkPlan'],
 		foundation: ['WorkPlan'],
+		defragment: ['WorkPlan'],
 	},
 } as const satisfies Contract
 

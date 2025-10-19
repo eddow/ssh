@@ -117,4 +117,12 @@ function offload(jobPlan)
 	inventory.dropAllFree
 end function
 
-return { goWork, harvest, transform, convey, gather, construct, foundation, offload }
+function defragment(jobPlan)
+	alveolus = jobPlan.target
+	// Defragment storage by allocating and reserving goods in the same storage
+	do while I.keepWorking and alveolus.storage.fragmented
+		work.defragmentStep	// TODO: defragStep
+	loop
+end function
+
+return { goWork, harvest, transform, convey, gather, construct, foundation, offload, defragment }

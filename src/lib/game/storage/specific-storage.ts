@@ -87,6 +87,12 @@ export class SpecificStorage extends Storage<SpecificAllocation> {
 		return Object.values(this._allocated).some((qty) => qty > 0)
 	}
 
+	@computed
+	get fragmented(): GoodType | undefined {
+		// SpecificStorage is not fragmented as it stores goods in single quantities per type
+		return undefined
+	}
+
 	canStoreAll(goods: Goods): boolean {
 		return Object.entries(goods).every(
 			([goodType, qty]) => this.hasRoom(goodType as GoodType) >= qty,

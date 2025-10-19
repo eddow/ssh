@@ -1,4 +1,5 @@
-import type { GoodType } from '$lib/types'
+import type { Character } from '$lib/game/population/character'
+import type { GoodType, Job } from '$lib/types'
 import type { ExchangePriority, GoodsRelations } from '$lib/utils/advertisement'
 import { Alveolus } from '../board/content/alveolus'
 import type { Tile } from '../board/tile'
@@ -37,5 +38,13 @@ export class StorageAlveolus extends Alveolus {
 				{ advertisement: 'provide', priority: '0-store' },
 			]),
 		)
+	}
+
+	nextJob(_character?: Character): Job | undefined {
+		// Check for defragment job if storage is fragmented
+		const fragmentedGoodType = this.storage.fragmented
+		return fragmentedGoodType
+			? ({ job: 'defragment', fatigue: 1, urgency: 0.9, goodType: fragmentedGoodType } as Job)
+			: undefined
 	}
 }

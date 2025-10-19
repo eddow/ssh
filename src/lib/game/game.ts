@@ -550,7 +550,7 @@ export class GameView {
 		this.container.appendChild(this.canvas)
 		this.setupInput(this.game, this.canvas)
 		this.stage.addChild(this.game.stage)
-
+		this.goTo(0, 0)
 		// Register for HMR cleanup
 		registerPixiApp(this.pixi)
 
@@ -671,7 +671,13 @@ export class GameView {
 
 		game.selectionOverlayLayer.addChild(this.selectionPreview)
 	}
-
+	public goTo(x: number, y: number) {
+		const cx = this.pixi.screen.width / 2
+		const cy = this.pixi.screen.height / 2
+		const sx = this.stage.scale.x
+		const sy = this.stage.scale.y
+		this.stage.position.set(cx - x * sx, cy - y * sy)
+	}
 	public setupInput(game: Game, canvas: HTMLCanvasElement) {
 		const getCanvasPoint = (e: MouseEvent | WheelEvent) => {
 			return { x: e.offsetX, y: e.offsetY }
@@ -747,15 +753,15 @@ export class GameView {
 
 				const zoomSpeed = 0.9
 				const zoomDelta = zoomSpeed ** (e.deltaY / 120)
-				const newZoom = Math.max(0.1, Math.min(3, this.stage.scale.x * zoomDelta))
-				if (newZoom === this.stage.scale.x) return
-				const s = this.stage.scale.x
-				const tx = (e.offsetX - this.stage.x) / s
-				const ty = (e.offsetY - this.stage.y) / s
+				const { stage } = this
+				const newZoom = Math.max(0.1, Math.min(3, stage.scale.x * zoomDelta))
+				if (newZoom === stage.scale.x) return
+				const tx = (e.offsetX - stage.x) / stage.scale.x
+				const ty = (e.offsetY - stage.y) / stage.scale.y
 				// Apply new scale and adjust position so the mouse point stays fixed
-				this.stage.scale.set(newZoom)
-				this.stage.x = e.offsetX - tx * newZoom
-				this.stage.y = e.offsetY - ty * newZoom
+				stage.scale.set(newZoom)
+				stage.x = e.offsetX - tx * newZoom
+				stage.y = e.offsetY - ty * newZoom
 			},
 			{ passive: false },
 		)

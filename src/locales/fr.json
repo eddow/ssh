@@ -66,7 +66,12 @@
 		"walkway": "Passage",
 		"conveyor": "Convoyeur",
 		"walkwayTooltip": "Permettre aux personnages de marcher à travers cette alvéole",
-		"conveyorTooltip": "Permettre aux marchandises non liées de passer à travers cette alvéole"
+		"conveyorTooltip": "Permettre aux marchandises non liées de passer à travers cette alvéole",
+		"commands": "Commandes",
+		"working": "En fonctionnement",
+		"workingTooltip": "Basculer l'état de fonctionnement",
+		"cleanUp": "Nettoyer",
+		"cleanUpTooltip": "Nettoyer l'alvéole"
 	},
 	"deposit": "Ressources",
 	"goods": {
