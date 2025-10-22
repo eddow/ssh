@@ -128,12 +128,9 @@ export class Game extends Eventful<GameEvents> {
 	public get name() {
 		return 'GameX'
 	}
-	private readonly rng: ReturnType<typeof LCG> = LCG('gameSeed', 0)
+	readonly random: ReturnType<typeof LCG> = LCG('gameSeed', 0)
 	public lcg(seed: string | number) {
 		return LCG('gameSeed', seed)
-	}
-	public random(max?: number, min?: number) {
-		return this.rng(max, min)
 	}
 	public gameView?: GameView
 	public stage: Container
@@ -343,7 +340,7 @@ export class Game extends Eventful<GameEvents> {
 					}
 
 					// Add the good to the free goods system
-					this.hex.freeGoods.add(tile, goodType as any, randomPos)
+					this.hex.freeGoods.add(tile, goodType as any, { position: randomPos })
 				}
 			}
 		}
@@ -369,7 +366,7 @@ export class Game extends Eventful<GameEvents> {
 		for (const fg of patches) {
 			const tile = this.hex.getTile(axial.round(fg.position))
 			if (!tile) continue
-			this.hex.freeGoods.add(tile, fg.goodType, fg.position)
+			this.hex.freeGoods.add(tile, fg.goodType, { position: fg.position })
 		}
 	}
 

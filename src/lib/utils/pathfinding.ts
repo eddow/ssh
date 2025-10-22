@@ -64,7 +64,7 @@ export function findPath(
 	maxTime: number,
 	punctual: boolean = true,
 ): AxialCoord[] | undefined {
-	// TODO: use bidirectional if the function becomes used
+	// use bidirectional if the function becomes used
 	const startCoord = toAxialCoord(start)
 	const goalCoord = toAxialCoord(goal)
 	const goalDistance = punctual ? 0 : 1

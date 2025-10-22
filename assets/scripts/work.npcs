@@ -2,15 +2,16 @@ function goWork(jobPlan, path)
 	target = jobPlan.target
 	plan jobPlan
 		inventory.dropAllFree
-		if tile != target.tile then do
-			walk.until path
-		while tile != target.tile
-			path = find.path(target.tile, false)
-			if not path then error "No path found to target"
-		loop
-		walk.enter
-
-		work.prepare jobPlan
+		if jobPlan.job != "offload" then
+			if tile != target.tile then do
+				walk.until path
+			while tile != target.tile
+				path = find.path(target.tile, false)
+				if not path then error "No path found to target"
+			loop
+			walk.enter
+			work.prepare jobPlan
+		end if
 		// TODO: understand why `work[job](alveolus)` doesn't work/yield
 		work[jobPlan.job] jobPlan
 	end plan
@@ -87,41 +88,39 @@ end function
 
 function construct(jobPlan)
     engineer = jobPlan.target
-    do
-        nextJob = work.myNextJob()
-    while I.keepWorking and nextJob
+    nextJob = work.myNextJob()
+    if nextJob then
         if not nextJob.path then return false
 		walk.until nextJob.path
         walk.enter
         work.constructionStep
-    loop
+    end if
 end function
 
 function foundation(jobPlan)
 	engineer = jobPlan.target
-	do
-		nextJob = work.myNextJob()
-	while I.keepWorking and nextJob
+	nextJob = work.myNextJob()
+	if nextJob then
 		if not nextJob.path then return false
 		walk.until nextJob.path
 		walk.enter
 		work.foundationStep
-	loop
+	end if
 end function
 
 function offload(jobPlan)
 	target = jobPlan.target
 	// Target is the tile for offload jobs
-	if target.availableGoods.length == 0 then return
+	if target.availableGoods.length == 0 then error "No goods to offload"
 	inventory.grabFree null, target
-	inventory.dropAllFree
+	inventory.dropAllFree()
 end function
 
 function defragment(jobPlan)
 	alveolus = jobPlan.target
 	// Defragment storage by allocating and reserving goods in the same storage
 	do while I.keepWorking and alveolus.storage.fragmented
-		work.defragmentStep	// TODO: defragStep
+		work.defragmentStep
 	loop
 end function
 

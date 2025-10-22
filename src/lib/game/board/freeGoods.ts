@@ -34,7 +34,7 @@ class FreeGoodAllocation {
 		if (!isAllocationValid(this)) return
 		allocationEnded(this)
 		invalidateAllocation(this)
-		this.freeGood.allocated = false
+		this.freeGood.available = true
 	}
 	@atomic
 	fulfill(): void {
@@ -48,7 +48,7 @@ class FreeGoodAllocation {
 export interface FreeGood {
 	goodType: GoodType
 	position: Position
-	allocated: boolean
+	available: boolean
 	get isRemoved(): boolean
 	remove(): void
 	allocate(reason: any): FreeGoodAllocation
@@ -64,17 +64,18 @@ export class FreeGoods extends withTicked(withGenerator(GameObject)) {
 			this.game.freeGoodsLayer.removeChild(this.fgContainer)
 		}
 	}
-	add(pos: Positioned, goodType: GoodType, exactly?: Position) {
+	add(pos: Positioned, goodType: GoodType, options: Partial<FreeGood> = {}) {
 		assert(
-			exactly === undefined || axialDistance(exactly, pos) < 0.5 + epsilon,
-			'`exactly` must be roughly the same as pos.position',
+			!('position' in options) ||
+				axialDistance(options.position!, toAxialCoord(pos)) < 0.5 + epsilon,
+			'`position` in options must be roughly the same as pos.position',
 		)
 		const coord = toAxialCoord(pos)
 		const self = this
 		const good: FreeGood = reactive({
 			goodType,
-			position: exactly || ('position' in pos ? pos.position : pos),
-			allocated: false,
+			position: 'position' in pos ? pos.position : pos,
+			available: true,
 			get isRemoved() {
 				const coord = toAxialCoord(pos)
 				const goodsList = self.goods.get(coord) || []
@@ -82,16 +83,17 @@ export class FreeGoods extends withTicked(withGenerator(GameObject)) {
 			},
 			remove: () => this.remove(pos, good),
 			allocate: (reason: any): FreeGoodAllocation => {
-				if (good.allocated) {
+				if (!good.available) {
 					throw new Error(`FreeGood already allocated: ${reason}`)
 				}
 				if (good.isRemoved) {
 					debugger
 					throw new Error(`FreeGood already removed: ${reason}`)
 				}
-				good.allocated = true
+				good.available = false
 				return new FreeGoodAllocation(good, reason)
 			},
+			...options,
 		})
 		this.goods.set(coord, [...(this.goods.get(coord) || []), good])
 
@@ -107,7 +109,7 @@ export class FreeGoods extends withTicked(withGenerator(GameObject)) {
 				sprite.position.set(x, y)
 
 				// Apply reddish tint when allocated (like reserved goods in storage)
-				if (good.allocated) {
+				if (!good.available) {
 					sprite.tint = 0xff6666 // Light red tint
 					sprite.alpha = 0.7
 				} else {
@@ -156,7 +158,7 @@ export class FreeGoods extends withTicked(withGenerator(GameObject)) {
 			start,
 			(coord: Positioned) => {
 				const goodsList = this.getGoodsAt(coord)
-				return goodsList.some((g) => goodTypes.includes(g.goodType) && !g.allocated)
+				return goodsList.some((g) => goodTypes.includes(g.goodType) && g.available)
 			},
 			maxWalkTime, // Use walk time directly as stop condition
 		)
@@ -164,7 +166,7 @@ export class FreeGoods extends withTicked(withGenerator(GameObject)) {
 		if (path) {
 			const destination = path[path.length - 1]
 			const goodsList = this.getGoodsAt(destination)
-			const foundGood = goodsList.find((g) => goodTypes.includes(g.goodType) && !g.allocated)
+			const foundGood = goodsList.find((g) => goodTypes.includes(g.goodType) && g.available)
 
 			if (foundGood) {
 				return { goodType: foundGood.goodType, path }

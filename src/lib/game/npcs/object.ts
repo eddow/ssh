@@ -47,9 +47,11 @@ export function withScripted<T extends abstract new (...args: any[]) => TickedGa
 				if (nextAction) this.runningScripts.unshift(nextAction)
 			}
 			let reentered = false
+			const loopCount: any[] = []
 			while (this.runningScripts.length && !this.stepExecutor) {
 				const executingName = this.runningScript.name
 				const { type, value } = this.makeRun()
+				loopCount.push({ name: executingName, type, value })
 				if (type === 'return') this.runningScripts.shift()
 				if (value) {
 					reentered = false
@@ -64,6 +66,7 @@ export function withScripted<T extends abstract new (...args: any[]) => TickedGa
 					}
 					if (nextAction) this.runningScripts.unshift(nextAction)
 				}
+				if (loopCount.length >= 100) throw new Error('nextStep loop count limit exceeded')
 			}
 		}
 

@@ -4,7 +4,7 @@ import { BuildAlveolus } from '$lib/game/hive/build'
 import type { GatherAlveolus } from '$lib/game/hive/gather'
 import type { Character } from '$lib/game/population/character'
 import { contract, type GoodType } from '$lib/types'
-import { type AxialCoord, axial } from '$lib/utils'
+import { type AxialCoord, axial, tileSize, toWorldCoord } from '$lib/utils'
 import { type Positioned, toAxialCoord } from '../../../utils/position'
 import { UnBuiltLand } from '../../board/content/unbuilt-land'
 import type { Tile } from '../../board/tile'
@@ -45,7 +45,7 @@ class FindFunctions {
 			const freeGoods = hex.freeGoods.getGoodsAt(toAxialCoord(coord))
 			for (const freeGood of freeGoods) {
 				// Skip allocated or removed goods
-				if (freeGood.allocated) continue
+				if (!freeGood.available) continue
 				const def = goodsCatalog[freeGood.goodType]
 				if (!def) continue
 				const fv = 'feedingValue' in def ? def.feedingValue : 0
@@ -126,18 +126,9 @@ class FindFunctions {
 
 		// Generate a random position within the current tile
 		// Using a simple approach: generate random offset from tile center
-		const tileCoord = toAxialCoord(tile.position)
-		// Generate random point using triangular distribution
-		const u = this[subject].game.random()
-		const v = this[subject].game.random()
-
-		const q = (u - v) * 0.5
-		const r = v - 0.5
-
-		return {
-			q: tileCoord.q + q,
-			r: tileCoord.r + r,
-		}
+		const { x: tileX, y: tileY } = toWorldCoord(tile.position)
+		const { x, y } = axial.randomPositionInTile(this[subject].game.random, tileSize)
+		return { x: tileX + x, y: tileY + y }
 	}
 	@contract()
 	wanderingTile() {
@@ -196,7 +187,7 @@ class FindFunctions {
 			// Count goods at this tile
 			const goodsAtTile = hex.freeGoods.getGoodsAt(pos)
 			for (const good of goodsAtTile) {
-				if (!good.allocated && good.goodType in goodCounts) goodCounts[good.goodType]!++
+				if (good.available && good.goodType in goodCounts) goodCounts[good.goodType]!++
 			}
 
 			// Never return true - we just want to explore and count

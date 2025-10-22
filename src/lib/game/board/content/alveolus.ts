@@ -325,7 +325,7 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition, typeof 
 	abstract get workingGoodsRelations(): GoodsRelations
 	//@computed
 	get goodsRelations(): GoodsRelations {
-		return this.working
+		const rv = this.working
 			? this.workingGoodsRelations
 			: Object.fromEntries(
 					Object.keys(this.storage.stock).map((goodType) => [
@@ -333,6 +333,36 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition, typeof 
 						{ advertisement: 'provide', priority: '0-store' },
 					]),
 				)
+		this.tile.log(`goodsRelations: ${JSON.stringify(rv)}`)
+		return rv
+	}
+	/**
+	 * Clean up the alveolus by creating free goods for each item in storage
+	 * and then emptying the storage. Goods are placed at random positions on the tile.
+	 */
+	cleanUp(): void {
+		// TODO: cancel all movements
+		// Get all goods currently in storage
+		const stock = this.storage.stock
+		const { x: tileX, y: tileY } = toWorldCoord(this.tile.position)
+		// Create free goods for each item in storage
+		for (const [goodType, quantity] of Object.entries(stock)) {
+			if (quantity > 0) {
+				// Create individual free goods (one per unit)
+				for (let i = 0; i < quantity; i++) {
+					// Generate random position within the tile
+					const { x, y } = axial.randomPositionInTile(this.game.random, tileSize)
+
+					// Add the free good to the tile
+					this.tile.board.freeGoods.add(this.tile.position, goodType as GoodType, {
+						position: { x: tileX + x, y: tileY + y },
+					})
+				}
+
+				// Remove all of this good type from storage
+				this.storage.removeGood(goodType as GoodType, quantity)
+			}
+		}
 	}
 }
 gameIsaTypes.alveolus = (value: any) => {

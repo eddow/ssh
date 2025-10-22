@@ -26,7 +26,9 @@ class InventoryFunctions {
 		return new DurationStep(amount * vehicle.transferTime, 'convey', `drop.${goodType}`)
 			.finished(() => {
 				while (amount--)
-					character.game.hex.freeGoods.add(character.tile, goodType, character.position)
+					character.game.hex.freeGoods.add(character.tile, goodType, {
+						position: character.position,
+					})
 				vehicleTransfer.fulfill()
 			})
 			.canceled(() => {

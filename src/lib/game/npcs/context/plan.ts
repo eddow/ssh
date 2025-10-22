@@ -90,7 +90,7 @@ const pickupPlanHandler: PlanHandler<PickupPlan> = {
 		const coord = toAxialCoord(target)
 		const freeGoods = character.game.hex.freeGoods.getGoodsAt(coord)
 		const matchingFreeGoods = freeGoods.filter(
-			(good) => good.goodType === goodType && !good.allocated,
+			(good) => good.goodType === goodType && good.available,
 		)
 
 		if (matchingFreeGoods.length === 0) {
@@ -181,12 +181,12 @@ class PlanFunctions {
 
 	cancel(plan: Plan) {
 		this[subject].logAbout(plan, `${plan.type}: cancelled`)
+		if ('releaseStopper' in plan) plan.releaseStopper?.()
 		planHandlers[plan.type].cancel?.(plan, this[subject])
 	}
 
 	finally(plan: Plan) {
 		planHandlers[plan.type].finally?.(plan, this[subject])
-		if ('releaseStopper' in plan) plan.releaseStopper?.()
 	}
 }
 

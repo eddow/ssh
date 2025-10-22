@@ -96,8 +96,7 @@ export class Hive extends AdvertisementManager<Alveolus> {
 			this.name = `${hive.name} - ${Math.floor(this.board.game.random(36 ** 3))
 				.toString(36)
 				.padStart(3, '0')}`
-		// TODO: What to do with movingGoods?
-		// TODO: destroying an alveolus (and its borders) should "free" the goods
+		// TODO: destroying an alveolus (and its borders) should "free" the goods and cancel all the movements going through
 	}
 	/**
 	 * Has to be called *after* tile.content is not a alveolus anymore

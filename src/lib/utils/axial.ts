@@ -339,6 +339,14 @@ export const axial = {
 		if (from) coord = axial.linear(coord, [-1, from])
 		return neighborIndexes[coord.q * 3 + coord.r + 4]
 	},
+	randomPositionInTile(gen: RandGenerator, size: number = 1) {
+		const { s, u, v } = genTilePosition(gen, size / 2)
+		const angle = Math.PI / 3
+		return {
+			x: Math.cos(s * angle) * u + Math.cos((s + 1) * angle) * v,
+			y: Math.sin(s * angle) * u + Math.sin((s + 1) * angle) * v,
+		}
+	},
 }
 const neighborIndexes: (AxialDirection | undefined)[] = [
 	undefined, // q-1 r-1

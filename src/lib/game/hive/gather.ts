@@ -66,7 +66,7 @@ export class GatherAlveolus extends TransitAlveolus {
 				const goodsAtTile = hex.freeGoods.getGoodsAt(pos)
 				for (const good of goodsAtTile) {
 					const gt = good.goodType as GoodType
-					if (!good.allocated && gt in goodCounts) goodCounts[gt]!++
+					if (good.available && gt in goodCounts) goodCounts[gt]!++
 				}
 				return false
 			},

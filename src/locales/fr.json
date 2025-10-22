@@ -71,11 +71,14 @@
 		"working": "En fonctionnement",
 		"workingTooltip": "Basculer l'état de fonctionnement",
 		"cleanUp": "Nettoyer",
-		"cleanUpTooltip": "Nettoyer l'alvéole"
+		"cleanUpTooltip": "Nettoyer l'alvéole",
+		"cleanUpConfirmText": "Tous les stocks seront vidés et laissés au sol",
+		"clear": "Vider",
+		"keep": "Garder"
 	},
 	"deposit": "Ressources",
 	"goods": {
-		"": "Marchandises",
+		"": "Biens",
 		"loose": "Au sol",
 		"stored": "En stock"
 	},

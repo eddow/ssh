@@ -83,7 +83,10 @@ class WorkFunctions {
 				? nextStorage.allocate({ [mg.goodType]: 1 }, { type: 'convey.hop', movement: mg })
 				: undefined
 
-			const moving = character.game.hex.freeGoods.add(alveolus.tile, mg.goodType, mg.from)
+			const moving = character.game.hex.freeGoods.add(alveolus.tile, mg.goodType, {
+				position: mg.from,
+				available: false,
+			})
 
 			movementData.push({
 				mg,
@@ -206,7 +209,8 @@ class WorkFunctions {
 	}
 	@contract()
 	defragmentStep() {
-		const alveolus = this[subject].assignedAlveolus as StorageAlveolus
+		const character = this[subject]
+		const alveolus = character.assignedAlveolus as StorageAlveolus
 		assert(alveolus.action.type === 'storage', 'assignedAlveolus must be a StorageAlveolus')
 		const fragmentedGoodType = alveolus.storage.fragmented
 		assert(fragmentedGoodType, 'alveolus must be fragmented')
@@ -215,7 +219,7 @@ class WorkFunctions {
 			{ [fragmentedGoodType]: 1 },
 			{ type: 'defragment.arrange' },
 		)
-		return new DurationStep(alveolus.workTime, 'work', `defragment.${alveolus.name}`)
+		return new DurationStep(character.vehicle.transferTime, 'work', `defragment.${alveolus.name}`)
 			.finished(() => {
 				take.fulfill()
 				arrange.fulfill()

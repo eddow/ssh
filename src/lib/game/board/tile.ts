@@ -72,7 +72,7 @@ export class Tile extends withInteractive(GameObject) {
 		// Note: harvest zones do NOT trigger offload (goods can be dropped there)
 		// Cache the expensive computation during pathfinding
 		const freeGoodsList = this.board.freeGoods.getGoodsAt(toAxialCoord(this.position))
-		const hasFreeGoods = freeGoodsList.some((g) => !g.allocated)
+		const hasFreeGoods = freeGoodsList.some((g) => g.available)
 		const isResidentialOrAlveolus = this.zone === 'residential' || this.content instanceof Alveolus
 		if (hasFreeGoods && isResidentialOrAlveolus) {
 			return { job: 'offload', fatigue: 1, urgency: 10 }
@@ -184,14 +184,14 @@ export class Tile extends withInteractive(GameObject) {
 			.filter((neighbor): neighbor is NeighborInfo => neighbor !== null)
 	}
 
-	@computed
+	//@computed
 	get freeGoods(): FreeGood[] {
-		return this.board.freeGoods.getGoodsAt(toAxialCoord(this.position))
+		return this.board.freeGoods.getGoodsAt(this.position)
 	}
 
-	@computed
+	//@computed
 	get availableGoods(): FreeGood[] {
-		return this.freeGoods.filter((g) => !g.allocated)
+		return this.freeGoods.filter((g) => g.available)
 	}
 }
 

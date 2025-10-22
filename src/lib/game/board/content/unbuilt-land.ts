@@ -107,7 +107,7 @@ export class UnBuiltLand extends withTicked(TileContent) {
 		}
 
 		// Create the free good
-		this.tile.board.freeGoods.add(this.tile, goodType as any, randomPos)
+		this.tile.board.freeGoods.add(this.tile, goodType as any, { position: randomPos })
 	}
 
 	get debugInfo() {

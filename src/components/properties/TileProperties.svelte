@@ -25,7 +25,7 @@ let freeStock = $derived.by(
 	p2s(() => {
 		const counts: Record<string, number> = {}
 		for (const fg of tile.freeGoods) {
-			if (fg.allocated) continue
+			if (!fg.available) continue
 			counts[fg.goodType] = (counts[fg.goodType] || 0) + 1
 		}
 		return counts as any

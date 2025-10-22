@@ -71,7 +71,10 @@
 		"working": "Working",
 		"workingTooltip": "Toggle working state",
 		"cleanUp": "Clean up",
-		"cleanUpTooltip": "Clean up alveolus"
+		"cleanUpTooltip": "Clean up alveolus",
+		"cleanUpConfirmText": "All stocks will be emptied and left on the ground",
+		"clear": "Clear",
+		"keep": "Keep"
 	},
 	"deposit": "Resources",
 	"goods": {
