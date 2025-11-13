@@ -6,11 +6,18 @@ import {
 	type TextKey,
 	type Translator,
 } from 'omni18n/ts/s-a'
-import { writable } from 'svelte/store'
+import { effect, reactive } from 'mutts/src'
+
 export const locales = ['en', 'fr'] as const
 
 export type TextInfos = {}
 export type KeyInfos = {}
+
+type I18nState = {
+	locale: Locale
+	translator: Translator | undefined
+	localeFlags: LocaleFlagsEngine | undefined
+}
 
 class ClientSideClient extends I18nClient {
 	report(key: TextKey, error: string, spec: object) {
@@ -18,19 +25,13 @@ class ClientSideClient extends I18nClient {
 	}
 }
 
-export const i18nClient = new ClientSideClient(['en'], condense)
-export const T = writable<Translator>()
-// Get saved locale from localStorage or default to 'en'
-const savedLocale = localStorage.getItem('locale') as Locale | null
-export const locale = writable<Locale>(savedLocale || 'en')
-let queryLocale: string
+const savedLocale = (typeof localStorage !== 'undefined'
+	? (localStorage.getItem('locale') as Locale | null)
+	: null) ?? 'en'
 
-locale.subscribe(async (locale) => {
-	if (!locale) return
-	queryLocale = locale
-	await i18nClient.setLocales([locale])
-	await initTranslator()
-})
+let queryLocale: Locale = savedLocale
+let localeRequestToken = 0
+
 const imports = {
 	'': {
 		en: () => import('../locales/en.json'),
@@ -41,20 +42,48 @@ const imports = {
 		fr: () => import('$assets/locales/fr.json'),
 	},
 }
+
 async function condense(_lng: string[], zones: string[]) {
-	// Return the translations for the requested locale
 	return Promise.all(
-		zones.map((zone) => imports[zone as keyof typeof imports][queryLocale as 'en' | 'fr']()),
+		zones.map((zone) => imports[zone as keyof typeof imports][queryLocale]),
 	).then((cds) => cds.map((cd) => cd.default) as CondensedDictionary[])
 }
 
-export async function initTranslator() {
-	T.set(await i18nClient.enter('gameX'))
+export const i18nClient = new ClientSideClient(['en'], condense)
+
+export const i18nState: I18nState = reactive({
+	locale: savedLocale,
+	translator: undefined,
+	localeFlags: undefined,
+})
+
+async function loadLocale(locale: Locale, requestId: number) {
+	queryLocale = locale
+	await i18nClient.setLocales([locale])
+	const translator = await i18nClient.enter('gameX')
+	if (requestId !== localeRequestToken) return
+	i18nState.translator = translator
 }
 
-export const localeFlags = writable<LocaleFlagsEngine>()
+effect(() => {
+	const currentLocale = i18nState.locale
+	const requestId = ++localeRequestToken
+	void loadLocale(currentLocale, requestId)
+})
+
+export async function initTranslator() {
+	const requestId = ++localeRequestToken
+	await loadLocale(i18nState.locale, requestId)
+	return i18nState.translator
+}
 
 export function setLocale(newLocale: Locale) {
-	locale.set(newLocale)
-	localStorage.setItem('locale', newLocale)
+	i18nState.locale = newLocale
+	if (typeof localStorage !== 'undefined') {
+		localStorage.setItem('locale', newLocale)
+	}
+}
+
+export function setLocaleFlags(engine: LocaleFlagsEngine | undefined) {
+	i18nState.localeFlags = engine
 }

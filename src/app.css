@@ -1,6 +1,51 @@
-@import 'tailwindcss';
-@import 'flowbite/dist/flowbite.css';
-
 body {
 	overflow: hidden;
+}
+
+.app-shell {
+	display: flex;
+	flex-direction: column;
+	min-height: 100vh;
+	gap: 1.5rem;
+	padding: 1.5rem;
+	background: radial-gradient(circle at top, rgba(23, 48, 77, 0.08), transparent 55%),
+		var(--surface-1, #0f1729);
+	color: var(--text-1, #e5ecff);
+}
+
+.app-shell__header > h1 {
+	font-size: clamp(2rem, 4vw, 2.75rem);
+	font-weight: 600;
+	margin-bottom: 0.5rem;
+}
+
+.app-shell__header {
+	display: flex;
+	align-items: center;
+	gap: 1.5rem;
+	justify-content: space-between;
+	flex-wrap: wrap;
+}
+
+.theme-toggle {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.4rem 0.75rem;
+	border-radius: 9999px;
+	border: 1px solid rgba(148, 163, 184, 0.3);
+	background: rgba(15, 23, 41, 0.6);
+	font-size: 0.9rem;
+	cursor: pointer;
+}
+
+.app-shell__body {
+	flex: 1;
+	border-radius: 0.75rem;
+	border: 1px solid rgba(148, 163, 184, 0.2);
+	background: rgba(15, 23, 41, 0.6);
+	padding: 1.5rem;
+	display: grid;
+	place-items: center;
+	text-align: center;
 }
