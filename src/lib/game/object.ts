@@ -1,6 +1,6 @@
 // Library used by Pixi
 import EventEmitter from 'eventemitter3'
-import { ReactiveBase, type ScopedCallback, unreactive, unwrap } from 'mutts/src'
+import { reactive, ReactiveBase, type ScopedCallback, unreactive, unwrap } from 'mutts/src'
 import { namedEffect } from '$lib/debug'
 import type { Position } from '../utils/position'
 import type { Tile } from './board/tile'
@@ -62,7 +62,7 @@ export function withInteractive<T extends abstract new (...args: any[]) => GameO
 		/**
 		 * Log messages associated with the object. Intended for UI display.
 		 */
-		public readonly logs: string[] = []
+		public readonly logs: string[] = reactive([])
 
 		constructor(...args: any[]) {
 			const [game, uid] = args
@@ -80,7 +80,7 @@ export function withInteractive<T extends abstract new (...args: any[]) => GameO
 				// Fallback if JSON serialization fails
 				line = String(args)
 			}
-			if (topic === undefined || unwrap(this.lastTopic) === unwrap(topic)) {
+			if (topic !== undefined && unwrap(this.lastTopic) === unwrap(topic)) {
 				this.logs[this.logs.length - 1] = line
 			} else {
 				this.logs.push(line)

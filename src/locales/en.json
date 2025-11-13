@@ -19,8 +19,7 @@
 		}
 	},
 	"game": {
-		"gameTitle": "Game {game}",
-		"noSelection": "Nothing..."
+		"gameTitle": "Game {game}"
 	},
 	"tile": {
 		"content": "Content",

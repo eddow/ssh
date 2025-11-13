@@ -69,9 +69,7 @@ interface SelectionState {
 let storedState: SelectionState = {}
 try {
 	const stored = localStorage.getItem('selectionState')
-	if (stored) {
-		storedState = JSON.parse(stored)
-	}
+	if (stored) storedState = JSON.parse(stored)
 } catch {
 	// Invalid JSON, use empty state
 }

@@ -39,7 +39,6 @@
     "tailwindcss": "^4.1.13",
     "typescript": "~5.8.3",
     "vite": "^7.1.2",
-    "vite-plugin-phaser": "^0.0.1",
     "vitest": "^3.2.4"
   },
   "devDependencies": {
