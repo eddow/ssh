@@ -12,7 +12,7 @@ import {
 import * as gameContent from '$assets/game-content'
 import { prefix, type ResourceTree, resources } from '$assets/resources'
 import { assert } from '$lib/debug'
-import { configuration, interactionMode, mrg } from '$lib/globals.svelte'
+import { configuration, interactionMode, mrg } from '$lib/globals'
 import { registerPixiApp, unregisterPixiApp } from '$lib/hmr-pixi'
 import type { AlveolusType, DepositType, GoodType } from '$lib/types'
 import { axial, axialRectangle, cartesian, fromCartesian } from '$lib/utils/axial'

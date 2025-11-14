@@ -1,4 +1,4 @@
-import { computed } from 'mutts/src'
+import { memoize } from 'mutts/src'
 import type { Character } from '$lib/game/population/character'
 import type { GatherJob, Goods, GoodType } from '$lib/types/base'
 import { type Positioned, toAxialCoord } from '$lib/utils/position'
@@ -22,7 +22,7 @@ export class GatherAlveolus extends TransitAlveolus {
 		super(tile, new SlottedStorage(1, 12))
 	}
 
-	@computed
+	@memoize
 	get hasFreeGoodsToGather(): boolean {
 		// Check if there are any free goods in the world that the hive needs
 		const hiveNeeds = Object.keys(this.hive.needs) as GoodType[]

@@ -56,7 +56,7 @@ export class Hive extends AdvertisementManager<Alveolus> {
 	public readonly alveoli = reactive(new Set<Alveolus>())
 
 	// Structure and content
-	//@computed
+	//@memoize
 	get byActionType() {
 		const rv: Partial<Record<Ssh.Action['type'], Alveolus[]>> = {}
 		for (const alveolus of this.alveoli) {
@@ -205,7 +205,7 @@ export class Hive extends AdvertisementManager<Alveolus> {
 		return [border.tile.a.position, border.tile.b.position]
 	}
 	//#region Needy / events
-	//@computed
+	//@memoize
 	get needs() {
 		return Object.fromEntries(
 			Object.entries(this.advertisements)

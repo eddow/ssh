@@ -1,4 +1,4 @@
-import { atomic, computed, reactive, unreactive } from 'mutts/src'
+import { atomic, memoize, reactive, unreactive } from 'mutts/src'
 import { assert } from '$lib/debug'
 import type { Goods } from '$lib/types/base'
 import { GoodType } from '$lib/types/base'
@@ -82,12 +82,12 @@ export class SpecificStorage extends Storage<SpecificAllocation> {
 		this.maxAmounts = { ...maxAmounts }
 	}
 
-	@computed
+	@memoize
 	get allocatedSlots(): boolean {
 		return Object.values(this._allocated).some((qty) => qty > 0)
 	}
 
-	@computed
+	@memoize
 	get fragmented(): GoodType | undefined {
 		// SpecificStorage is not fragmented as it stores goods in single quantities per type
 		return undefined
@@ -105,7 +105,7 @@ export class SpecificStorage extends Storage<SpecificAllocation> {
 		return maxAmount - currentAmount - allocated
 	}
 
-	@computed
+	@memoize
 	get isEmpty(): boolean {
 		return Object.values(this._goods).every((qty) => qty === 0)
 	}
@@ -138,12 +138,12 @@ export class SpecificStorage extends Storage<SpecificAllocation> {
 		return toRemove
 	}
 
-	//@computed
+	//@memoize
 	get stock(): { [k in GoodType]?: number } {
 		return { ...this._goods }
 	}
 
-	@computed
+	@memoize
 	get availables(): { [k in GoodType]?: number } {
 		const result: { [k in GoodType]?: number } = {}
 		for (const [goodType, quantity] of Object.entries(this._goods)) {

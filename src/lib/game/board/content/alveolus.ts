@@ -1,4 +1,4 @@
-import { computed, type ScopedCallback, unreactive } from 'mutts/src'
+import { memoize, type ScopedCallback, unreactive } from 'mutts/src'
 import { Sprite } from 'pixi.js'
 import { assert } from '$lib/debug'
 import type { Hive, MovingGood } from '$lib/game/hive/hive'
@@ -116,7 +116,7 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition, typeof 
 		return false
 	}
 
-	@computed
+	@memoize
 	get isBurdened(): boolean {
 		// Check if there are FreeGoods on this tile
 		const coord = toAxialCoord(this.tile.position)
@@ -153,7 +153,7 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition, typeof 
 	 * - Returns a cycle of movements (A->B, B->C, C->A) if circular blockade detected
 	 * - Returns undefined if no movements available
 	 */
-	@computed
+	@memoize
 	get aGoodMovement(): LocalMovingGood[] | undefined {
 		const hive = this.hive
 		const here = toAxialCoord(this.tile.position)
@@ -281,7 +281,7 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition, typeof 
 
 		return undefined
 	}
-	@computed
+	@memoize
 	get incomingGoods(): boolean {
 		if (
 			this.tile.surroundings.some(
@@ -316,14 +316,14 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition, typeof 
 		this.hive.removeAlveolus(this)
 	}
 
-	@computed
+	@memoize
 	get neighborAlveoli(): Alveolus[] {
 		return this.tile.neighborTiles
 			.map((neighbor) => neighbor?.content)
 			.filter((c): c is Alveolus => c instanceof Alveolus)
 	}
 	abstract get workingGoodsRelations(): GoodsRelations
-	//@computed
+	//@memoize
 	get goodsRelations(): GoodsRelations {
 		const rv = this.working
 			? this.workingGoodsRelations

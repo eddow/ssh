@@ -9,7 +9,7 @@ import { type Positioned, toAxialCoord } from '$lib/utils'
 import { subject } from '../scripts'
 import { DurationStep } from '../steps'
 
-class InventoryFunctions {
+export class InventoryFunctions {
 	declare [subject]: Character
 
 	@contract('GoodType', 'number?')
@@ -168,5 +168,3 @@ class InventoryFunctions {
 		return new DurationStep(totalAmount * vehicle.transferTime, 'convey', description)
 	}
 }
-
-export { InventoryFunctions }

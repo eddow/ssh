@@ -1,4 +1,4 @@
-import { atomic, computed, reactive, unreactive } from 'mutts/src'
+import { atomic, memoize, reactive, unreactive } from 'mutts/src'
 import { assert } from '$lib/debug'
 import type { Goods, GoodType } from '$lib/types/base'
 import type { RenderedGoodSlot, RenderedGoodSlots } from './goods-renderer'
@@ -106,12 +106,12 @@ export class SlottedStorage extends Storage<SlottedAllocation> {
 		this.slots = reactive(Array(maxSlots).fill(undefined))
 	}
 
-	@computed
+	@memoize
 	get allocatedSlots(): boolean {
 		return this.slots.some((slot) => slot?.allocated)
 	}
 
-	@computed
+	@memoize
 	get fragmented(): GoodType | undefined {
 		// Group slots by good type and check for fragmentation
 		const slotsByGoodType = new Map<GoodType, Slot[]>()
@@ -158,7 +158,7 @@ export class SlottedStorage extends Storage<SlottedAllocation> {
 		return totalCapacity
 	}
 
-	@computed
+	@memoize
 	get isEmpty(): boolean {
 		return this.slots.every((slot) => slot === undefined || slot.quantity === 0)
 	}
@@ -212,7 +212,7 @@ export class SlottedStorage extends Storage<SlottedAllocation> {
 		return qty - remaining
 	}
 
-	@computed // When computed, we can have an empty stock on a nearly filled storage
+	@memoize // When memoize, we can have an empty stock on a nearly filled storage
 	get stock(): { [k in GoodType]?: number } {
 		const result: { [k in GoodType]?: number } = {}
 
@@ -222,7 +222,7 @@ export class SlottedStorage extends Storage<SlottedAllocation> {
 		return result
 	}
 
-	@computed
+	@memoize
 	get availables(): { [k in GoodType]?: number } {
 		const result: { [k in GoodType]?: number } = {}
 

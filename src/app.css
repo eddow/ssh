@@ -1,51 +1,154 @@
+:root {
+	color-scheme: light;
+	--app-bg: #f8fafc;
+	--app-surface: rgba(15, 23, 42, 0.05);
+	--app-border: rgba(15, 23, 42, 0.12);
+	--app-text: #0f172a;
+	--toolbar-bg: rgba(15, 23, 42, 0.06);
+	--toolbar-border: rgba(15, 23, 42, 0.15);
+	--toolbar-active: rgba(37, 99, 235, 0.18);
+	--toolbar-active-border: rgba(37, 99, 235, 0.45);
+	--toolbar-text: #0f172a;
+}
+
+.dark {
+	color-scheme: dark;
+	--app-bg: #0f172a;
+	--app-surface: rgba(148, 163, 184, 0.12);
+	--app-border: rgba(148, 163, 184, 0.25);
+	--app-text: #e2e8f0;
+	--toolbar-bg: rgba(30, 41, 59, 0.6);
+	--toolbar-border: rgba(148, 163, 184, 0.25);
+	--toolbar-active: rgba(96, 165, 250, 0.4);
+	--toolbar-active-border: rgba(147, 197, 253, 0.7);
+	--toolbar-text: #e2e8f0;
+}
+
 body {
+	margin: 0;
+	min-height: 100vh;
 	overflow: hidden;
+	font-family: 'Inter', 'Segoe UI', sans-serif;
+	background: radial-gradient(circle at top, rgba(37, 99, 235, 0.08), transparent 55%), var(--app-bg);
+	color: var(--app-text);
 }
 
 .app-shell {
+	min-height: 100vh;
 	display: flex;
 	flex-direction: column;
-	min-height: 100vh;
 	gap: 1.5rem;
-	padding: 1.5rem;
-	background: radial-gradient(circle at top, rgba(23, 48, 77, 0.08), transparent 55%),
-		var(--surface-1, #0f1729);
-	color: var(--text-1, #e5ecff);
+	padding: 1.75rem;
+	box-sizing: border-box;
 }
 
-.app-shell__header > h1 {
-	font-size: clamp(2rem, 4vw, 2.75rem);
-	font-weight: 600;
-	margin-bottom: 0.5rem;
+
+
+.app-main {
+	flex: 1;
+	min-height: 0;
+	border-radius: 1rem;
+	border: 1px solid var(--app-border);
+	background: var(--app-surface);
+	overflow: hidden;
+	position: relative;
 }
 
-.app-shell__header {
+.dockview-container {
+	height: 100%;
+	width: 100%;
+	position: absolute;
+}
+
+.dockview-widget--game {
+	width: 100%;
+	height: 100%;
+}
+
+.configuration-widget {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+	padding: 1.2rem;
+	color: var(--toolbar-text);
+}
+
+.configuration-widget__toggle {
 	display: flex;
 	align-items: center;
-	gap: 1.5rem;
-	justify-content: space-between;
-	flex-wrap: wrap;
+	gap: 0.6rem;
+	font-weight: 500;
 }
 
-.theme-toggle {
-	display: inline-flex;
+.configuration-widget__fieldset {
+	margin: 0;
+	border-radius: 0.75rem;
+	border: 1px solid var(--app-border);
+	padding: 0.75rem 1rem 1rem;
+}
+
+.configuration-widget__radios {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	margin-top: 0.5rem;
+}
+
+.configuration-widget__radio {
+	display: flex;
 	align-items: center;
 	gap: 0.5rem;
-	padding: 0.4rem 0.75rem;
-	border-radius: 9999px;
-	border: 1px solid rgba(148, 163, 184, 0.3);
-	background: rgba(15, 23, 41, 0.6);
-	font-size: 0.9rem;
-	cursor: pointer;
 }
 
-.app-shell__body {
+.selection-info-panel {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+	height: 100%;
+	padding: 1rem;
+	color: var(--toolbar-text);
+	box-sizing: border-box;
+}
+
+.selection-info-panel__summary h3 {
+	margin: 0 0 0.35rem;
+	font-size: 1.1rem;
+	font-weight: 600;
+}
+
+.selection-info-panel__summary p {
+	margin: 0;
+	font-size: 0.9rem;
+	opacity: 0.8;
+}
+
+.selection-info-panel__logs {
 	flex: 1;
-	border-radius: 0.75rem;
-	border: 1px solid rgba(148, 163, 184, 0.2);
-	background: rgba(15, 23, 41, 0.6);
-	padding: 1.5rem;
-	display: grid;
-	place-items: center;
-	text-align: center;
+	min-height: 5rem;
+	border: 1px solid var(--app-border);
+	border-radius: 0.65rem;
+	padding: 0.75rem;
+	overflow-y: auto;
+	background: rgba(15, 23, 42, 0.08);
+}
+
+.dark .selection-info-panel__logs {
+	background: rgba(148, 163, 184, 0.12);
+}
+
+.selection-info-panel__logs-line {
+	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+	font-size: 0.8rem;
+	line-height: 1.4;
+}
+
+.selection-info-panel__empty {
+	font-size: 0.9rem;
+	opacity: 0.75;
+}
+
+.ssh-resource-image {
+	display: inline-block;
+	background-repeat: no-repeat;
+	image-rendering: pixelated;
 }

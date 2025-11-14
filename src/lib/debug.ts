@@ -26,14 +26,23 @@ export const traces: Record<string, typeof console | undefined> = {}
 //traces.advertising = console
 const debugMutts = false
 if (debugMutts) {
-	reactiveOptions.chain = (target: Function, caller?: Function) => {
-		console.log(caller ? `${caller.name} -> ${target.name}` : `-> ${target.name}`)
+	reactiveOptions.chain = (targets: Function[], caller?: Function) => {
+		console.log(
+			caller
+				? `${caller.name} -> ${targets.map((t) => t.name).join(' -> ')}`
+				: `-> ${targets.map((t) => t.name).join(' -> ')}`,
+		)
 	}
-	reactiveOptions.beginChain = (target: Function) => {
-		console.groupCollapsed(`${target.name}`)
+	reactiveOptions.beginChain = (targets: Function[]) => {
+		console.groupCollapsed(`${targets.map((t) => t.name).join(' -> ')}`)
 	}
 	reactiveOptions.endChain = () => {
 		console.groupEnd()
+	}
+	reactiveOptions.skipRunningEffect = (effect: Function, chain: Function[]) => {
+		console.log(
+			`Skipping running effect: ${chain.map((t) => t.name).join(' -> ')} -> ${effect.name}`,
+		)
 	}
 }
 reactiveOptions.maxEffectChain = 100

@@ -1,52 +1,60 @@
 import { dirname, resolve as resolvePath } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { transformSync } from '@babel/core'
 import { babelPluginJsxReactive } from 'pounce-ts/plugin'
 import { defineConfig, type Plugin } from 'vite'
+import babel from 'vite-plugin-babel'
 
 const projectRootDir = dirname(fileURLToPath(import.meta.url))
+function stripDeclare(): Plugin {
+	return {
+		name: 'strip-declare',
+		enforce: 'pre',
+		transform(code, id) {
+			if (!/\.[cm]?tsx?$/.test(id)) return null
 
+			// Replace `declare field: Type;` with `field!: Type;`
+			return code.replace(/\bdeclare\s+([\w[].+?):/g, '$1!:')
+		},
+	}
+}
 export default defineConfig({
 	plugins: [
-		{
-			name: 'babel-jsx-transform',
-			enforce: 'pre',
-			async transform(code, id) {
-				if (!/\.(tsx?|jsx?)$/.test(id)) return null
+		//stripDeclare(),
+		babel({
+			// Babel config (applied to both JS and TS files)
+			babelConfig: {
+				plugins: [
+					babelPluginJsxReactive,
+					// Decorators (legacy or new syntax, configure as needed)
+					['@babel/plugin-proposal-decorators', { legacy: true }],
 
-				const isTsx = id.endsWith('.tsx')
-
-				const result = transformSync(code, {
-					filename: id,
-					babelrc: false,
-					configFile: false,
-					plugins: [
-						babelPluginJsxReactive,
-						['@babel/plugin-proposal-decorators', { version: '2023-05' }],
-						[
-							'@babel/plugin-transform-react-jsx',
-							{
-								runtime: 'automatic',
-								importSource: 'pounce-ts/runtime',
-								throwIfNamespace: false,
-							},
-						],
-						[
-							'@babel/plugin-transform-typescript',
-							{
-								isTSX: isTsx,
-								allowDeclareFields: true,
-								disallowAmbiguousJSXLike: isTsx,
-							},
-						],
+					[
+						'@babel/plugin-transform-react-jsx',
+						{ pragma: 'h', pragmaFrag: 'Fragment', throwIfNamespace: false },
 					],
-					sourceMaps: true,
-				})
-
-				if (!result) return null
-				return { code: result.code || '', map: result.map as any }
+				],
+				overrides: [
+					{
+						test: /\.[mc]?tsx$/,
+						plugins: [
+							[
+								'@babel/plugin-transform-typescript',
+								{ isTS: true, isTSX: true, allowDeclareFields: true },
+							],
+						],
+					},
+					{
+						test: /\.[mc]?ts$/,
+						exclude: /\.[mc]?tsx$/,
+						plugins: [
+							['@babel/plugin-transform-typescript', { isTS: true, allowDeclareFields: true }],
+						],
+					},
+				],
 			},
-		} as Plugin,
+			// Optional: Extend Babel config for specific file types
+			filter: (id) => /\.[cm]?tsx?$/.test(id),
+		}),
 	],
 	resolve: {
 		alias: {

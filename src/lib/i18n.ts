@@ -1,14 +1,14 @@
+import { effect, reactive } from 'mutts/src'
 import {
 	type CondensedDictionary,
 	I18nClient,
-	type Locale,
 	type LocaleFlagsEngine,
 	type TextKey,
 	type Translator,
 } from 'omni18n/ts/s-a'
-import { effect, reactive } from 'mutts/src'
 
 export const locales = ['en', 'fr'] as const
+export type Locale = (typeof locales)[number]
 
 export type TextInfos = {}
 export type KeyInfos = {}
@@ -25,9 +25,10 @@ class ClientSideClient extends I18nClient {
 	}
 }
 
-const savedLocale = (typeof localStorage !== 'undefined'
-	? (localStorage.getItem('locale') as Locale | null)
-	: null) ?? 'en'
+const savedLocale =
+	(typeof localStorage !== 'undefined'
+		? (localStorage.getItem('locale') as Locale | null)
+		: null) ?? 'en'
 
 let queryLocale: Locale = savedLocale
 let localeRequestToken = 0
@@ -45,7 +46,7 @@ const imports = {
 
 async function condense(_lng: string[], zones: string[]) {
 	return Promise.all(
-		zones.map((zone) => imports[zone as keyof typeof imports][queryLocale]),
+		zones.map((zone) => imports[zone as keyof typeof imports][queryLocale]()),
 	).then((cds) => cds.map((cd) => cd.default) as CondensedDictionary[])
 }
 
@@ -56,7 +57,10 @@ export const i18nState: I18nState = reactive({
 	translator: undefined,
 	localeFlags: undefined,
 })
-
+export let T: Translator = null!
+effect(() => {
+	T = i18nState.translator!
+})
 async function loadLocale(locale: Locale, requestId: number) {
 	queryLocale = locale
 	await i18nClient.setLocales([locale])
@@ -65,11 +69,12 @@ async function loadLocale(locale: Locale, requestId: number) {
 	i18nState.translator = translator
 }
 
-effect(() => {
+const translationEffect = effect(() => {
 	const currentLocale = i18nState.locale
 	const requestId = ++localeRequestToken
 	void loadLocale(currentLocale, requestId)
 })
+void translationEffect // Store to avoid GC cleanup
 
 export async function initTranslator() {
 	const requestId = ++localeRequestToken

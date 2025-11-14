@@ -1,4 +1,4 @@
-import { computed } from 'mutts/src'
+import { memoize } from 'mutts/src'
 import { inputBufferSize, outputBufferSize } from '$assets/constants'
 import type { Character } from '$lib/game/population/character'
 import { SpecificStorage } from '$lib/game/storage'
@@ -23,7 +23,7 @@ export class TransformAlveolus extends Alveolus {
 			}),
 		)
 	}
-	@computed
+	@memoize
 	get canWork(): boolean {
 		return (
 			// If we have all the inputs required
