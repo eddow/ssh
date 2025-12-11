@@ -1,6 +1,6 @@
 import '../app.css'
-import { effect } from 'mutts/src'
-import { Button, ButtonGroup, Dockview, Icon, RadioButton, Toolbar } from 'pounce-ui/src'
+import { effect, trackEffect } from 'mutts/src'
+import { Button, ButtonGroup, Dockview, RadioButton, Toolbar } from 'pounce-ui/src'
 
 import * as gameContent from '$assets/game-content'
 import { configuration, games, interactionMode } from '$lib/globals'
@@ -21,6 +21,9 @@ const zoneActions = [
 ] as const
 
 const App = () => {
+	trackEffect((obj, evolution, prop) => {
+		console.log('App-redo', obj, evolution, prop);
+	});
 	let api: any
 
 	const game = games.game('GameX')
@@ -38,11 +41,6 @@ const App = () => {
 		if (api?.setTheme) {
 			api.setTheme(configuration.darkMode ? 'dracula' : 'light')
 		}
-	})
-
-	effect(() => {
-		if (typeof localStorage === 'undefined') return
-		localStorage.setItem('configuration', JSON.stringify(configuration))
 	})
 
 	effect(() => {

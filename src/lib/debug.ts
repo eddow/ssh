@@ -1,4 +1,4 @@
-import { effect, reactiveOptions } from 'mutts/src'
+import { effect, enableDevTools, reactiveOptions } from 'mutts/src'
 
 export function nf<T extends Function>(name: string, fn: T): T {
 	Object.defineProperty(fn, 'name', { value: name })
@@ -47,3 +47,4 @@ if (debugMutts) {
 }
 reactiveOptions.maxEffectChain = 100
 reactiveOptions.maxEffectReaction = 'debug'
+enableDevTools()

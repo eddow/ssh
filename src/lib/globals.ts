@@ -1,5 +1,6 @@
 import type { DockviewApi } from 'dockview-core'
 import { Eventful, reactive } from 'mutts/src'
+import { stored } from 'pounce-ui/src'
 import { Game, type GameEvents, type InteractiveGameObject } from './game'
 import { chopSaw as patches } from './game/exampleGames'
 
@@ -8,24 +9,9 @@ export interface Configuration {
 	timeControl: 'pause' | 'play' | 'fast-forward' | 'gonzales'
 }
 
-function readStoredConfiguration(): Configuration {
+function getDefaultConfiguration(): Configuration {
 	if (typeof window === 'undefined') {
 		return { darkMode: false, timeControl: 'play' }
-	}
-
-	const stored = localStorage.getItem('configuration')
-	if (stored) {
-		try {
-			const parsed = JSON.parse(stored) as Partial<Configuration>
-			return {
-				darkMode: Boolean(
-					parsed.darkMode ?? window.matchMedia?.('(prefers-color-scheme: dark)').matches,
-				),
-				timeControl: (parsed.timeControl as Configuration['timeControl']) ?? 'play',
-			}
-		} catch {
-			// fall through to defaults below
-		}
 	}
 
 	const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false
@@ -35,7 +21,7 @@ function readStoredConfiguration(): Configuration {
 	}
 }
 
-export const configuration = reactive<Configuration>(readStoredConfiguration())
+export const configuration = stored<Configuration>(getDefaultConfiguration())
 export const debugInfo = reactive<Record<string, unknown>>({})
 
 type GamedEvents = {
