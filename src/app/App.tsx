@@ -1,11 +1,14 @@
 import '../app.css'
-import { effect, trackEffect } from 'mutts/src'
+import { effect, reactive, trackEffect, untracked } from 'mutts/src'
 import { Button, ButtonGroup, Dockview, RadioButton, Toolbar } from 'pounce-ui/src'
 
 import * as gameContent from '$assets/game-content'
-import { configuration, games, interactionMode } from '$lib/globals'
+import { configuration, games, interactionMode, getDockviewLayout } from '$lib/globals'
 import ResourceImage from './components/ResourceImage'
-import widgets from './widgets'
+import widgetsImport from './widgets'
+
+// Create local copy to avoid import reassignment issues
+const widgets = { ...widgetsImport }
 
 const timeControls = [
 	{ value: 'pause', label: 'Pause', icon: 'mdi:pause' },
@@ -20,28 +23,45 @@ const zoneActions = [
 	{ value: 'zone:none', label: 'Unzone', icon: 'mdi:eraser' },
 ] as const
 
-const App = () => {
+const App = (_props: {}, scope: Record<string, any>) => {
 	trackEffect((obj, evolution, prop) => {
 		console.log('App-redo', obj, evolution, prop);
 	});
-	let api: any
+	const state = reactive({ 
+		api: undefined as any,
+	})
+
+	// Create app scope with reactive theme management
+	const appScope = reactive({
+		theme: configuration.darkMode ? 'dark' : 'light' as 'light' | 'dark',
+		toggleTheme: () => {
+			appScope.theme = appScope.theme === 'light' ? 'dark' : 'light'
+			configuration.darkMode = appScope.theme === 'dark'
+		}
+	})
+
+	// Sync theme with configuration changes
+	effect(() => {
+		appScope.theme = configuration.darkMode ? 'dark' : 'light'
+	})
+
+	// Sync theme with document element
+	effect(() => {
+		const theme = appScope.theme
+		document.documentElement.dataset.theme = theme
+		document.documentElement.classList.toggle('dark', theme === 'dark')
+	})
+
+	// Update scope with theme changes
+	effect(() => {
+		scope.theme = appScope.theme
+		scope.toggleTheme = appScope.toggleTheme
+	})
 
 	const game = games.game('GameX')
 	const buildableAlveoli = Object.entries(gameContent.alveoli).filter(
 		([, alveolus]) => 'construction' in alveolus,
 	)
-
-	const shouldPersistLayout =
-		typeof location !== 'undefined' && location.host.startsWith('localhost')
-
-	effect(() => {
-		const theme = configuration.darkMode ? 'dark' : 'light'
-		document.documentElement.dataset.theme = theme
-		document.documentElement.classList.toggle('dark', configuration.darkMode)
-		if (api?.setTheme) {
-			api.setTheme(configuration.darkMode ? 'dracula' : 'light')
-		}
-	})
 
 	effect(() => {
 		if (typeof window === 'undefined') return
@@ -58,50 +78,15 @@ const App = () => {
 		}
 	})
 
-	let layoutInitialized = false
-	const restoreOrBootstrapLayout = () => {
-		if (!api || layoutInitialized) return
-		layoutInitialized = true
-		if (shouldPersistLayout && typeof localStorage !== 'undefined') {
-			const saved = localStorage.getItem('layout')
-			if (saved) {
-				try {
-					api.fromJSON(JSON.parse(saved))
-					return
-				} catch (error) {
-					console.warn('Unable to restore dockview layout:', error)
-					localStorage.removeItem('layout')
-				}
-			}
-		}
-		openConfigurationPanel()
-		openGamePanel()
-	}
-
-	const persistLayout = () => {
-		if (!api || !shouldPersistLayout || typeof localStorage === 'undefined') return
-		const layout = api.toJSON()
-		localStorage.setItem('layout', JSON.stringify(layout))
-	}
-
-	effect(() => {
-		if (!api) return
-		restoreOrBootstrapLayout()
-		const disposable = api.onDidLayoutChange?.(() => {
-			persistLayout()
-		})
-		return () => disposable?.dispose?.()
-	})
-
 	const ensurePanel = (component: keyof typeof widgets, id: string, params?: Record<string, any>) => {
-		if (!api) return
-		const existing = api.getPanel?.(id)
+		if (!state.api) return
+		const existing = state.api.getPanel?.(id)
 		if (existing) {
 			if (params) existing.api?.updateParameters?.(params)
 			existing.focus?.()
 			return existing
 		}
-		return api.addPanel?.({
+		return state.api.addPanel?.({
 			id,
 			component,
 			params,
@@ -118,14 +103,11 @@ const App = () => {
 	const openSelectionPanel = () => ensurePanel('selection-info', 'selection-info')
 
 	effect(() => {
-		if (interactionMode.selectedAction === '') {
-			openSelectionPanel()
+		const shouldOpen = interactionMode.selectedAction === ''
+		if (shouldOpen) {
+			untracked(openSelectionPanel)
 		}
 	})
-
-	const toggleDarkMode = () => {
-		configuration.darkMode = !configuration.darkMode
-	}
 
 	return (
 		<div class="app-shell">
@@ -189,14 +171,22 @@ const App = () => {
 				</ButtonGroup>
 				<Toolbar.Spacer />
 				<Button
-					icon={configuration.darkMode ? 'mdi:weather-night' : 'mdi:weather-sunny'}
+					icon={appScope.theme === 'dark' ? 'mdi:weather-night' : 'mdi:weather-sunny'}
 					aria-label="Toggle dark mode"
-					onClick={toggleDarkMode}
+					onClick={appScope.toggleTheme}
 				/>
 			</Toolbar>
 
 			<main class="app-main">
-				<Dockview el:class="dockview-container" api={api} widgets={widgets} />
+				<scope theme={appScope.theme} toggleTheme={appScope.toggleTheme}>
+					<Dockview 
+						el:class="dockview-container" 
+						api={state.api} 
+						widgets={widgets}
+						layout={getDockviewLayout()}
+						theme={{light: 'dockview-theme-light', dark: 'dockview-theme-dracula'}}
+					/>
+				</scope>
 			</main>
 		</div>
 	)

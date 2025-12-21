@@ -18,7 +18,7 @@ import type { Zone } from './zone'
 export class Tile extends withInteractive(GameObject) {
 	// True when the tile is exactly as produced by generation
 	public asGenerated: boolean = false
-	@memoize
+	//TODO: @memoize
 	get content(): TileContent | undefined {
 		return this.board.getTileContent(toAxialCoord(this.position))
 	}

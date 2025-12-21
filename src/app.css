@@ -60,95 +60,100 @@ body {
 	position: absolute;
 }
 
-.dockview-widget--game {
-	width: 100%;
-	height: 100%;
-}
-
-.configuration-widget {
-	display: flex;
-	flex-direction: column;
-	gap: 1rem;
-	padding: 1.2rem;
-	color: var(--toolbar-text);
-}
-
-.configuration-widget__toggle {
-	display: flex;
-	align-items: center;
-	gap: 0.6rem;
-	font-weight: 500;
-}
-
-.configuration-widget__fieldset {
-	margin: 0;
-	border-radius: 0.75rem;
-	border: 1px solid var(--app-border);
-	padding: 0.75rem 1rem 1rem;
-}
-
-.configuration-widget__radios {
-	display: flex;
-	flex-direction: column;
-	gap: 0.5rem;
-	margin-top: 0.5rem;
-}
-
-.configuration-widget__radio {
-	display: flex;
-	align-items: center;
-	gap: 0.5rem;
-}
-
-.selection-info-panel {
-	display: flex;
-	flex-direction: column;
-	gap: 1rem;
-	height: 100%;
-	padding: 1rem;
-	color: var(--toolbar-text);
-	box-sizing: border-box;
-}
-
-.selection-info-panel__summary h3 {
-	margin: 0 0 0.35rem;
-	font-size: 1.1rem;
-	font-weight: 600;
-}
-
-.selection-info-panel__summary p {
-	margin: 0;
-	font-size: 0.9rem;
-	opacity: 0.8;
-}
-
-.selection-info-panel__logs {
-	flex: 1;
-	min-height: 5rem;
-	border: 1px solid var(--app-border);
-	border-radius: 0.65rem;
-	padding: 0.75rem;
-	overflow-y: auto;
-	background: rgba(15, 23, 42, 0.08);
-}
-
-.dark .selection-info-panel__logs {
-	background: rgba(148, 163, 184, 0.12);
-}
-
-.selection-info-panel__logs-line {
-	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-	font-size: 0.8rem;
-	line-height: 1.4;
-}
-
-.selection-info-panel__empty {
-	font-size: 0.9rem;
-	opacity: 0.75;
-}
 
 .ssh-resource-image {
 	display: inline-block;
 	background-repeat: no-repeat;
 	image-rendering: pixelated;
+}
+
+
+
+.badge {
+	display: inline-flex;
+	align-items: center;
+	padding: 0.25rem 0.5rem;
+	border-radius: 0.25rem;
+	font-size: 0.875rem;
+	font-weight: 500;
+}
+
+.badge-yellow {
+	background-color: rgb(254 240 138);
+	color: rgb(113 63 18);
+}
+
+.dark .badge-yellow {
+	background-color: rgb(113 63 18);
+	color: rgb(254 240 138);
+}
+
+.badge-red {
+	background-color: rgb(254 202 202);
+	color: rgb(127 29 29);
+}
+
+.dark .badge-red {
+	background-color: rgb(127 29 29);
+	color: rgb(254 202 202);
+}
+
+.badge-blue {
+	background-color: rgb(191 219 254);
+	color: rgb(30 58 138);
+}
+
+.dark .badge-blue {
+	background-color: rgb(30 58 138);
+	color: rgb(191 219 254);
+}
+
+.badge-gray {
+	background-color: rgb(229 231 235);
+	color: rgb(55 65 81);
+}
+
+.dark .badge-gray {
+	background-color: rgb(55 65 81);
+	color: rgb(229 231 235);
+}
+
+.badge-green {
+	background-color: rgb(187 247 208);
+	color: rgb(20 83 45);
+}
+
+.dark .badge-green {
+	background-color: rgb(20 83 45);
+	color: rgb(187 247 208);
+}
+
+.badge-purple {
+	background-color: rgb(221 214 254);
+	color: rgb(88 28 135);
+}
+
+.dark .badge-purple {
+	background-color: rgb(88 28 135);
+	color: rgb(221 214 254);
+}
+
+.badge-indigo {
+	background-color: rgb(199 210 254);
+	color: rgb(55 48 163);
+}
+
+.dark .badge-indigo {
+	background-color: rgb(55 48 163);
+	color: rgb(199 210 254);
+}
+
+.badge-pink {
+	background-color: rgb(251 207 232);
+	color: rgb(131 24 67);
+}
+
+.dark .badge-pink {
+	background-color: rgb(131 24 67);
+	color: rgb(251 207 232);
 }

@@ -1,6 +1,7 @@
 import { effect } from 'mutts/src'
 
 import type { InteractiveGameObject } from '$lib/game'
+import { css } from '$lib/css'
 import { GameView } from '$lib/game/game'
 import { Tile } from '$lib/game/board/tile'
 import {
@@ -10,6 +11,13 @@ import {
 	validateStoredSelectionState,
 } from '$lib/globals'
 import type { AlveolusType } from '$lib/types/base'
+
+css`
+.dockview-widget--game {
+	width: 100%;
+	height: 100%;
+}
+`
 
 const GameWidget = (
 	props: {
@@ -24,6 +32,7 @@ const GameWidget = (
 	const game = games.game(gameName)
 	let container: HTMLElement | undefined
 	let gameView: GameView | undefined
+	const containerId = `game-container-${props.api?.id ?? Math.random().toString(36).substr(2, 9)}`
 
 	const handleProjectSelection = (object: InteractiveGameObject) => {
 		selectionState.selectedUid = object.uid
@@ -102,17 +111,7 @@ const GameWidget = (
 		},
 	}
 
-	const initContainer = (element: HTMLElement) => {
-		container = element
-		gameView = new GameView(game, container)
-		if (scope.api) validateStoredSelectionState(scope.api)
-		return () => {
-			gameView?.destroy()
-			gameView = undefined
-		}
-	}
-
-		props.title = 'Game'
+	props.title = 'Game'
 
 	effect(() => {
 		const { width, height } = props.size ?? { width: 0, height: 0 }
@@ -125,6 +124,47 @@ const GameWidget = (
 		return () => game.off(gameEvents)
 	})
 
+	// Initialize container when element is available
+	effect(() => {
+		// Check immediately, then with a small delay if needed
+		const checkElement = () => {
+			const element = document.getElementById(containerId) as HTMLElement
+			if (element && !container && !gameView) {
+				container = element
+				// Wait for game to load before creating view to ensure content is ready
+				game.loaded.then(() => {
+					if (container && !gameView) {
+						gameView = new GameView(game, container)
+						if (scope.api) validateStoredSelectionState(scope.api)
+					}
+				})
+				return true
+			}
+			return false
+		}
+
+		// Try immediately
+		if (!checkElement()) {
+			// If not found, try after a short delay
+			const timeoutId = setTimeout(() => {
+				checkElement()
+			}, 10)
+
+			return () => {
+				clearTimeout(timeoutId)
+				gameView?.destroy()
+				gameView = undefined
+				container = undefined
+			}
+		}
+
+		return () => {
+			gameView?.destroy()
+			gameView = undefined
+			container = undefined
+		}
+	})
+
 	if (import.meta.hot) {
 		import.meta.hot.accept(() => {
 			if (gameView) {
@@ -133,7 +173,7 @@ const GameWidget = (
 		})
 	}
 
-	return <div class="dockview-widget dockview-widget--game" use={initContainer} />
+	return <div id={containerId} class="dockview-widget dockview-widget--game" />
 }
 
 export default GameWidget

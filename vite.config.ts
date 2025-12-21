@@ -1,6 +1,7 @@
 import { dirname, resolve as resolvePath } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { babelPluginJsxReactive } from 'pounce-ts/plugin'
+import { cssTagPlugin } from './vite-plugin-css-tag'
 import { defineConfig, type Plugin } from 'vite'
 import babel from 'vite-plugin-babel'
 
@@ -17,9 +18,13 @@ function stripDeclare(): Plugin {
 		},
 	}
 }
+
+void stripDeclare
+
 export default defineConfig({
 	plugins: [
 		//stripDeclare(),
+		cssTagPlugin(),
 		babel({
 			// Babel config (applied to both JS and TS files)
 			babelConfig: {

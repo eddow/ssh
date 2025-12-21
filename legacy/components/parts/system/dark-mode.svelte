@@ -8,7 +8,7 @@ let { darkMode = $bindable(false), class: className = '' }: { darkMode?: boolean
 </script>
 
 <Button
-	class="{className} text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-xl p-2"
+	class="{className} text-gray-500 dark:text-gray-400 OXDFDDDDDDDDD Q    dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-xl p-2"
 	aria-label={$T.ui.toggleDarkMode}
 	type="button"
 	onclick={() => (darkMode = !darkMode)}

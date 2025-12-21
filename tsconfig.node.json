@@ -37,5 +37,5 @@
       "@pounce/runtime/jsx-dev-runtime": ["node_modules/pounce-ts/src/runtime/jsx-dev-runtime.ts"]
     }
   },
-  "include": ["vite.config.ts", "vitest.config.ts"]
+  "include": ["vite.config.ts", "vitest.config.ts", "vite-plugin-css-tag.ts"]
 }

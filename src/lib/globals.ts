@@ -24,6 +24,34 @@ function getDefaultConfiguration(): Configuration {
 export const configuration = stored<Configuration>(getDefaultConfiguration())
 export const debugInfo = reactive<Record<string, unknown>>({})
 
+export const dockviewLayout = stored<{ layout: any }>({ layout: undefined })
+
+// Validate and fix dockview layout data
+function validateDockviewLayout(layout: any): any {
+	if (!layout || typeof layout !== 'object') {
+		return undefined
+	}
+	
+	// Check if grid.root.data is corrupted (empty object instead of array)
+	if (layout.grid?.root?.data !== undefined) {
+		if (!Array.isArray(layout.grid.root.data)) {
+			console.warn('Dockview layout corruption detected: grid.root.data should be an array, got:', typeof layout.grid.root.data)
+			console.warn('Clearing corrupted layout from localStorage')
+			// Clear the corrupted layout from storage
+			dockviewLayout.layout = undefined
+			return undefined
+		}
+	}
+	
+	return layout
+}
+
+// Safe getter for dockview layout with validation
+export function getDockviewLayout(): any {
+	const layout = dockviewLayout.layout
+	return validateDockviewLayout(layout)
+}
+
 type GamedEvents = {
 	[key in keyof GameEvents]: (game: Game, ...args: Parameters<GameEvents[key]>) => void
 }
