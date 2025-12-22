@@ -3,9 +3,10 @@ import { effect, reactive, trackEffect, untracked } from 'mutts/src'
 import { Button, ButtonGroup, DarkModeButton, Dockview, RadioButton, Toolbar } from 'pounce-ui/src'
 
 import * as gameContent from '$assets/game-content'
-import { configuration, games, interactionMode, getDockviewLayout } from '$lib/globals'
+import { configuration, games, interactionMode, getDockviewLayout, dockviewLayout } from '$lib/globals'
 import ResourceImage from './components/ResourceImage'
 import widgetsImport from './widgets'
+import { h } from '@pounce/lib'
 
 // Create local copy to avoid import reassignment issues
 const widgets = { ...widgetsImport }
@@ -23,7 +24,7 @@ const zoneActions = [
 	{ value: 'zone:none', label: 'Unzone', icon: 'mdi:eraser' },
 ] as const
 
-const App = (_props: {}, scope: Record<string, any>) => {
+const App = (_props: {}) => {
 	trackEffect((obj, evolution, prop) => {
 		console.log('App-redo', obj, evolution, prop);
 	});
@@ -80,6 +81,13 @@ const App = (_props: {}, scope: Record<string, any>) => {
 		const shouldOpen = interactionMode.selectedAction === ''
 		if (shouldOpen) {
 			untracked(openSelectionPanel)
+		}
+	})
+
+	effect(() => {
+		if (state.api && !getDockviewLayout()) {
+			// If no layout is saved, open a game by default
+			untracked(openGamePanel)
 		}
 	})
 
@@ -144,7 +152,12 @@ const App = (_props: {}, scope: Record<string, any>) => {
 					))}
 				</ButtonGroup>
 				<Toolbar.Spacer />
-				<DarkModeButton theme={scope.theme} />
+				<DarkModeButton 
+					theme={configuration.darkMode ? 'dark' : 'light'} 
+					update:theme={(theme) => {
+						configuration.darkMode = theme === 'dark'
+					}}
+				/>
 			</Toolbar>
 
 			<main class="app-main">
@@ -152,7 +165,10 @@ const App = (_props: {}, scope: Record<string, any>) => {
 					el:class="dockview-container" 
 					api={state.api} 
 					widgets={widgets}
-					layout={getDockviewLayout()}
+					layout={untracked(getDockviewLayout)}
+					update:layout={(layout) => {
+						dockviewLayout.layout = layout
+					}}
 					theme={configuration.darkMode ? 'dracula' : 'light'}
 				/>
 			</main>
@@ -161,5 +177,3 @@ const App = (_props: {}, scope: Record<string, any>) => {
 }
 
 export default App
-
-

@@ -31,19 +31,48 @@ function validateDockviewLayout(layout: any): any {
 	if (!layout || typeof layout !== 'object') {
 		return undefined
 	}
-	
-	// Check if grid.root.data is corrupted (empty object instead of array)
-	if (layout.grid?.root?.data !== undefined) {
-		if (!Array.isArray(layout.grid.root.data)) {
-			console.warn('Dockview layout corruption detected: grid.root.data should be an array, got:', typeof layout.grid.root.data)
-			console.warn('Clearing corrupted layout from localStorage')
-			// Clear the corrupted layout from storage
+
+	// Helper to recursively fix data structs
+	const fixData = (node: any) => {
+		if (!node || typeof node !== 'object') return
+
+		// Fix data: {} -> data: []
+		if (node.data && typeof node.data === 'object' && !Array.isArray(node.data) && Object.keys(node.data).length === 0) {
+			node.data = []
+		}
+
+		// Recurse into children/data
+		if (Array.isArray(node.children)) {
+			node.children.forEach(fixData)
+		}
+		if (Array.isArray(node.data)) {
+			node.data.forEach(fixData)
+		}
+		// Also check grid root
+		if (node.root) {
+			fixData(node.root)
+		}
+	}
+
+	try {
+		// Deep clone to avoid mutating the input if it's immutable/stored state
+		const cleanLayout = JSON.parse(JSON.stringify(layout))
+		
+		// Check basic structure
+		if (!cleanLayout.grid || !cleanLayout.grid.root) {
+			console.warn('Dockview layout missing grid/root, clearing.')
 			dockviewLayout.layout = undefined
 			return undefined
 		}
+
+		fixData(cleanLayout.grid)
+		
+		return cleanLayout
+	} catch (e) {
+		console.warn('Error validating dockview layout:', e)
+		dockviewLayout.layout = undefined
+		return undefined
 	}
-	
-	return layout
 }
 
 // Safe getter for dockview layout with validation
