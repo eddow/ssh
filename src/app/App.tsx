@@ -1,6 +1,6 @@
 import '../app.css'
 import { effect, reactive, trackEffect, untracked } from 'mutts/src'
-import { Button, ButtonGroup, Dockview, RadioButton, Toolbar } from 'pounce-ui/src'
+import { Button, ButtonGroup, DarkModeButton, Dockview, RadioButton, Toolbar } from 'pounce-ui/src'
 
 import * as gameContent from '$assets/game-content'
 import { configuration, games, interactionMode, getDockviewLayout } from '$lib/globals'
@@ -29,33 +29,7 @@ const App = (_props: {}, scope: Record<string, any>) => {
 	});
 	const state = reactive({ 
 		api: undefined as any,
-	})
-
-	// Create app scope with reactive theme management
-	const appScope = reactive({
-		theme: configuration.darkMode ? 'dark' : 'light' as 'light' | 'dark',
-		toggleTheme: () => {
-			appScope.theme = appScope.theme === 'light' ? 'dark' : 'light'
-			configuration.darkMode = appScope.theme === 'dark'
-		}
-	})
-
-	// Sync theme with configuration changes
-	effect(() => {
-		appScope.theme = configuration.darkMode ? 'dark' : 'light'
-	})
-
-	// Sync theme with document element
-	effect(() => {
-		const theme = appScope.theme
-		document.documentElement.dataset.theme = theme
-		document.documentElement.classList.toggle('dark', theme === 'dark')
-	})
-
-	// Update scope with theme changes
-	effect(() => {
-		scope.theme = appScope.theme
-		scope.toggleTheme = appScope.toggleTheme
+		theme: undefined as 'light' | 'dark' | undefined,
 	})
 
 	const game = games.game('GameX')
@@ -170,23 +144,17 @@ const App = (_props: {}, scope: Record<string, any>) => {
 					))}
 				</ButtonGroup>
 				<Toolbar.Spacer />
-				<Button
-					icon={appScope.theme === 'dark' ? 'mdi:weather-night' : 'mdi:weather-sunny'}
-					aria-label="Toggle dark mode"
-					onClick={appScope.toggleTheme}
-				/>
+				<DarkModeButton theme={scope.theme} />
 			</Toolbar>
 
 			<main class="app-main">
-				<scope theme={appScope.theme} toggleTheme={appScope.toggleTheme}>
-					<Dockview 
-						el:class="dockview-container" 
-						api={state.api} 
-						widgets={widgets}
-						layout={getDockviewLayout()}
-						theme={{light: 'dockview-theme-light', dark: 'dockview-theme-dracula'}}
-					/>
-				</scope>
+				<Dockview 
+					el:class="dockview-container" 
+					api={state.api} 
+					widgets={widgets}
+					layout={getDockviewLayout()}
+					theme={configuration.darkMode ? 'dracula' : 'light'}
+				/>
 			</main>
 		</div>
 	)
