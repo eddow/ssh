@@ -48,3 +48,70 @@ if (debugMutts) {
 reactiveOptions.maxEffectChain = 100
 reactiveOptions.maxEffectReaction = 'throw'
 enableDevTools()
+
+export function initConsoleTrap() {
+	if (typeof window === 'undefined') return
+	if (document.getElementById('console-trap')) return
+
+	const errors: { type: string; message: string }[] = []
+	const trap = document.createElement('div')
+	trap.id = 'console-trap'
+	trap.style.display = 'none'
+	trap.setAttribute('data-errors', '[]')
+	document.body.appendChild(trap)
+
+	const originalError = console.error
+	const originalWarn = console.warn
+
+	const update = () => {
+		trap.setAttribute('data-errors', JSON.stringify(errors))
+	}
+
+	function serializeArgs(args: any[]) {
+		return args
+			.map((a) => {
+				if (typeof a === 'string') return a
+				if (a instanceof Error) return a.message + '\n' + a.stack
+				try {
+					return JSON.stringify(a)
+				} catch (e) {
+					return String(a)
+				}
+			})
+			.join(' ')
+	}
+
+	console.error = (...args: any[]) => {
+		originalError.apply(console, args)
+		errors.push({ type: 'error', message: serializeArgs(args) })
+		update()
+	}
+
+	console.warn = (...args: any[]) => {
+		originalWarn.apply(console, args)
+		errors.push({ type: 'warning', message: serializeArgs(args) })
+		update()
+	}
+
+	// Capture unhandled promise rejections
+	window.addEventListener('unhandledrejection', (event) => {
+		errors.push({
+			type: 'unhandledrejection',
+			message:
+				event.reason instanceof Error
+					? (event.reason.stack ?? event.reason.message)
+					: String(event.reason),
+		})
+		update()
+	})
+
+	// Capture uncaught exceptions
+	window.addEventListener('error', (event) => {
+		errors.push({
+			type: 'uncaughterror',
+			message:
+				event.error instanceof Error ? (event.error.stack ?? event.error.message) : event.message,
+		})
+		update()
+	})
+}

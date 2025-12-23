@@ -1,4 +1,4 @@
-import { effect } from 'mutts/src'
+import { effect, Eventful } from 'mutts/src'
 
 import type { InteractiveGameObject } from '$lib/game'
 import { css } from '$lib/css'
@@ -11,6 +11,7 @@ import {
 	validateStoredSelectionState,
 } from '$lib/globals'
 import type { AlveolusType } from '$lib/types/base'
+import { scope } from 'arktype'
 
 css`
 .dockview-widget--game {
@@ -19,15 +20,11 @@ css`
 }
 `
 
-const GameWidget = (
-	props: {
-		params?: { game?: string }
-		api: any
-		title: string
-		size: { width: number; height: number }
-	},
-	scope: { api: any },
-) => {
+export default function GameWidget(props: {
+	params: { game: string }
+	container: HTMLElement
+}) {
+	const gameEvent = new Eventful()
 	const gameName = props.params?.game ?? 'GameX'
 	const game = games.game(gameName)
 	let container: HTMLElement | undefined
@@ -124,46 +121,42 @@ const GameWidget = (
 		return () => game.off(gameEvents)
 	})
 
-	// Initialize container when element is available
-	effect(() => {
-		// Check immediately, then with a small delay if needed
-		const checkElement = () => {
-			const element = document.getElementById(containerId) as HTMLElement
-			if (element && !container && !gameView) {
-				container = element
-				// Wait for game to load before creating view to ensure content is ready
-				game.loaded.then(() => {
-					if (container && !gameView) {
-						gameView = new GameView(game, container)
-						if (scope.api) validateStoredSelectionState(scope.api)
-					}
-				})
-				return true
+	const initView = async (el: HTMLElement) => {
+		console.log('GameWidget: initView called')
+		if (container || gameView) return
+		
+		container = el
+		// Wait for game to load before creating view to ensure content is ready
+		console.log('GameWidget: awaiting game.loaded')
+		game.loaded.then(() => {
+			console.log('GameWidget: game loaded')
+			if (!scope.api) return // check if destroyed
+			if (container && !gameView) {
+				try {
+					console.log(`[GameWidget] Mounting GameView to ${containerId}`)
+					gameView = new GameView(game, container)
+					console.log('GameWidget: GameView created', gameView)
+					if (scope.api) validateStoredSelectionState(scope.api)
+				} catch (e) {
+					console.error("Failed to create GameView", e)
+				}
 			}
-			return false
-		}
-
-		// Try immediately
-		if (!checkElement()) {
-			// If not found, try after a short delay
-			const timeoutId = setTimeout(() => {
-				checkElement()
-			}, 10)
-
-			return () => {
-				clearTimeout(timeoutId)
-				gameView?.destroy()
-				gameView = undefined
-				container = undefined
+		}).catch(err => {
+			console.error('[GameWidget] game.loaded failed:', err)
+			// Try to initialize anyway if it's just a gameStart glitch
+			if (!game.gameView && container) { // Added container check for safety
+				console.log('[GameWidget] Attempting emergency Pixi initialization...')
+				gameView = new GameView(game, container) // Assign to gameView
 			}
-		}
+		})
 
 		return () => {
+			console.log(`[GameWidget] Unmounting GameView from ${containerId}`)
 			gameView?.destroy()
 			gameView = undefined
 			container = undefined
 		}
-	})
+	}
 
 	if (import.meta.hot) {
 		import.meta.hot.accept(() => {
@@ -173,7 +166,12 @@ const GameWidget = (
 		})
 	}
 
-	return <div id={containerId} class="dockview-widget dockview-widget--game" />
+	return (
+		<div
+			class="dockview-widget dockview-widget--game"
+			use:initView
+		/>
+	)
 }
 
-export default GameWidget
+

@@ -1,4 +1,6 @@
 import '../app.css'
+import { initConsoleTrap } from '$lib/debug'
+initConsoleTrap()
 import { effect, reactive, trackEffect, untracked } from 'mutts/src'
 import { Button, ButtonGroup, DarkModeButton, Dockview, RadioButton, Toolbar } from 'pounce-ui/src'
 
@@ -24,19 +26,19 @@ const zoneActions = [
 	{ value: 'zone:none', label: 'Unzone', icon: 'mdi:eraser' },
 ] as const
 
+const buildableAlveoli = Object.entries(gameContent.alveoli).filter(
+	([, alveolus]) => 'construction' in alveolus,
+)
+
 const App = (_props: {}) => {
 	trackEffect((obj, evolution, prop) => {
-		console.log('App-redo', obj, evolution, prop);
 	});
 	const state = reactive({ 
 		api: undefined as any,
 		theme: undefined as 'light' | 'dark' | undefined,
 	})
 
-	const game = games.game('GameX')
-	const buildableAlveoli = Object.entries(gameContent.alveoli).filter(
-		([, alveolus]) => 'construction' in alveolus,
-	)
+	const game = untracked(() => games.game('GameX'))
 
 	effect(() => {
 		if (typeof window === 'undefined') return
@@ -53,7 +55,7 @@ const App = (_props: {}) => {
 		}
 	})
 
-	const ensurePanel = (component: keyof typeof widgets, id: string, params?: Record<string, any>) => {
+	const ensurePanel = (component: keyof typeof widgets, id: string, params?: Record<string, any>, options?: { floating?: boolean }) => {
 		if (!state.api) return
 		const existing = state.api.getPanel?.(id)
 		if (existing) {
@@ -65,13 +67,17 @@ const App = (_props: {}) => {
 			id,
 			component,
 			params,
+			floating: options?.floating === false ? undefined : {
+				width: 400,
+				height: 600,
+			},
 		})
 	}
 
 	const openGamePanel = () =>
 		ensurePanel('game', 'game-view', {
 			game: 'GameX',
-		})
+		}, { floating: false })
 
 	const openConfigurationPanel = () => ensurePanel('configuration', 'system.configuration')
 
@@ -167,7 +173,7 @@ const App = (_props: {}) => {
 					widgets={widgets}
 					layout={untracked(getDockviewLayout)}
 					update:layout={(layout) => {
-						dockviewLayout.layout = layout
+						dockviewLayout.sshLayout = layout
 					}}
 					theme={configuration.darkMode ? 'dracula' : 'light'}
 				/>

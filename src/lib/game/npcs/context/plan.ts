@@ -32,31 +32,37 @@ const transferPlanHandler: PlanHandler<TransferPlan> = {
 		let vehicleAllocation: any
 		let allocation: any
 		try {
-			if (description === 'drop') {
-				// Drop plan: allocate vehicle space and destination storage
-				assert(target, 'target must be set for drop plan')
-				const content = getContentFromPosition(hex, target)
-				assert(content, 'target content must be set')
-				assert('storage' in content, 'planDropStored only works with TileContent that has storage')
+			if (plan.vehicleAllocation && plan.allocation) {
+				vehicleAllocation = plan.vehicleAllocation
+				allocation = plan.allocation
+			} else {
+				if (description === 'drop') {
+					// Drop plan: allocate vehicle space and destination storage
+					assert(target, 'target must be set for drop plan')
+					const content = getContentFromPosition(hex, target)
+					assert(content, 'target content must be set')
+					assert('storage' in content, 'planDropStored only works with TileContent that has storage')
 
-				vehicleAllocation = vehicle.storage.reserve(goods, `planDropStored`)
-				allocation = content.storage!.allocate(goods, `planDropStored`)
-			} else if (description === 'grab') {
-				// Grab plan: allocate vehicle space and reserve source storage
-				assert(target, 'target must be set for storage grab')
-				const content = getContentFromPosition(hex, target)
-				assert(content, 'target content must be set')
-				assert('storage' in content, 'planGrabStored only works with TileContent that has storage')
+					vehicleAllocation = vehicle.storage.reserve(goods, `planDropStored`)
+					allocation = content.storage!.allocate(goods, `planDropStored`)
+				} else if (description === 'grab') {
+					// Grab plan: allocate vehicle space and reserve source storage
+					assert(target, 'target must be set for storage grab')
+					const content = getContentFromPosition(hex, target)
+					assert(content, 'target content must be set')
+					assert('storage' in content, 'planGrabStored only works with TileContent that has storage')
 
-				vehicleAllocation = vehicle.storage.allocate(goods, `planGrab`)
-				allocation = content.storage?.reserve(goods, `planGrabStored`)
+					vehicleAllocation = vehicle.storage.allocate(goods, `planGrab`)
+					allocation = content.storage?.reserve(goods, `planGrabStored`)
+				} else if (description === 'idle') {
+					// Idle plan: do nothing (safe fallback)
+				}
+				// Set allocations on the plan
+				Object.assign(plan, {
+					vehicleAllocation,
+					allocation,
+				})
 			}
-
-			// Set allocations on the plan
-			Object.assign(plan, {
-				vehicleAllocation,
-				allocation,
-			})
 		} catch (error) {
 			try {
 				allocation?.cancel()
@@ -95,37 +101,43 @@ const pickupPlanHandler: PlanHandler<PickupPlan> = {
 
 		assert(vehicle, 'vehicle must be set')
 
-		// Find and allocate the free good
-		const coord = toAxialCoord(target)
-		const freeGoods = character.game.hex.freeGoods.getGoodsAt(coord)
-		const matchingFreeGoods = freeGoods.filter(
-			(good) => good.goodType === goodType && good.available,
-		)
-
-		if (matchingFreeGoods.length === 0) {
-			throw new Error(`No FreeGoods to grab for ${goodType}`)
-		}
-
-		const freeGoodToGrab = matchingFreeGoods[0]
 		let vehicleAllocation: any
 		let allocation: any
 		let releaseStopper: any
 		try {
-			vehicleAllocation = vehicle.storage.allocate(
-				{ [goodType]: 1 },
-				`planGrabFree.${goodType}`,
-			)
-			allocation = freeGoodToGrab.allocate(`planGrabFree.${goodType}`)
-			releaseStopper = namedEffect('plan.releaseStopper', () => {
-				if (freeGoodToGrab.isRemoved) character.cancelPlan(plan)
-			})
-			plan.releaseStopper = releaseStopper
+			if (plan.vehicleAllocation && plan.allocation) {
+				vehicleAllocation = plan.vehicleAllocation
+				allocation = plan.allocation
+			} else {
+				// Find and allocate the free good
+				const coord = toAxialCoord(target)
+				const freeGoods = character.game.hex.freeGoods.getGoodsAt(coord)
+				const matchingFreeGoods = freeGoods.filter(
+					(good) => good.goodType === goodType && good.available,
+				)
 
-			// Set allocations on the plan
-			Object.assign(plan, {
-				vehicleAllocation,
-				allocation,
-			})
+				if (matchingFreeGoods.length === 0) {
+					console.warn(`No FreeGoods to grab for ${goodType}`)
+					return
+				}
+
+				const freeGoodToGrab = matchingFreeGoods[0]
+				vehicleAllocation = vehicle.storage.allocate(
+					{ [goodType]: 1 },
+					`planGrabFree.${goodType}`,
+				)
+				allocation = freeGoodToGrab.allocate(`planGrabFree.${goodType}`)
+				releaseStopper = namedEffect('plan.releaseStopper', () => {
+					if (freeGoodToGrab.isRemoved) character.cancelPlan(plan)
+				})
+				plan.releaseStopper = releaseStopper
+
+				// Set allocations on the plan
+				Object.assign(plan, {
+					vehicleAllocation,
+					allocation,
+				})
+			}
 		} catch (error) {
 			try {
 				releaseStopper?.()
@@ -195,6 +207,7 @@ class PlanFunctions {
 
 	// No @contract decorators needed - Plan types are simple interfaces
 	begin(plan: Plan) {
+		if (!plan) return
 		this[subject].logAbout(plan, `${plan.type}: begun`)
 		try {
 			planHandlers[plan.type].begin(plan, this[subject])
@@ -213,18 +226,21 @@ class PlanFunctions {
 	}
 
 	conclude(plan: Plan) {
+		if (!plan) return
 		this[subject].logAbout(plan, `${plan.type}: concluded`)
 		if ('releaseStopper' in plan) plan.releaseStopper?.()
 		planHandlers[plan.type].conclude?.(plan, this[subject])
 	}
 
 	cancel(plan: Plan) {
+		if (!plan) return
 		this[subject].logAbout(plan, `${plan.type}: cancelled`)
 		if ('releaseStopper' in plan) plan.releaseStopper?.()
 		planHandlers[plan.type].cancel?.(plan, this[subject])
 	}
 
 	finally(plan: Plan) {
+		if (!plan) return
 		planHandlers[plan.type].finally?.(plan, this[subject])
 	}
 }

@@ -180,8 +180,7 @@ export class Game extends Eventful<GameEvents> {
 	}
 
 	unregister(object: InteractiveGameObject) {
-		this.objects.delete(object.uid)
-		object.destroy()
+		if (this.objects.delete(object.uid)) object.destroy()
 	}
 
 	registerTickedObject(object: { update(deltaSeconds: number): void }) {
@@ -197,11 +196,10 @@ export class Game extends Eventful<GameEvents> {
 			((rootSpeed * timer.elapsedMS) / 1000) * timeMultiplier[configuration.timeControl]
 		if (deltaSeconds > 1) return // more than 1 second = paused on debugging, skip passing time when debugger paused
 
-		/*
 		for (const object of this.tickedObjects) {
 			if ('destroyed' in object && object.destroyed) continue
 			object.update(deltaSeconds)
-		}*/
+		}
 	}
 
 	constructor(
@@ -256,7 +254,11 @@ export class Game extends Eventful<GameEvents> {
 			// Expose RNG to global for script helpers
 			;(globalThis as any).__GAME_RANDOM__ = (max?: number, min?: number) => this.random(max, min)
 			this.generate(this.generationOptions, this.patches)
-			this.emit('gameStart')
+			try {
+				this.emit('gameStart')
+			} catch (e) {
+				console.error('Error during gameStart emission:', e)
+			}
 
 			// Register the main ticker callback and start the game ticker after everything is built
 			this.ticker.add(this.tickerCallback)
@@ -501,10 +503,11 @@ export class Game extends Eventful<GameEvents> {
 }
 
 export class GameView {
-	public pixi!: Application
-	public stage!: Container
+	public pixi?: Application
+	public stage?: Container
 	private container: HTMLElement
 	private canvas: HTMLCanvasElement | null = null
+	private isDestroyed = false
 
 	constructor(
 		public game: Game,
@@ -512,24 +515,46 @@ export class GameView {
 	) {
 		this.game.gameView ??= this
 		this.container = into
-		this.initializePixi()
+		this.initializePixi().catch((e) => {
+			console.error('[GameView] initializePixi failed:', e)
+		})
 	}
 
 	private async initializePixi() {
-		// Create PixiJS application
-		this.pixi = new Application()
-		this.stage = this.pixi.stage
+		console.log(`[GameView] initializePixi starting for ${this.container.id}`)
+		try {
+			// Create PixiJS application
+			const app = new Application()
+			console.log('[GameView] Application created')
 
-		await this.pixi.init({
-			backgroundColor: 0x1099bb,
-			resolution: window.devicePixelRatio || 1,
-			autoDensity: true,
-			//preference: "webgpu",
-			resizeTo: this.container,
-		})
+			await app.init({
+				width: 800,
+				height: 600,
+				background: '#0a0a0c',
+				antialias: true,
+				resolution: 1, // window.devicePixelRatio || 1,
+				autoDensity: true,
+				//preference: "webgpu",
+				resizeTo: this.container,
+			})
+			console.log(`[GameView] Pixi initialized: width=${app.screen.width}, height=${app.screen.height}`)
 
-		this.canvas = this.pixi.canvas
-		this.container.appendChild(this.canvas)
+			if (this.isDestroyed) {
+				console.log(`[GameView] initializePixi aborted: already destroyed`)
+				app.destroy()
+				return
+			}
+
+			this.pixi = app
+			this.stage = this.pixi.stage
+			this.canvas = this.pixi.canvas
+			this.container.appendChild(this.canvas)
+			console.log(`[GameView] Canvas appended to ${this.container.id}`)
+		} catch (e) {
+			console.error('[GameView] CRITICAL INIT ERROR:', e)
+			throw e
+		}
+		this.setupInput(this.game, this.canvas)
 		this.setupInput(this.game, this.canvas)
 		this.stage.addChild(this.game.stage)
 		this.goTo(0, 0)
@@ -542,6 +567,8 @@ export class GameView {
 	}
 
 	public destroy() {
+		this.isDestroyed = true
+		
 		// Unregister from HMR cleanup
 		if (this.pixi) {
 			unregisterPixiApp(this.pixi)
@@ -654,6 +681,7 @@ export class GameView {
 		game.selectionOverlayLayer.addChild(this.selectionPreview)
 	}
 	public goTo(x: number, y: number) {
+		if (!this.pixi || !this.stage) return
 		const cx = this.pixi.screen.width / 2
 		const cy = this.pixi.screen.height / 2
 		const sx = this.stage.scale.x
@@ -666,6 +694,7 @@ export class GameView {
 		}
 
 		const getWorldPoint = (x: number, y: number) => {
+			if (!this.stage) return new Point(0, 0)
 			const p = new Point(x, y)
 			return this.stage.worldTransform.applyInverse(p)
 		}
@@ -699,6 +728,7 @@ export class GameView {
 		}
 
 		canvas.addEventListener('mousemove', (e) => {
+			if (!this.stage) return
 			if (this.isPanning && !(e.buttons & 4)) {
 				// 4 = middle button
 				this.isPanning = false
@@ -732,10 +762,11 @@ export class GameView {
 			(e) => {
 				// Prevent page scroll while zooming the canvas
 				e.preventDefault()
+				const { stage } = this
+				if (!stage) return
 
 				const zoomSpeed = 0.9
 				const zoomDelta = zoomSpeed ** (e.deltaY / 120)
-				const { stage } = this
 				const newZoom = Math.max(0.1, Math.min(3, stage.scale.x * zoomDelta))
 				if (newZoom === stage.scale.x) return
 				const tx = (e.offsetX - stage.x) / stage.scale.x
@@ -749,6 +780,7 @@ export class GameView {
 		)
 
 		canvas.addEventListener('mouseenter', (e) => {
+			if (!this.stage) return
 			const { x, y } = getCanvasPoint(e)
 			const { x: wx, y: wy } = getWorldPoint(x, y)
 			const hit = topmostInteractiveAt(wx, wy)
@@ -769,6 +801,7 @@ export class GameView {
 		})
 
 		canvas.addEventListener('mousedown', (e) => {
+			if (!this.stage) return
 			if (e.button === 1) {
 				this.isPanning = true
 				this.panStartPosition.x = e.offsetX
@@ -814,7 +847,7 @@ export class GameView {
 				canvas.style.cursor = 'default'
 				return
 			}
-			if (e.button === 0 && this.isDragging) {
+			if (this.isDragging && e.button === 0) {
 				// End drag and find all tiles in the axial coordinate selection
 				const selectedTiles = this.getTilesInSelection(this.dragStartWorld, this.dragEndWorld, game)
 

@@ -20,7 +20,7 @@ export class InventoryFunctions {
 
 		const available = vehicle.storage.available(goodType) ?? 0
 		let amount = Math.min(available, maxAmount)
-		if (amount <= 0) throw new Error('No goods to drop')
+		if (amount <= 0) return undefined // throw new Error('No goods to drop')
 		const vehicleTransfer = vehicle.storage.reserve({ [goodType]: amount }, `drop.${goodType}`)
 		if (character.tile.content instanceof Alveolus) debugger
 		return new DurationStep(amount * vehicle.transferTime, 'convey', `drop.${goodType}`)
@@ -61,7 +61,17 @@ export class InventoryFunctions {
 			}
 		}
 
-		if (totalAmount <= 0) throw new Error('No goods to drop')
+		if (totalAmount <= 0) {
+			// Idle fallback
+			return {
+				type: 'transfer' as const,
+				description: 'idle' as const,
+				goods: {},
+				target: destination,
+				vehicleAllocation: undefined,
+				allocation: undefined
+			} as any
+		}
 
 		// Return plan without allocations - they will be created in plan.begin()
 		return {
@@ -99,14 +109,29 @@ export class InventoryFunctions {
 			}
 		}
 
-		if (totalAmount <= 0) throw new Error('No goods to grab from storage')
+		if (totalAmount <= 0) {
+			// Idle fallback
+			return {
+				type: 'transfer' as const,
+				description: 'idle' as const,
+				goods: {},
+				target: source,
+				vehicleAllocation: undefined,
+				allocation: undefined
+			} as any
+		}
 
-		// Return plan without allocations - they will be created in plan.begin()
+		// Create allocations immediately
+		const vehicleAllocation = vehicle.storage.allocate(actualGoods, 'plan.grab')
+		const allocation = content.storage!.reserve(actualGoods, 'plan.get')
+
 		return {
 			type: 'transfer' as const,
 			description: 'grab' as const,
 			goods: actualGoods,
 			sourceTile: source,
+			vehicleAllocation,
+			allocation,
 		}
 	}
 
@@ -123,26 +148,49 @@ export class InventoryFunctions {
 		const coord = toAxialCoord(source)
 		const freeGoods = character.game.hex.freeGoods.getGoodsAt(coord)
 		const matchingFreeGoods = freeGoods.filter(
-			goodType
-				? (good) => good.goodType === goodType
-				: (good) => vehicle.storage.hasRoom(good.goodType),
+			(good) =>
+				(goodType ? good.goodType === goodType : vehicle.storage.hasRoom(good.goodType)) &&
+				good.available,
 		)
 
-		if (matchingFreeGoods.length === 0) {
-			throw new Error('No FreeGoods to grab')
+		if (matchingFreeGoods.length === 0 || matchingFreeGoods[0].goodType === undefined) {
+			// Instead of throwing, return a safe "IDLE" plan that does nothing.
+			// This prevents the engine from crashing/looping violently.
+			return {
+				type: 'transfer' as const,
+				description: 'idle' as const,
+				goods: {},
+				target: source instanceof Alveolus ? source : source, // Valid target
+				vehicleAllocation: undefined,
+				allocation: undefined
+			} as any // Cast to satisfy strict return type temporarily
 		}
 
-		// Return plan without allocations - they will be created in plan.begin()
+		const chosenGood = matchingFreeGoods[0]
+		
+		// Create allocations immediately
+		const vehicleAllocation = vehicle.storage.allocate(
+			{ [chosenGood.goodType]: 1 },
+			'plan.pickup',
+		)
+		const allocation = chosenGood.allocate('plan.pickup')
+
 		return {
 			type: 'pickup' as const,
-			goodType: matchingFreeGoods[0].goodType,
+			goodType: chosenGood.goodType,
 			target: source,
+			vehicleAllocation,
+			allocation,
 		}
 	}
 	@contract('TransferPlan | PickupPlan')
 	effectuate(action: TransferPlan | PickupPlan) {
+		if (action.type === 'transfer' && action.description === 'idle') {
+			return new DurationStep(1, 'idle', 'wait.for.goods')
+		}
+
 		const character = this[subject]
-		const { vehicleAllocation } = action
+		const { vehicleAllocation, allocation } = action
 		const {
 			tile: { content },
 			vehicle,
@@ -166,5 +214,13 @@ export class InventoryFunctions {
 		}
 
 		return new DurationStep(totalAmount * vehicle.transferTime, 'convey', description)
+			.finished(() => {
+				vehicleAllocation!.fulfill()
+				allocation?.fulfill()
+			})
+			.canceled(() => {
+				vehicleAllocation!.cancel()
+				allocation?.cancel()
+			})
 	}
 }

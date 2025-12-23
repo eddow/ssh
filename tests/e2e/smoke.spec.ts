@@ -1,31 +1,25 @@
 import { test, expect } from '@playwright/test';
 
-test('no Max effect chain reached on first load', async ({ page }) => {
-  const errors: string[] = [];
-  page.on('console', msg => {
-    if (msg.type() === 'error') {
-      errors.push(msg.text());
-    }
-  });
-  page.on('pageerror', err => {
-    errors.push(err.message);
-  });
-
+test('no console errors or warnings', async ({ page }) => {
   // Navigate to the app
   await page.goto('/');
 
-  // Wait for the app to load (it should at least render the shell)
+  // Wait for the app to load
   await page.waitForSelector('.app-shell', { timeout: 10000 });
 
   // Give the app some time to settle
   await page.waitForTimeout(2000);
 
-  // Check that no ReactiveError with "Max effect chain reached" was thrown
-  const reactiveErrors = errors.filter(err => err.includes('Max effect chain reached'));
-  
-  if (reactiveErrors.length > 0) {
-    console.error('Found reactive errors:', reactiveErrors);
+  // Check the console trap
+  const errors = await page.evaluate(() => {
+    const trap = document.getElementById('console-trap');
+    const data = trap?.getAttribute('data-errors') || '[]';
+    return JSON.parse(data);
+  });
+
+  if (errors.length > 0) {
+    console.error('Found console errors:', errors);
   }
 
-  expect(reactiveErrors, `Found reactive errors: ${reactiveErrors.join(', ')}`).toHaveLength(0);
+  expect(errors, `Found console errors: ${JSON.stringify(errors, null, 2)}`).toHaveLength(0);
 });

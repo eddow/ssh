@@ -60,9 +60,10 @@ export const baseGameScope = scope({
 	// Plan types (all string-based!)
 	TransferPlan: {
 		type: "'transfer'",
-		description: "'grab' | 'drop'",
+		description: "'grab' | 'drop' | 'idle'",
 		goods: 'Goods',
 		'target?': 'object',
+		'sourceTile?': 'object',
 	},
 
 	PickupPlan: {

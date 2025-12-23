@@ -34,23 +34,26 @@ export class Character extends withInteractive(
 ) {
 	readonly triggerLevels = characterTriggerLevels
 
-	#assignedAlveolus: Alveolus | undefined
-	public get assignedAlveolus(): Alveolus | undefined {
-		return this.#assignedAlveolus
-	}
-	public set assignedAlveolus(value: Alveolus | undefined) {
-		assert(!value !== !this.#assignedAlveolus, 'assigned alveolus mismatch')
-		this.#assignedAlveolus = value
-	}
-
 	// Character needs levels (starting at 0, incrementing 1 per second)
 	public hunger: number = 0
 	public tiredness: number = 0
 	public fatigue: number = 0
 
+	private _assignedAlveolus: Alveolus | undefined
+	public get assignedAlveolus(): Alveolus | undefined {
+		return this._assignedAlveolus
+	}
+	public set assignedAlveolus(value: Alveolus | undefined) {
+		assert(!value !== !this._assignedAlveolus, 'assigned alveolus mismatch')
+		this._assignedAlveolus = value
+	}
+
 	// Character vehicle (like Tile has content)
 	public vehicle: Vehicle
-	public readonly scriptsContext = aCharacterContext(this)
+	private _scriptsContext?: any
+	public get scriptsContext() {
+		return this._scriptsContext ??= aCharacterContext(this)
+	}
 	private _tile!: Tile
 
 	get tile(): Tile {
@@ -214,8 +217,12 @@ export class Character extends withInteractive(
 	findAction() {
 		if (this.hunger > this.triggerLevels.hunger.high) return this.scriptsContext.selfCare.goEat()
 
-		if (Object.values(this.carry.stock).some((qty) => qty > 0))
-			return this.scriptsContext.inventory.dropAllFree()
+		if (Object.values(this.carry.stock).some((qty) => qty > 0)) {
+			// Only try to drop if we can find a spot to drop them
+			if (this.scriptsContext.find.freeSpot()) {
+				return this.scriptsContext.inventory.dropAllFree()
+			}
+		}
 		const tryAnActivity =
 			this.fatigue < this.triggerLevels.fatigue.high ? this.findBestJob() : undefined // goRest
 		// Default to wandering when no specific action is needed

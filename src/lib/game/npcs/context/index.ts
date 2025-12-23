@@ -3,10 +3,9 @@ import type { CharacterContract } from '$assets/scripts/contracts'
 import type { HarvestAlveolus } from '$lib/game/hive/harvest'
 import { contract } from '$lib/types'
 import type { GoodType } from '$lib/types/base'
-import { objectMap } from '$lib/utils'
 import { toAxialCoord } from '$lib/utils/position'
 import type { Character } from '../../population/character'
-import { InteractiveContext, loadNpcScripts, protoCtx, subject } from '../scripts'
+import { InteractiveContext, protoCtx, subject } from '../scripts'
 // Import all the function classes
 import { FindFunctions } from './find'
 import { InventoryFunctions } from './inventory'
@@ -59,26 +58,41 @@ class CharacterContext extends InteractiveContext<Character> {
 	}
 }
 
-const characterContext = protoCtx(CharacterContext, {
+import { objectMap } from '$lib/utils'
+import { loadNpcScripts } from '../scripts'
+
+const ScriptFiles = import.meta.glob('$assets/scripts/**/*.npcs', {
+	query: '?raw',
+	eager: true,
+})
+
+const nsProtos: any = {
 	find: protoCtx(FindFunctions),
 	inventory: protoCtx(InventoryFunctions),
 	walk: protoCtx(WalkFunctions),
 	selfCare: protoCtx(SelfCareFunctions),
 	work: protoCtx(WorkFunctions),
 	plan: protoCtx(PlanFunctions),
+}
+
+const characterContext = protoCtx(CharacterContext, {
+	...nsProtos,
 	...gameContent,
 })
 
-const alveoli = import.meta.glob('$assets/scripts/**/*.npcs', {
-	query: '?raw',
-	eager: true,
-})
 loadNpcScripts(
-	objectMap(alveoli, (v: any) => v.default) as Record<string, string>,
+	objectMap(ScriptFiles, (v: any) => v.default) as Record<string, string>,
 	characterContext,
 )
+
 export default function aCharacterContext(character: Character) {
-	return Object.create(characterContext, {
-		[subject]: { value: character },
-	}) as CharacterContract & typeof characterContext
+	const instance = Object.create(characterContext, {
+		[subject]: { value: character, enumerable: false, configurable: true },
+	})
+	for (const key of Object.keys(nsProtos)) {
+		instance[key] = Object.create(characterContext[key], {
+			[subject]: { value: character, enumerable: false, configurable: true },
+		})
+	}
+	return instance as CharacterContract & typeof characterContext
 }
