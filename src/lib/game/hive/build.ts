@@ -1,4 +1,4 @@
-import { memoize } from 'mutts/src'
+import { memoize } from 'mutts'
 import { alveoli as alveoliDefs } from '$assets/game-content'
 import { SpecificStorage } from '$lib/game/storage'
 import type { AlveolusType, GoodType } from '$lib/types'

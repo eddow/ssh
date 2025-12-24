@@ -1,4 +1,4 @@
-import { ReactiveBase } from 'mutts/src'
+import { ReactiveBase } from 'mutts'
 import type { Goods, GoodType } from '$lib/types/base'
 import type { RenderedGoodSlots } from './goods-renderer'
 

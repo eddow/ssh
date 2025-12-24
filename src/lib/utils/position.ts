@@ -1,5 +1,5 @@
 import { scope } from 'arktype'
-import { immutables } from 'mutts/src'
+import { immutables } from 'mutts'
 import {
 	type AxialCoord,
 	AxialKey,

@@ -1,4 +1,4 @@
-import { type ScopedCallback, unreactive } from 'mutts/src'
+import { type ScopedCallback, unreactive } from 'mutts'
 import { GameObject, withGenerator } from '$lib/game/object'
 import type { Storage } from '$lib/game/storage'
 import type { Positioned } from '$lib/utils'

@@ -2,7 +2,7 @@
 	import Icon from '@iconify/svelte'
 	import type { DockviewPanelApi } from 'dockview-core'
 	import { TabContent } from 'dockview-svelte/src'
-	import { watch } from 'mutts/src'
+	import { watch } from 'mutts'
 	import { onDestroy } from 'svelte'
 	import type { Writable } from 'svelte/store'
 	import CharacterProperties from '$components/properties/CharacterProperties.svelte'

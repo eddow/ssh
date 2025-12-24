@@ -1,4 +1,4 @@
-import { effect, reactive } from 'mutts/src'
+import { effect, reactive } from 'mutts'
 import {
 	type CondensedDictionary,
 	I18nClient,

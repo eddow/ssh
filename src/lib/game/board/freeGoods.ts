@@ -1,4 +1,4 @@
-import { atomic, reactive, type ScopedCallback, unreactive } from 'mutts/src'
+import { atomic, reactive, type ScopedCallback, unreactive } from 'mutts'
 import { Container, Sprite } from 'pixi.js'
 import { goods } from '$assets/game-content'
 import { assert, namedEffect } from '$lib/debug'

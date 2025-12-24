@@ -1,4 +1,4 @@
-import { memoize, unreactive } from 'mutts/src'
+import { memoize, unreactive } from 'mutts'
 import type { Character } from '$lib/game/population/character'
 import type { AlveolusType, Job } from '$lib/types/base'
 import { type AxialCoord, axial, type NeighborInfo } from '$lib/utils'

@@ -4,7 +4,7 @@ import type { TileBorder } from '$lib/game/board/border/border'
 import type { Tile } from '$lib/game/board/tile'
 import type { Character } from '$lib/game/population/character'
 import { contract, type Goods, type GoodType } from '$lib/types'
-import type { PickupPlan, TransferPlan } from '$lib/types/base'
+import type { IdlePlan, PickupPlan, TransferPlan } from '$lib/types/base'
 import { type Positioned, toAxialCoord } from '$lib/utils'
 import { subject } from '../scripts'
 import { DurationStep } from '../steps'
@@ -36,7 +36,7 @@ export class InventoryFunctions {
 			})
 	}
 	@contract('Goods', 'Tile | TileBorder')
-	planDropStored(goods: Goods, destination: Tile | TileBorder): TransferPlan {
+	planDropStored(goods: Goods, destination: Tile | TileBorder): TransferPlan | IdlePlan {
 		const character = this[subject]
 		const content = destination.content
 		const vehicle = character.vehicle
@@ -62,15 +62,8 @@ export class InventoryFunctions {
 		}
 
 		if (totalAmount <= 0) {
-			// Idle fallback
-			return {
-				type: 'transfer' as const,
-				description: 'idle' as const,
-				goods: {},
-				target: destination,
-				vehicleAllocation: undefined,
-				allocation: undefined
-			} as any
+			// Panic: wait a bit
+            return { type: 'idle', duration: 1000 }
 		}
 
 		// Return plan without allocations - they will be created in plan.begin()
@@ -82,7 +75,7 @@ export class InventoryFunctions {
 		}
 	}
 	@contract('Goods', 'Tile | TileBorder')
-	planGrabStored(goods: Goods, source: Tile | TileBorder) {
+	planGrabStored(goods: Goods, source: Tile | TileBorder): TransferPlan | IdlePlan {
 		const character = this[subject]
 		const vehicle = character.vehicle
 		assert(vehicle, 'tile.vehicle must be set')
@@ -110,15 +103,8 @@ export class InventoryFunctions {
 		}
 
 		if (totalAmount <= 0) {
-			// Idle fallback
-			return {
-				type: 'transfer' as const,
-				description: 'idle' as const,
-				goods: {},
-				target: source,
-				vehicleAllocation: undefined,
-				allocation: undefined
-			} as any
+			// Panic: wait a bit
+            return { type: 'idle', duration: 1000 }
 		}
 
 		// Create allocations immediately
@@ -136,7 +122,7 @@ export class InventoryFunctions {
 	}
 
 	@contract('GoodType | null', 'Positioned')
-	planGrabFree(goodType: GoodType | undefined, source: Positioned): PickupPlan {
+	planGrabFree(goodType: GoodType | undefined, source: Positioned): PickupPlan | TransferPlan | IdlePlan {
 		const character = this[subject]
 		const vehicle = character.vehicle
 		assert(vehicle, 'character.vehicle must be set')
@@ -154,16 +140,8 @@ export class InventoryFunctions {
 		)
 
 		if (matchingFreeGoods.length === 0 || matchingFreeGoods[0].goodType === undefined) {
-			// Instead of throwing, return a safe "IDLE" plan that does nothing.
-			// This prevents the engine from crashing/looping violently.
-			return {
-				type: 'transfer' as const,
-				description: 'idle' as const,
-				goods: {},
-				target: source instanceof Alveolus ? source : source, // Valid target
-				vehicleAllocation: undefined,
-				allocation: undefined
-			} as any // Cast to satisfy strict return type temporarily
+			// Panic: wait a bit
+            return { type: 'idle', duration: 1000 }
 		}
 
 		const chosenGood = matchingFreeGoods[0]
@@ -185,10 +163,6 @@ export class InventoryFunctions {
 	}
 	@contract('TransferPlan | PickupPlan')
 	effectuate(action: TransferPlan | PickupPlan) {
-		if (action.type === 'transfer' && action.description === 'idle') {
-			return new DurationStep(1, 'idle', 'wait.for.goods')
-		}
-
 		const character = this[subject]
 		const { vehicleAllocation, allocation } = action
 		const {

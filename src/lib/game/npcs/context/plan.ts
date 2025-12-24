@@ -2,9 +2,10 @@ import { assert, namedEffect } from '$lib/debug'
 import { type HexBoard, isTileCoord } from '$lib/game/board'
 import { Alveolus } from '$lib/game/board/content/alveolus'
 import type { Character } from '$lib/game/population/character'
-import type { PickupPlan, Plan, TransferPlan, WorkPlan } from '$lib/types/base'
+import type { IdlePlan, PickupPlan, Plan, TransferPlan, WorkPlan } from '$lib/types/base'
 import { type Positioned, toAxialCoord } from '$lib/utils'
 import { subject } from '../scripts'
+import { DurationStep } from '../steps'
 
 function getContentFromPosition(hex: HexBoard, position: Positioned) {
 	const coord = toAxialCoord(position)
@@ -195,11 +196,20 @@ const workPlanHandler: PlanHandler<WorkPlan> = {
 	},
 }
 
+// Idle plan handler
+const idlePlanHandler: PlanHandler<IdlePlan> = {
+	begin(plan: IdlePlan, character: Character) {
+        // Just wait
+        character.stepExecutor = new DurationStep(plan.duration, 'idle', 'panic-wait')
+	},
+}
+
 // Handler registry
 const planHandlers: Record<Plan['type'], PlanHandler<any>> = {
 	transfer: transferPlanHandler,
 	pickup: pickupPlanHandler,
 	work: workPlanHandler,
+	idle: idlePlanHandler,
 }
 
 class PlanFunctions {

@@ -1,9 +1,9 @@
-import { reactive, type ScopedCallback } from 'mutts/src'
+import { reactive, type ScopedCallback } from 'mutts'
 import { ColorMatrixFilter, Container, Sprite } from 'pixi.js'
 import { characterEvolutionRates, characterTriggerLevels, maxWalkTime } from '$assets/constants'
 import { goods as goodsCatalog } from '$assets/game-content'
 import { assert, namedEffect } from '$lib/debug'
-import { mrg } from '$lib/globals'
+import { hoverState, mrg } from '$lib/interactive-state'
 import type { GoodType, Job, WorkPlan } from '$lib/types/base'
 import { type AxialCoord, axial, maxBy, type Positioned } from '$lib/utils'
 import { axialDistance, type Position, toAxialCoord, toWorldCoord } from '../../utils/position'
@@ -23,7 +23,7 @@ function bestPossibleJobScore(_character: Character): number {
 import aCharacterContext from '../npcs/context'
 import { withScripted } from '../npcs/object'
 // biome-ignore lint/correctness/noUnusedImports: We need `subject` for mixins tranquility: all propertyKeys are known
-import { type ScriptExecution, subject } from '../npcs/scripts'
+import { type ScriptExecution } from '../npcs/scripts'
 import { GameObject, withGenerator, withInteractive, withTicked } from '../object'
 import { renderTileGoods } from '../storage/goods-renderer'
 import { Vehicle } from './vehicle/vehicle'
@@ -253,7 +253,7 @@ export class Character extends withInteractive(
 		const brightnessFilter = new ColorMatrixFilter()
 		characterSprite.filters = [brightnessFilter]
 		const mouseoverEffect = namedEffect('character.mouseover', () => {
-			if (mrg.hoveredObject === this) {
+			if (hoverState.get(this)) {
 				characterSprite.tint = 0xaaaaff
 				brightnessFilter.brightness(1.2, false)
 			} else {

@@ -1,4 +1,4 @@
-import type { ScopedCallback } from 'mutts/src'
+import type { ScopedCallback } from 'mutts'
 import { ColorMatrixFilter, Container, Graphics, Sprite } from 'pixi.js'
 import { goods as goodsCatalog } from '$assets/game-content'
 import { namedEffect } from '$lib/debug'

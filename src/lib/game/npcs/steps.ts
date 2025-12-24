@@ -1,4 +1,4 @@
-import { atomic, unreactive } from 'mutts/src'
+import { atomic, unreactive } from 'mutts'
 import { activityDurations, ponderingFatigueRecovery } from '$assets/constants'
 import { goods as goodsCatalog } from '$assets/game-content'
 import { assert, namedEffect } from '$lib/debug'
@@ -45,6 +45,7 @@ export abstract class ASingleStep extends Finalized {
 		return casing(this.constructor.name).transform((terms) => {
 			const lastTerm = terms.pop()
 			assert(lastTerm === 'Step', `${this.constructor.name} does not end with "Step"`)
+			return terms
 		}).kebab
 	}
 

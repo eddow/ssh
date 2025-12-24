@@ -1,4 +1,4 @@
-import type { ScopedCallback } from 'mutts/src'
+import type { ScopedCallback } from 'mutts'
 import { Graphics } from 'pixi.js'
 import { renderBorderGoods } from '$lib/game/storage/goods-renderer'
 import { SlottedStorage } from '$lib/game/storage/slotted-storage'

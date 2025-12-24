@@ -1,4 +1,4 @@
-import { memoize, type ScopedCallback, unreactive } from 'mutts/src'
+import { memoize, type ScopedCallback, unreactive } from 'mutts'
 import { Sprite } from 'pixi.js'
 import { assert } from '$lib/debug'
 import type { Hive, MovingGood } from '$lib/game/hive/hive'

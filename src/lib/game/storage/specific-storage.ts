@@ -1,4 +1,4 @@
-import { atomic, memoize, reactive, unreactive } from 'mutts/src'
+import { atomic, memoize, reactive, unreactive } from 'mutts'
 import { assert } from '$lib/debug'
 import type { Goods } from '$lib/types/base'
 import { GoodType } from '$lib/types/base'

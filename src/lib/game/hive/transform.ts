@@ -1,4 +1,4 @@
-import { memoize } from 'mutts/src'
+import { memoize } from 'mutts'
 import { inputBufferSize, outputBufferSize } from '$assets/constants'
 import type { Character } from '$lib/game/population/character'
 import { SpecificStorage } from '$lib/game/storage'

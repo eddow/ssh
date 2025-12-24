@@ -1,12 +1,12 @@
 import { type } from 'arktype'
-import { unreactive } from 'mutts/src'
+import { unreactive } from 'mutts'
 import {
 	type ExecutionContext,
 	ExecutionError,
 	type ExecutionState,
 	FunctionDefinition,
 	NpcScript,
-} from 'npc-script/src'
+} from 'npc-script'
 import { alveoli, deposits, goods, terrain } from '$assets/game-content'
 import { CharacterContract } from '$assets/scripts/contracts'
 import {
@@ -160,10 +160,13 @@ class GameScript extends NpcScript {
 }
 
 function isXOrDictX<X>(x: XOrDictX<X>, Class: new (...args: any[]) => X): x is XOrDictX<X> {
-	return (
-		x instanceof Class ||
-		(x && typeof x === 'object' && Object.values(x).every((v) => isXOrDictX(v, Class)))
-	)
+    if (x instanceof Class || (x && (x as any).constructor && (x as any).constructor.name === Class.name)) return true
+    if (x && typeof x === 'object') {
+        const values = Object.values(x)
+        if (values.length === 0) return true
+        return values.every((v) => isXOrDictX(v, Class))
+    }
+    return false
 }
 @unreactive
 export class ScriptExecution {
@@ -223,17 +226,19 @@ export function loadNpcScripts(alveoli: Record<string, string>, context: Executi
 		name: string,
 		contract: Contract,
 	): XoDe {
-		if (entryPoint instanceof FunctionDefinition && Array.isArray(contract)) {
+        const isFuncDef = entryPoint instanceof FunctionDefinition || (entryPoint && (entryPoint as any).constructor && (entryPoint as any).constructor.name === 'FunctionDefinition');
+
+		if (isFuncDef && Array.isArray(contract)) {
 			const validate = contractScope.type(contract as any)
 			return registerContract((...args: any[]) => {
 				const result = validate(args)
 				if (result instanceof type.errors) {
 					throw new Error(`Validation failed for ${name}: ${result.summary}`)
 				}
-				return new ScriptExecution(script, name, entryPoint.call(args))
+				return new ScriptExecution(script, name, (entryPoint as FunctionDefinition).call(args))
 			})
 		}
-		if (!(entryPoint instanceof FunctionDefinition) && !Array.isArray(contract)) {
+		if (!isFuncDef && !Array.isArray(contract)) {
 			return objectMap(entryPoint, (value, key) => {
 				const nextName = `${name}.${key}`
 				const nextProto = (contract as { [K: string]: Contract })[key]

@@ -1,6 +1,6 @@
 import { dirname, resolve as resolvePath } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { babelPluginJsxReactive } from 'pounce-ts/plugin'
+
 import { cssTagPlugin } from './vite-plugin-css-tag'
 import { defineConfig, type Plugin } from 'vite'
 import babel from 'vite-plugin-babel'
@@ -29,14 +29,10 @@ export default defineConfig({
 			// Babel config (applied to both JS and TS files)
 			babelConfig: {
 				plugins: [
-					babelPluginJsxReactive,
-					// Decorators (legacy or new syntax, configure as needed)
+
 					['@babel/plugin-proposal-decorators', { legacy: true }],
 
-					[
-						'@babel/plugin-transform-react-jsx',
-						{ pragma: 'h', pragmaFrag: 'Fragment', throwIfNamespace: false },
-					],
+
 				],
 				overrides: [
 					{
@@ -67,7 +63,7 @@ export default defineConfig({
 			$components: resolvePath(projectRootDir, 'src/components'),
 			$assets: resolvePath(projectRootDir, 'assets'),
 			'@app': resolvePath(projectRootDir, 'src'),
-			'@pounce': resolvePath(projectRootDir, 'node_modules/pounce-ts/src'),
+
 		},
 	},
 	esbuild: false,

@@ -1,4 +1,4 @@
-import { reactive } from 'mutts/src'
+import { reactive } from 'mutts'
 import type { AxialCoord } from '$lib/utils'
 import { AxialKeyMap } from '$lib/utils/mem'
 

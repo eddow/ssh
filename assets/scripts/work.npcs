@@ -10,6 +10,7 @@ function goWork(jobPlan, path)
 				if not path then error "No path found to target"
 			loop
 			walk.enter
+			I.assignedAlveolus = target
 			work.prepare jobPlan
 		end if
 		// TODO: understand why `work[job](alveolus)` doesn't work/yield

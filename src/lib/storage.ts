@@ -1,4 +1,4 @@
-import { cleanedBy, effect, reactive, type ScopedCallback } from 'mutts/src'
+import { cleanedBy, effect, reactive, type ScopedCallback } from 'mutts'
 
 type JsonCodec = {
 	parse: <T>(value: string) => T
@@ -11,6 +11,11 @@ export const json: JsonCodec = {
 }
 
 export function stored<T extends Record<string, any>>(initial: T): T {
+	if (typeof window === 'undefined') {
+		const state = reactive(initial)
+		return state
+	}
+
 	const state: Partial<T> = reactive({})
 	const read: { [K in keyof T]?: boolean } = {}
 
@@ -30,7 +35,11 @@ export function stored<T extends Record<string, any>>(initial: T): T {
 		if (event.key in initial) {
 			const key = event.key as keyof T & string
 			read[key] = false
-			state[key] = event.newValue ? json.parse<T[typeof key]>(event.newValue) : initial[key]
+            const newValue = event.newValue ? json.parse<T[typeof key]>(event.newValue) : initial[key]
+            // Prevent infinite loops if the value hasn't actually changed (handling self-triggered events)
+            if (JSON.stringify(state[key]) !== JSON.stringify(newValue)) {
+    			state[key] = newValue
+            }
 		}
 	}
 

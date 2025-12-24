@@ -1,11 +1,10 @@
-import { memoize, reactive, unreactive } from 'mutts/src'
-import type { ExecutionContext } from 'npc-script/src'
+import { memoize, reactive, unreactive } from 'mutts'
+import type { ExecutionContext } from 'npc-script'
 import { assert } from '$lib/debug'
 import type { Game } from '../game'
 import type { GameObject, TickedGameObject, withTicked } from '../object'
 import { ScriptExecution } from './scripts'
 import { ASingleStep, DurationStep } from './steps'
-import { exec } from 'child_process'
 
 export function withScripted<T extends abstract new (...args: any[]) => TickedGameObject>(Base: T) {
 	@unreactive('runningScripts')
@@ -37,6 +36,11 @@ export function withScripted<T extends abstract new (...args: any[]) => TickedGa
 		}
 		makeRun() {
 			try {
+                if (!this.runningScript.state) {
+                    console.warn('Script finished but still in runningScripts, removing', this.runningScript.name);
+                    this.runningScripts.shift();
+                    return { type: 'return', value: undefined };
+                }
 				return this.runningScript.run(this.scriptsContext)
 			} catch (error) {
 				// Present stack trace

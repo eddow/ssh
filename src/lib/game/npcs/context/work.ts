@@ -1,4 +1,4 @@
-import { atomic } from 'mutts/src'
+import { atomic } from 'mutts'
 import { alveoli } from '$assets/game-content'
 import { assert } from '$lib/debug'
 import { UnBuiltLand } from '$lib/game/board/content/unbuilt-land'

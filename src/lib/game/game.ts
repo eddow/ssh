@@ -1,4 +1,5 @@
-import { Eventful, reactive, unreactive, zip } from 'mutts/src'
+import { Eventful, reactive, unreactive } from 'mutts'
+import { zip } from '$lib/utils'
 import {
 	Application,
 	Assets,
@@ -12,7 +13,8 @@ import {
 import * as gameContent from '$assets/game-content'
 import { prefix, type ResourceTree, resources } from '$assets/resources'
 import { assert } from '$lib/debug'
-import { configuration, interactionMode, mrg } from '$lib/globals'
+import { configuration } from '$lib/globals'
+import { hoverState, interactionMode, mrg } from '$lib/interactive-state'
 import { registerPixiApp, unregisterPixiApp } from '$lib/hmr-pixi'
 import type { AlveolusType, DepositType, GoodType } from '$lib/types'
 import { axial, axialRectangle, cartesian, fromCartesian } from '$lib/utils/axial'
@@ -530,7 +532,8 @@ export class GameView {
 			await app.init({
 				width: 800,
 				height: 600,
-				background: '#0a0a0c',
+				// background: '#0a0a0c', // Transparent to let CSS handle it
+				backgroundAlpha: 0,
 				antialias: true,
 				resolution: 1, // window.devicePixelRatio || 1,
 				autoDensity: true,
@@ -716,13 +719,9 @@ export class GameView {
 
 		const emitOverOutIfNeeded = (nextHover: InteractiveGameObject | undefined, _ev: MouseEvent) => {
 			if (mrg.hoveredObject !== nextHover) {
-				/*
-				if (mrg.hoveredObject) {
-					game.emit("objectOut", ev as any, mrg.hoveredObject)
-				}
-				if (nextHover) {
-					game.emit("objectOver", ev as any, nextHover, () => {})
-				}*/
+				const oldHover = mrg.hoveredObject
+				if (oldHover) hoverState.set(oldHover, false)
+				if (nextHover) hoverState.set(nextHover, true)
 				mrg.hoveredObject = nextHover
 			}
 		}

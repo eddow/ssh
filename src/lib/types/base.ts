@@ -81,7 +81,12 @@ export const baseGameScope = scope({
 		// Additional fields depend on job type (path, etc.)
 	},
 
-	Plan: () => baseGameScope.type('TransferPlan | PickupPlan | WorkPlan'),
+	IdlePlan: {
+		type: "'idle'",
+		duration: 'number',
+	},
+
+	Plan: () => baseGameScope.type('TransferPlan | PickupPlan | WorkPlan | IdlePlan'),
 })
 
 // Export base types module for use in other files
@@ -102,6 +107,7 @@ export const Position = baseGameTypes.Position
 export const TransferPlan = baseGameTypes.TransferPlan
 export const PickupPlan = baseGameTypes.PickupPlan
 export const WorkPlan = baseGameTypes.WorkPlan
+export const IdlePlan = baseGameTypes.IdlePlan
 export const Plan = baseGameTypes.Plan
 
 // Export TypeScript type aliases (same names, dual export!)
@@ -124,6 +130,7 @@ export interface TransferPlan<T extends AllocationBase = AllocationBase> {
 	allocation?: T // Runtime-only field
 	readonly goods: Goods
 	readonly target?: Positioned
+	readonly sourceTile?: Positioned
 }
 
 export interface PickupPlan<T extends AllocationBase = AllocationBase> {
@@ -203,10 +210,14 @@ export type Job =
 	| FoundationJob
 	| DefragmentJob
 
-// WorkPlan is Job with Plan type and target alveolus
 export type WorkPlan = Job & {
 	readonly type: 'work'
 	readonly target: TileContent
 }
 
-export type Plan = TransferPlan | PickupPlan | WorkPlan
+export interface IdlePlan {
+	readonly type: 'idle'
+	readonly duration: number
+}
+
+export type Plan = TransferPlan | PickupPlan | WorkPlan | IdlePlan

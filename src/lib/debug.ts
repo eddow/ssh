@@ -1,4 +1,4 @@
-import { effect, enableDevTools, reactiveOptions } from 'mutts/src'
+import { effect, enableDevTools, reactiveOptions } from 'mutts'
 
 export function nf<T extends Function>(name: string, fn: T): T {
 	Object.defineProperty(fn, 'name', { value: name })

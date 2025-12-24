@@ -16,14 +16,21 @@ import { baseGameScope } from './base'
  * This module can be imported by domain scopes that need to reference game objects.
  */
 
+
+// Helper for robust instance checking (handles dual-package hazards in dev)
+const instance = <T extends abstract new (...args: any[]) => any>(cls: T) => 
+    type('object').narrow((data): data is InstanceType<T> => 
+        data instanceof cls || (!!data && (data as any).constructor?.name === cls.name)
+    )
+
 export const gameObjectsModule = scope({
 	...baseGameScope.export(),
-	Tile: type.instanceOf(Tile),
-	TileBorder: type.instanceOf(TileBorder),
-	TileContent: type.instanceOf(TileContent),
-	Alveolus: type.instanceOf(Alveolus),
-	HarvestAlveolus: type.instanceOf(HarvestAlveolus),
-	GatherAlveolus: type.instanceOf(GatherAlveolus),
-	EngineerAlveolus: type.instanceOf(EngineerAlveolus),
-	BuildAlveolus: type.instanceOf(BuildAlveolus),
+	Tile: instance(Tile),
+	TileBorder: instance(TileBorder),
+	TileContent: instance(TileContent),
+	Alveolus: instance(Alveolus),
+	HarvestAlveolus: instance(HarvestAlveolus),
+	GatherAlveolus: instance(GatherAlveolus),
+	EngineerAlveolus: instance(EngineerAlveolus),
+	BuildAlveolus: instance(BuildAlveolus),
 }).export()

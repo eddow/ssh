@@ -1,4 +1,4 @@
-import { reactive, type ScopedCallback, unreactive } from 'mutts/src'
+import { reactive, type ScopedCallback, unreactive } from 'mutts'
 import { assert, namedEffect, traces } from '$lib/debug'
 import type { GoodType } from '$lib/types'
 import { type AxialCoord, findPath, type Positioned, setPop } from '$lib/utils'

@@ -1,4 +1,4 @@
-import { reactive, type ScopedCallback, unreactive } from 'mutts/src'
+import { reactive, type ScopedCallback, unreactive } from 'mutts'
 import { Sprite } from 'pixi.js'
 import { deposits } from '$assets/game-content'
 import type { TerrainType } from '$lib/types'

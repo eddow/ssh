@@ -54,7 +54,7 @@ class CaseFormatter {
 			.trim()
 		this.terms = spaced ? spaced.split(/\s+/) : []
 	}
-	transform(fn: (terms: string[]) => string[] | void): this {
+	transform(fn: (terms: string[]) => string[] | undefined): this {
 		this.terms = fn(this.terms) ?? this.terms
 		return this
 	}

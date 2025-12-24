@@ -1,56 +1,25 @@
-import type { DockviewApi } from 'dockview-core'
-import { Eventful, reactive, root } from 'mutts/src'
-import { stored } from 'pounce-ui/src'
+import { DockviewApi } from 'dockview-core'
+import { reactive, Eventful } from 'mutts'
 import { Game, type GameEvents, type InteractiveGameObject } from './game'
 import { chopSaw as patches } from './game/exampleGames'
 
 export interface Configuration {
-	darkMode: boolean
 	timeControl: 'pause' | 'play' | 'fast-forward' | 'gonzales'
 }
 
-function getDefaultConfiguration(): Configuration {
-	if (typeof window === 'undefined') {
-		return { darkMode: false, timeControl: 'play' }
-	}
 
-	const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false
+
+function getDefaultConfiguration(): Configuration {
 	return {
-		darkMode: prefersDark,
 		timeControl: 'play',
 	}
 }
 
-export const configuration = stored<Configuration>(getDefaultConfiguration())
+export const configuration = reactive<Configuration>(getDefaultConfiguration())
 export const debugInfo = reactive<Record<string, unknown>>({})
 
 // Rename key to avoid conflicts
-// Manual persistence for dockview layout
-function loadDockviewLayout() {
-	if (typeof window === 'undefined') return { sshLayout: undefined }
-	try {
-		const stored = localStorage.getItem('ssh:dockviewLayout')
-		return stored ? JSON.parse(stored) : { sshLayout: undefined }
-	} catch {
-		return { sshLayout: undefined }
-	}
-}
-
-const dockviewLayoutInternal = reactive(loadDockviewLayout())
-
-export const dockviewLayout = {
-	get sshLayout() {
-		return dockviewLayoutInternal.sshLayout
-	},
-	set sshLayout(value: any) {
-		dockviewLayoutInternal.sshLayout = value
-		if (typeof window !== 'undefined') {
-			try {
-				localStorage.setItem('ssh:dockviewLayout', JSON.stringify(dockviewLayoutInternal))
-			} catch {}
-		}
-	}
-}
+export const dockviewLayout = reactive<{ sshLayout: any }>({ sshLayout: undefined })
 
 // Validate and fix dockview layout data
 function validateDockviewLayout(layout: any): any {
@@ -137,13 +106,7 @@ class Games extends Eventful<GamedEvents> {
 
 export const games = new Games()
 
-export const mrg = reactive({
-	hoveredObject: undefined as InteractiveGameObject | undefined,
-})
-
-export const interactionMode = reactive({
-	selectedAction: '' as string,
-})
+export * from './interactive-state'
 
 interface SelectionState {
 	panelId?: string

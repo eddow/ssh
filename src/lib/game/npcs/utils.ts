@@ -1,5 +1,5 @@
 import { match } from 'arktype'
-import { unreactive } from 'mutts/src'
+import { unreactive } from 'mutts'
 import {
 	type IsaTypes,
 	jsIsaTypes,
@@ -7,7 +7,7 @@ import {
 	MiniScriptExecutor,
 	NpcScript,
 	type Operators,
-} from 'npc-script/src'
+} from 'npc-script'
 import { axial, epsilon } from '$lib/utils'
 import {
 	Position,

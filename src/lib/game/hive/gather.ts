@@ -1,4 +1,4 @@
-import { memoize } from 'mutts/src'
+import { memoize } from 'mutts'
 import type { Character } from '$lib/game/population/character'
 import type { GatherJob, Goods, GoodType } from '$lib/types/base'
 import { type Positioned, toAxialCoord } from '$lib/utils/position'
