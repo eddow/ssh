@@ -9,6 +9,7 @@ import type { Storage } from '../../storage'
 import type { Tile } from '../tile'
 
 export abstract class TileContent extends withGenerator(GameObject) {
+	abstract readonly isa: string
 	abstract readonly tile: Tile
 	// TODO: translate-> name = translation set on load
 	abstract readonly name?: string

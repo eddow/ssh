@@ -1,5 +1,5 @@
 import { reactive } from 'mutts'
-import type { InteractiveGameObject } from './game/game'
+import type { InteractiveGameObject } from './game/object'
 
 export const mrg = reactive({
 	hoveredObject: undefined as InteractiveGameObject | undefined,

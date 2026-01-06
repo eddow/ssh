@@ -10,13 +10,14 @@ import type { Game } from './game'
 unreactive(EventEmitter)
 
 // Base game object class
-export class GameObject extends ReactiveBase {
+export abstract class GameObject extends ReactiveBase {
 	constructor(
 		public readonly game: Game,
 		..._args: any[]
 	) {
 		super()
 	}
+	public abstract readonly isa: string
 	public destroyed: boolean = false
 	/** Convenience random using the owning game's RNG */
 	random(max?: number, min?: number) {

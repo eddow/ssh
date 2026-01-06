@@ -63,7 +63,7 @@ export class InventoryFunctions {
 
 		if (totalAmount <= 0) {
 			// Panic: wait a bit
-            return { type: 'idle', duration: 1000 }
+            return { type: 'idle', duration: 1 }
 		}
 
 		// Return plan without allocations - they will be created in plan.begin()
@@ -104,7 +104,7 @@ export class InventoryFunctions {
 
 		if (totalAmount <= 0) {
 			// Panic: wait a bit
-            return { type: 'idle', duration: 1000 }
+            return { type: 'idle', duration: 1 }
 		}
 
 		// Create allocations immediately
@@ -141,7 +141,7 @@ export class InventoryFunctions {
 
 		if (matchingFreeGoods.length === 0 || matchingFreeGoods[0].goodType === undefined) {
 			// Panic: wait a bit
-            return { type: 'idle', duration: 1000 }
+            return { type: 'idle', duration: 1 }
 		}
 
 		const chosenGood = matchingFreeGoods[0]
@@ -161,16 +161,21 @@ export class InventoryFunctions {
 			allocation,
 		}
 	}
-	@contract('TransferPlan | PickupPlan')
-	effectuate(action: TransferPlan | PickupPlan) {
+	@contract('TransferPlan | PickupPlan | IdlePlan')
+	effectuate(action: TransferPlan | PickupPlan | IdlePlan) {
 		const character = this[subject]
-		const { vehicleAllocation, allocation } = action
 		const {
 			tile: { content },
 			vehicle,
 		} = character
 		assert(content, 'tile.content must be set')
 		assert(vehicle, 'tile.vehicle must be set')
+		
+		if (action.type === 'idle') {
+			return new DurationStep(action.duration, 'idle', 'waiting')
+		}
+
+		const { vehicleAllocation, allocation } = action
 		assert(vehicleAllocation, 'vehicleAllocation must be set - plan should be in begin() state')
 
 		// Calculate total transfer time based on plan type

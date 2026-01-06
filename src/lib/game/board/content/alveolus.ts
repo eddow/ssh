@@ -24,6 +24,7 @@ interface LocalMovingGood extends MovingGood {
 export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition, typeof TileContent>(
 	TileContent,
 ) {
+	readonly isa = 'Alveolus'
 	#assignedWorker: Character | undefined
 	public get assignedWorker(): Character | undefined {
 		return this.#assignedWorker

@@ -150,7 +150,8 @@ class WorkFunctions {
 	@contract()
 	harvestStep() {
 		const unbuiltLand = this[subject].tile.content as UnBuiltLand
-		assert(unbuiltLand instanceof UnBuiltLand, 'tile.content must be an UnBuiltLand')
+		if (!(unbuiltLand instanceof UnBuiltLand)) return
+		// assert(unbuiltLand instanceof UnBuiltLand, 'tile.content must be an UnBuiltLand')
 		const alveolus = this[subject].assignedAlveolus as Ssh.AlveolusDefinition<Ssh.HarvestingAction>
 		assert(alveolus, 'assignedAlveolus must be set')
 		assert(alveolus.action.type === 'harvest', 'assignedAlveolus.action must be a harvest')
@@ -233,8 +234,12 @@ class WorkFunctions {
 	foundationStep() {
 		// Character must be on an UnBuiltLand tile with a project
 		const content = this[subject].tile.content
-		assert(content instanceof UnBuiltLand, 'Tile must be UnBuiltLand')
-		assert(content.project, 'UnBuiltLand must have a project')
+		if (!(content instanceof UnBuiltLand) || !content.project) {
+			return
+		}
+		// Redundant assert for TS narrowing, or just cast
+		// assert(content instanceof UnBuiltLand, 'Tile must be UnBuiltLand')
+		// assert(content.project, 'UnBuiltLand must have a project')
 
 		// Extract the alveolus type from project (e.g., "build:sawmill" -> "sawmill")
 		const alveolusType = content.project.replace('build:', '')

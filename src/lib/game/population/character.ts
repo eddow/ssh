@@ -32,6 +32,7 @@ import { Vehicle } from './vehicle/vehicle'
 export class Character extends withInteractive(
 	withScripted(withTicked(withGenerator(GameObject))),
 ) {
+	readonly isa = 'Character'
 	readonly triggerLevels = characterTriggerLevels
 
 	// Character needs levels (starting at 0, incrementing 1 per second)

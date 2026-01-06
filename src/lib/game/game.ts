@@ -12,7 +12,7 @@ import {
 } from 'pixi.js'
 import * as gameContent from '$assets/game-content'
 import { prefix, type ResourceTree, resources } from '$assets/resources'
-import { assert } from '$lib/debug'
+import { assert, namedEffect } from '$lib/debug'
 import { configuration } from '$lib/globals'
 import { hoverState, interactionMode, mrg } from '$lib/interactive-state'
 import { registerPixiApp, unregisterPixiApp } from '$lib/hmr-pixi'
@@ -510,6 +510,7 @@ export class GameView {
 	private container: HTMLElement
 	private canvas: HTMLCanvasElement | null = null
 	private isDestroyed = false
+	public screenSize = { width: 0, height: 0 }
 
 	constructor(
 		public game: Game,
@@ -520,6 +521,38 @@ export class GameView {
 		this.initializePixi().catch((e) => {
 			console.error('[GameView] initializePixi failed:', e)
 		})
+
+		// Track screen size reactively
+		this.screenSize = reactive({ width: 0, height: 0 })
+
+		// Track camera center in world coordinates for re-centering on resize
+		const worldCenter = reactive({ x: 0, y: 0 })
+
+		// Reactive effect to re-center when screen size changes
+		namedEffect('GameView.autoCenter', () => {
+			const { width, height } = this.screenSize // Trace dependency BEFORE early return
+			if (!this.pixi?.renderer || !this.stage) return
+			
+			if (width > 0 && height > 0) {
+				// Re-apply the current world center
+				this.stage.position.set(width / 2 - worldCenter.x, height / 2 - worldCenter.y)
+			}
+		})
+
+		// Override goTo to update worldCenter
+		const originalGoTo = this.goTo.bind(this)
+		this.goTo = (x: number, y: number) => {
+			worldCenter.x = x
+			worldCenter.y = y
+			originalGoTo(x, y)
+		}
+	}
+
+	public resize(width: number, height: number) {
+		if (!this.pixi?.renderer) return
+		this.pixi.renderer.resize(width, height)
+		this.screenSize.width = width
+		this.screenSize.height = height
 	}
 
 	private async initializePixi() {
@@ -538,7 +571,7 @@ export class GameView {
 				resolution: 1, // window.devicePixelRatio || 1,
 				autoDensity: true,
 				//preference: "webgpu",
-				resizeTo: this.container,
+				// resizeTo: this.container, <-- Removed to allow manual control via resize()
 			})
 			console.log(`[GameView] Pixi initialized: width=${app.screen.width}, height=${app.screen.height}`)
 
@@ -557,7 +590,12 @@ export class GameView {
 			console.error('[GameView] CRITICAL INIT ERROR:', e)
 			throw e
 		}
-		this.setupInput(this.game, this.canvas)
+		
+		// Initial size sync
+		if (this.container.clientWidth && this.container.clientHeight) {
+			this.resize(this.container.clientWidth, this.container.clientHeight)
+		}
+
 		this.setupInput(this.game, this.canvas)
 		this.stage.addChild(this.game.stage)
 		this.goTo(0, 0)

@@ -27,6 +27,8 @@ class CharacterContext extends InteractiveContext<Character> {
 	}
 	@contract('HarvestAlveolus')
 	isGatherable(harvestAlveolus: HarvestAlveolus) {
+		console.log('isGatherable check:', harvestAlveolus?.constructor?.name, harvestAlveolus?.action?.type);
+
 		// Return true if the harvest alveolus is full (can't store more)
 		if (!harvestAlveolus.canStoreInHarvester) return true
 

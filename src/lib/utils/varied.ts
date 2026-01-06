@@ -31,7 +31,7 @@ export function zip<T extends (readonly unknown[])[]>(...args: T): ElementTypes<
 }
 
 export function isInteger(value: number): boolean {
-	return value - Math.floor(value) < epsilon
+	return Math.abs(value - Math.round(value)) < epsilon
 }
 
 export function lowerFirst(str: string): string {

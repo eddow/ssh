@@ -154,7 +154,7 @@ export const selectionState = {
 	},
 }
 
-const objectInfoPanels = new Map<string, string>()
+const objectInfoPanels = reactive(new Map<string, string>())
 
 export function registerObjectInfoPanel(uid: string, panelId: string) {
 	objectInfoPanels.set(uid, panelId)

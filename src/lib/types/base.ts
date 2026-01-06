@@ -39,7 +39,8 @@ export const baseGameScope = scope({
 		'foundation',
 		'defragment',
 	),
-	ActivityType: type.enumerated('idle', 'walk', 'work', 'eat', 'sleep', 'ponder'),
+	// These should be only the classes of the activities, it specifies the energy management (hunger, fatigue, ...)
+	ActivityType: type.enumerated('idle', 'walk', 'work', 'eat', 'sleep', 'fight'),
 	NeedType: type.enumerated('hunger', 'tiredness', 'fatigue'),
 
 	// Goods type - commonly used (Partial<Record<GoodType, number>>)

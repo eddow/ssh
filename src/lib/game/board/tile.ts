@@ -16,6 +16,7 @@ import type { Zone } from './zone'
 
 @unreactive
 export class Tile extends withInteractive(GameObject) {
+	readonly isa = 'Tile'
 	// True when the tile is exactly as produced by generation
 	public asGenerated: boolean = false
 	//TODO: @memoize

@@ -21,6 +21,7 @@ export class Deposit extends GcClassed<Ssh.DepositDefinition>() {
 @unreactive('tile')
 @reactive
 export class UnBuiltLand extends withTicked(TileContent) {
+	readonly isa = 'UnBuiltLand'
 	/** Project identifier (e.g., "build:sawmill") indicating pending construction */
 	public project?: string
 
