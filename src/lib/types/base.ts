@@ -213,7 +213,7 @@ export type Job =
 
 export type WorkPlan = Job & {
 	readonly type: 'work'
-	readonly target: TileContent
+	readonly target: TileContent | any // Allow Tile or other targets
 }
 
 export interface IdlePlan {

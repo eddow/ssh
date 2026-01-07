@@ -67,7 +67,7 @@ export class HarvestAlveolus extends TransitAlveolus {
 				urgency: 2.5,
 				fatigue:
 					this.getFatigueCost() +
-					(character ? axialDistance(startPos, path[path.length - 1]) * 2 : 0),
+					(character ? axialDistance(startPos, path[path.length - 1]!) * 2 : 0),
 			}
 		}
 
@@ -82,7 +82,7 @@ export class HarvestAlveolus extends TransitAlveolus {
 				urgency: (this.alveoliNeedingGood ? 0.5 : 0) + 0.25,
 				fatigue:
 					this.getFatigueCost() +
-					(character ? axialDistance(startPos, path[path.length - 1]) * 2 : 0),
+					(character ? axialDistance(startPos, path[path.length - 1]!) * 2 : 0),
 			}
 		}
 

@@ -45,7 +45,7 @@ if (debugMutts) {
 		)
 	}
 }
-reactiveOptions.maxEffectChain = 100
+reactiveOptions.maxEffectChain = 2000
 reactiveOptions.maxEffectReaction = 'throw'
 enableDevTools()
 

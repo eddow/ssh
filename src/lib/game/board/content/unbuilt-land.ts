@@ -13,6 +13,9 @@ import { GcClassed, GcClasses } from './utils'
 
 export class Deposit extends GcClassed<Ssh.DepositDefinition>() {
 	static class = GcClasses(() => Deposit, deposits)
+	declare readonly name: string
+	declare readonly sprites: Ssh.Sprite[]
+
 	constructor(public amount: number) {
 		super()
 	}
@@ -45,7 +48,7 @@ export class UnBuiltLand extends withTicked(TileContent) {
 		public terrain: TerrainType,
 		public deposit?: Deposit,
 	) {
-		const tileCoord = toAxialCoord(tile.position)
+		const tileCoord = toAxialCoord(tile.position)!
 		super(tile.board.game, `unbuilt-${tileCoord.q}-${tileCoord.r}`)
 	}
 
@@ -93,7 +96,7 @@ export class UnBuiltLand extends withTicked(TileContent) {
 	}
 
 	private generateGoodAtTile(goodType: string) {
-		const tileCoord = toAxialCoord(this.tile.position)
+		const tileCoord = toAxialCoord(this.tile.position)!
 
 		// Generate random point using triangular distribution
 		const u = this.game.random()
@@ -143,7 +146,7 @@ export class UnBuiltLand extends withTicked(TileContent) {
 		// Deposit sprites per unit (reactive effect)
 		if (!this.deposit || !this.deposit.sprites || this.deposit.amount <= 0) return
 		const sprites: Sprite[] = []
-		const tileCoord = toAxialCoord(this.tile.position)
+		const tileCoord = toAxialCoord(this.tile.position)!
 		// Use current deposit amount (reactive) instead of maxCount
 		const currentCount = Math.max(1, Math.floor(this.deposit.amount))
 		const meanQuantity = Math.max(1, (this.deposit as any).maxAmount ?? currentCount)
@@ -173,8 +176,8 @@ export class UnBuiltLand extends withTicked(TileContent) {
 			// Apply hexagonal transformation
 			const qOff = ((u * 0.4) / Math.max(s, 1e-10)) * Math.min(s, 1)
 			const rOff = ((v * 0.4) / Math.max(s, 1e-10)) * Math.min(s, 1)
-			const { x, y } = toWorldCoord({ q: tileCoord.q + qOff, r: tileCoord.r + rOff })
-			sprite.position.set(x, y)
+			const world = toWorldCoord({ q: tileCoord.q + qOff, r: tileCoord.r + rOff })!
+			sprite.position.set(world.x, world.y)
 			this.game.alveoliLayer.addChild(sprite)
 			sprites.push(sprite)
 		}
@@ -190,7 +193,7 @@ export class UnBuiltLand extends withTicked(TileContent) {
 
 	/** Deterministic entry position for deposit interaction on this tile */
 	get depositEntryPosition() {
-		const tileCoord = toAxialCoord(this.tile.position)
+		const tileCoord = toAxialCoord(this.tile.position)!
 		const seed = subSeed('deposit-entry', tileCoord.q, tileCoord.r)
 		const rnd = LCG('gameSeed', seed)
 		// entry biased towards lower side of hex for visibility

@@ -26,11 +26,12 @@ import { FreeGoods } from './freeGoods'
 import { Tile } from './tile'
 import { ZoneManager } from './zone'
 
-export function isTileCoord(coord: AxialCoord): boolean {
-	return isInteger(coord.q) && isInteger(coord.r)
+export function isTileCoord(coord: AxialCoord | undefined): boolean {
+	return !!coord && isInteger(coord.q) && isInteger(coord.r)
 }
 
 export class HexBoard extends withContainer(withHittable(GameObject)) {
+	public readonly isa: string = 'board'
 	private readonly contents = reactive(new AxialKeyMap<TileContent | TileBorderContent>())
 	private readonly occupied = reactive(new AxialKeyMap<Character[]>([], () => []))
 	// Will contain goods when perhaps destroying a building (war-like destruction), killing a character,
@@ -67,51 +68,53 @@ export class HexBoard extends withContainer(withHittable(GameObject)) {
 	}
 
 	inBound(coord: Positioned): boolean {
-		coord = toAxialCoord(coord)
-		return axial.distance(coord) < this.boardSize
+		const ax = toAxialCoord(coord)
+		if (!ax) return false
+		return axial.distance(ax) < this.boardSize
 	}
 	getTileContent(ref: Positioned): TileContent | undefined {
 		const coord = toAxialCoord(ref)
-		assert(isTileCoord(coord), 'coord must be a tile coordinate')
+		if (!coord || !isTileCoord(coord)) return undefined
 		return this.contents.get({ q: coord.q, r: coord.r }) as TileContent | undefined
 	}
 
 	setTileContent(ref: Positioned, content: TileContent | undefined) {
 		const coord = toAxialCoord(ref)
-		assert(isTileCoord(coord), 'coord must be a tile coordinate')
+		if (!coord || !isTileCoord(coord)) return
 		const oldContent = this.contents.get({ q: coord.q, r: coord.r }) as TileContent | undefined
 		if (oldContent) oldContent.destroy()
 		if (!content) this.contents.delete({ q: coord.q, r: coord.r })
 		else this.contents.set({ q: coord.q, r: coord.r }, content)
 		// If a tile content is set programmatically post-generation, mark tile dirty
-		const tile = content?.tile ?? this.getTile(coord)
+		const tile = content?.tile ?? (coord ? this.getTile(coord) : undefined)
 		if (tile) tile.asGenerated = false
 	}
 
 	getTile(ref: Positioned): Tile | undefined {
 		const coord = toAxialCoord(ref)
-		if (!(isInteger(coord.q) && isInteger(coord.r)) || !this.inBound(coord)) return undefined
+		if (!coord || !isTileCoord(coord) || !this.inBound(coord)) return undefined
 		const content = this.contents.get(axial.round(coord)) as TileContent | undefined
-		return content?.tile ?? new Tile(this, coord)
+		return content?.tile ?? new Tile(this, coord!)
 	}
 
 	getBorderContent(ref: Positioned): TileBorderContent | undefined {
 		const coord = toAxialCoord(ref)
-		assert(!isTileCoord(coord), 'coord must be a border coordinate')
+		if (!coord || isTileCoord(coord)) return undefined
 		return this.contents.get({ q: coord.q, r: coord.r }) as TileBorderContent | undefined
 	}
 	setBorderContent(ref: Positioned, content?: TileBorderContent) {
 		const coord = toAxialCoord(ref)
+		if (!coord || isTileCoord(coord)) return
 		if (!content) this.contents.delete({ q: coord.q, r: coord.r })
 		else this.contents.set({ q: coord.q, r: coord.r }, content)
 	}
 
 	getBorder(ref: Positioned): TileBorder | undefined {
 		const coord = toAxialCoord(ref)
-		assert(!isTileCoord(coord), 'coord must be a border coordinate')
+		if (!coord || isTileCoord(coord)) return undefined
 		if (!this.inBound(coord)) return undefined
 		const content = this.contents.get({ q: coord.q, r: coord.r }) as TileBorderContent | undefined
-		return content?.border ?? new TileBorder(this, coord)
+		return content?.border ?? new TileBorder(this, coord!)
 	}
 
 	/**
@@ -138,7 +141,8 @@ export class HexBoard extends withContainer(withHittable(GameObject)) {
 
 			// Find who is currently occupying the target position
 			const targetCoord = toAxialCoord(target)
-			const occupied = this.occupied.get(targetCoord)
+			if (!targetCoord) return null
+			const occupied = this.occupied.get(targetCoord!)
 			if (occupied && occupied.length > 0) {
 				const occupant = occupied[0]
 				// If the occupant is also queuing and trying to move somewhere, trace them
@@ -173,18 +177,21 @@ export class HexBoard extends withContainer(withHittable(GameObject)) {
 	): QueueStep<Character> | undefined {
 		if (from) {
 			const fromCoord = toAxialCoord(from)
-			const occupation = this.occupied.get(fromCoord)!
-			const occupant = occupation.shift()
-			assert(occupant === character, 'Character is not the occupant of the from coordinate')
-			if (occupation[0]) {
-				assert(occupation[0].stepExecutor instanceof QueueStep, 'Occupant is queuing')
-				occupation[0].stepExecutor.pass()
-			} else {
-				this.occupied.delete(fromCoord)
+			if (fromCoord) {
+				const occupation = this.occupied.get(fromCoord!)!
+				const occupant = occupation.shift()
+				assert(occupant === character, 'Character is not the occupant of the from coordinate')
+				if (occupation[0]) {
+					assert(occupation[0].stepExecutor instanceof QueueStep, 'Occupant is queuing')
+					occupation[0].stepExecutor.pass()
+				} else {
+					this.occupied.delete(fromCoord!)
+				}
 			}
 		}
 		const toCoord = toAxialCoord(to)
-		const occupied = this.occupied.get(toCoord)! /*
+		if (!toCoord) return undefined
+		const occupied = this.occupied.get(toCoord!)! /*
 		console.trace(character, toCoord.q, toCoord.r)
 		if (occupied[0] === character) debugger*/
 		if (!occupied.length) {
@@ -200,7 +207,7 @@ export class HexBoard extends withContainer(withHittable(GameObject)) {
 				return undefined
 			}
 
-			return new QueueStep(character, occupied, toCoord)
+			return new QueueStep(character, occupied, toCoord!)
 		}
 	}
 

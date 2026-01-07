@@ -1,5 +1,6 @@
 import * as gameContent from '$assets/game-content'
 import type { CharacterContract } from '$assets/scripts/contracts'
+import { Alveolus } from '$lib/game/board/content/alveolus'
 import type { HarvestAlveolus } from '$lib/game/hive/harvest'
 import { contract } from '$lib/types'
 import type { GoodType } from '$lib/types/base'
@@ -25,18 +26,17 @@ class CharacterContext extends InteractiveContext<Character> {
 	haveRoom(goodType?: GoodType): number {
 		return this[subject].carry.hasRoom(goodType)
 	}
-	@contract('HarvestAlveolus')
-	isGatherable(harvestAlveolus: HarvestAlveolus) {
-		console.log('isGatherable check:', harvestAlveolus?.constructor?.name, harvestAlveolus?.action?.type);
-
+	@contract('Alveolus')
+	isGatherable(harvestAlveolus: Alveolus) {
 		// Return true if the harvest alveolus is full (can't store more)
-		if (!harvestAlveolus.canStoreInHarvester) return true
+		if ('canStoreInHarvester' in harvestAlveolus && !(harvestAlveolus as HarvestAlveolus).canStoreInHarvester) return true
 
 		// TODO: check all gatherers collected by harvestAlveolus - even outside the hive
 		const gatherers = harvestAlveolus.hive.byActionType.gather
 		if (!gatherers || gatherers.length === 0) return false
 
 		// Get the goods produced by this harvest alveolus
+		if (!('output' in harvestAlveolus.action)) return false
 		const producedGoods = Object.keys(harvestAlveolus.action.output) as GoodType[]
 
 		// Check if any gatherer can reach this position and gather the produced goods
@@ -45,8 +45,8 @@ class CharacterContext extends InteractiveContext<Character> {
 		return gatherers.some((gatherer) => {
 			// Check if the gatherer can reach this position within its radius (walk time)
 			const path = this[subject].game.hex.findPath(
-				toAxialCoord(gatherer.tile.position),
-				toAxialCoord(currentPos),
+				gatherer.tile.position,
+				currentPos,
 				(gatherer.action as Ssh.GatherAction).radius,
 				false,
 			)

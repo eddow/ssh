@@ -2,7 +2,7 @@ import type { ScopedCallback } from 'mutts'
 import { ColorMatrixFilter, Container, Graphics, Point, TilingSprite } from 'pixi.js'
 import { namedEffect } from '$lib/debug'
 import { GameObject, withGenerator } from '$lib/game/object'
-import { hoverState, interactionMode, mrg } from '$lib/interactive-state'
+import { interactionMode, mrg } from '$lib/interactive-state'
 import { tileSize } from '$lib/utils'
 import { toWorldCoord } from '$lib/utils/position'
 import type { Storage } from '../../storage'
@@ -50,7 +50,9 @@ export abstract class TileContent extends withGenerator(GameObject) {
 	 */
 	protected renderBackground(): ScopedCallback {
 		const { position } = this.tile
-		const { x: wpx, y: wpy } = toWorldCoord(position)
+		const world = toWorldCoord(position)
+		if (!world) return () => {}
+		const { x: wpx, y: wpy } = world
 
 		const tileContainer = new Container()
 		tileContainer.position.set(wpx, wpy)
@@ -78,7 +80,7 @@ export abstract class TileContent extends withGenerator(GameObject) {
 		const zoneBorder = new Graphics()
 		tileContainer.addChild(zoneBorder)
 
-		const mouseoverEffect = namedEffect('tile.mouseover', () => {
+		const mouseoverEffect = namedEffect(`tile.${this.tile.uid}.mouseover`, () => {
 			let brightness = 1
 
 			// Get base color code from content
@@ -86,7 +88,7 @@ export abstract class TileContent extends withGenerator(GameObject) {
 			let tint = colorCode.tint
 
 			// Overlay: show action preview on hover
-			if (hoverState.get(this.tile)) {
+			if (mrg.hoveredObject?.uid === this.tile.uid) {
 				const action = interactionMode.selectedAction
 				// Check if this tile can interact with the selected action
 				if (action && this.canInteract?.(action)) {

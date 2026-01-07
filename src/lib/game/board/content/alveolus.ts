@@ -25,6 +25,8 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition, typeof 
 	TileContent,
 ) {
 	readonly isa = 'Alveolus'
+	declare readonly name: string
+
 	#assignedWorker: Character | undefined
 	public get assignedWorker(): Character | undefined {
 		return this.#assignedWorker
@@ -41,7 +43,7 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition, typeof 
 	public working: boolean = true
 
 	constructor(tile: Tile, storage: Storage) {
-		const tileCoord = toAxialCoord(tile.position)
+		const tileCoord = toAxialCoord(tile.position)!
 		super(tile.board.game, `alveolus:${tileCoord.q},${tileCoord.r}`)
 		this.storage = storage
 		this.tile = tile
@@ -76,7 +78,7 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition, typeof 
 	// Render tile background, alveolus sprite + a vertical goods bar on the right side of the tile
 	render(): ScopedCallback | undefined {
 		const size = tileSize
-		const worldPos = toWorldCoord(this.tile.position)
+		const worldPos = toWorldCoord(this.tile.position)!
 		const cleanups: ScopedCallback[] = []
 
 		// Render the tile background first
@@ -120,7 +122,7 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition, typeof 
 	@memoize
 	get isBurdened(): boolean {
 		// Check if there are FreeGoods on this tile
-		const coord = toAxialCoord(this.tile.position)
+		const coord = toAxialCoord(this.tile.position)!
 		const freeGoods = this.tile.board.freeGoods.getGoodsAt(coord)
 		return freeGoods.length > 0 && !this.hive.movingGoods.get(coord)?.length
 	}
@@ -157,7 +159,7 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition, typeof 
 	@memoize
 	get aGoodMovement(): LocalMovingGood[] | undefined {
 		const hive = this.hive
-		const here = toAxialCoord(this.tile.position)
+		const here = toAxialCoord(this.tile.position)!
 		const blocked: LocalMovingGood[] = []
 
 		function canAdvance(mg: MovingGood) {
@@ -180,7 +182,7 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition, typeof 
 
 		// Collect movements from surroundings (borders)
 		for (const { border } of this.tile.surroundings) {
-			const from = toAxialCoord(border.position)
+			const from = toAxialCoord(border.position)!
 			const arr = hive.movingGoods.get(from)
 			if (!arr) continue
 			for (const mg of arr) {
@@ -345,7 +347,7 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition, typeof 
 		// TODO: cancel all movements
 		// Get all goods currently in storage
 		const stock = this.storage.stock
-		const { x: tileX, y: tileY } = toWorldCoord(this.tile.position)
+		const { x: tileX, y: tileY } = toWorldCoord(this.tile.position)!
 		// Create free goods for each item in storage
 		for (const [goodType, quantity] of Object.entries(stock)) {
 			if (quantity > 0) {

@@ -59,14 +59,19 @@ export const contractScope = scope({
 // ============================================================
 export type ArkDef = Parameters<typeof type>[0]
 
+// Helper for consistent validation error handling
+export function checkContract(validate: (args: any[]) => any, args: any[], name: string) {
+	const result = validate(args)
+	if (result instanceof type.errors)
+		throw new Error(`Validation failed for ${name}: ${result.summary}`)
+	return result
+}
+
 function contractDecorator(validate: (args: any[]) => any) {
 	return (_target: any, propertyKey: string, descriptor: PropertyDescriptor) => {
 		const originalMethod = descriptor.value
 		descriptor.value = registerContract(function contractValidator(this: any, ...args: any[]) {
-			const validationResult = validate(args)
-			if (validationResult instanceof type.errors) {
-				throw new Error(`Validation failed for ${propertyKey}: ${validationResult.summary}`)
-			}
+			checkContract(validate, args, propertyKey)
 			return originalMethod.apply(this, args)
 		})
 		return descriptor

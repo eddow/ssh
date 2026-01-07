@@ -6,11 +6,10 @@ import {
 	type AxialRef,
 	axial,
 	cartesian,
-	epsilon,
 	fromCartesian,
-	tileSize,
 	type WorldCoord,
-} from '$lib/utils'
+} from './axial'
+import { epsilon, tileSize } from './varied'
 
 function roughly(x: number) {
 	return Math.round(x / epsilon) * epsilon
@@ -52,57 +51,63 @@ export function isAxialRef(value: any): value is AxialRef {
 }
 
 // Conversion functions
-export function toWorldCoord(positioned: Positioned | AxialKey): WorldCoord {
-	if (positioned === null || positioned === undefined) throw new Error('Invalid position: null or undefined')
+export function toWorldCoord(positioned: Positioned | AxialKey): WorldCoord | undefined {
+	if (positioned === null || positioned === undefined) return undefined
 	if (isWorldCoord(positioned)) return positioned
 	if (typeof positioned === 'string') return cartesian(positioned, tileSize)
 	if (isAxialRef(positioned)) {
-		Object.assign(positioned, cartesian(positioned, tileSize))
-		return positioned as unknown as WorldCoord
+		const res = cartesian(positioned, tileSize)
+		// DO NOT Object.assign here as it causes reactivity loops if positioned is reactive
+		return { ...positioned, ...res } as unknown as WorldCoord
 	}
 	if (typeof positioned === 'object' && 'position' in positioned && positioned.position) {
-		return toWorldCoord(positioned.position) as WorldCoord
+		return toWorldCoord(positioned.position)
 	}
-	throw new Error('Invalid position type')
+	return undefined
 }
 
-export function toAxialCoord(positioned: Positioned): { q: number; r: number } {
-	if (positioned === null || positioned === undefined) throw new Error('Invalid position: null or undefined')
+export function toAxialCoord(positioned: Positioned): { q: number; r: number } | undefined {
+	if (positioned === null || positioned === undefined) return undefined
 	if (isAxialRef(positioned)) {
 		return axial.access(positioned)
 	}
 	if (isWorldCoord(positioned)) {
-		Object.assign(positioned, fromCartesian(positioned, tileSize))
-		return positioned as unknown as AxialCoord
+		const res = fromCartesian(positioned, tileSize)
+		// DO NOT Object.assign here as it causes reactivity loops if positioned is reactive
+		return { ...positioned, ...res } as unknown as AxialCoord
 	}
 	if (typeof positioned === 'object' && 'position' in positioned && positioned.position) {
 		return toAxialCoord(positioned.position)
 	}
-	throw new Error('Invalid position type')
+	return undefined
 }
 
 // Position operations
 export function positionToString(positioned: Positioned): string {
 	const axial = toAxialCoord(positioned)
+	if (!axial) return '(Unknown Position)'
 	return `<${axial.q}, ${axial.r}, ${-axial.q - axial.r}>`
 }
 
 export function axialDistance(a: Positioned, b: Positioned): number {
-	return axial.distance(toAxialCoord(a), toAxialCoord(b))
+	const aAxial = toAxialCoord(a)
+	const bAxial = toAxialCoord(b)
+	if (!aAxial || !bAxial) return Infinity
+	return axial.distance(aAxial as AxialCoord, bAxial as AxialCoord)
 }
 
-export function positionRoughly(positioned: Positioned): Positioned {
+export function positionRoughly(positioned: Positioned): Positioned | undefined {
 	if (isWorldCoord(positioned)) {
 		return { x: roughly(positioned.x), y: roughly(positioned.y) }
 	}
-	if (isAxialRef(positioned)) {
-		const { q, r } = toAxialCoord(positioned)
-		return { q: roughly(q), r: roughly(r) }
+	const axial = toAxialCoord(positioned)
+	if (axial) {
+		return { q: roughly(axial.q), r: roughly(axial.r) }
 	}
 	if ('position' in positioned) {
 		return positionRoughly(positioned.position)
 	}
-	throw new Error('Invalid position type')
+	return undefined
 }
 
 export function positionRoughlyEquals(a: Positioned, b: Positioned): boolean {
@@ -111,6 +116,7 @@ export function positionRoughlyEquals(a: Positioned, b: Positioned): boolean {
 	}
 	const aAxial = toAxialCoord(a)
 	const bAxial = toAxialCoord(b)
+	if (!aAxial || !bAxial) return false
 	return Math.abs(aAxial.q - bAxial.q) + Math.abs(aAxial.r - bAxial.r) < epsilon
 }
 
@@ -120,10 +126,11 @@ export function positionEquals(a: Positioned, b: Positioned): boolean {
 	}
 	const aAxial = toAxialCoord(a)
 	const bAxial = toAxialCoord(b)
+	if (!aAxial || !bAxial) return false
 	return aAxial.q === bAxial.q && aAxial.r === bAxial.r
 }
 
-export function positionLerp(a: Positioned, b: Positioned, t: number): Positioned {
+export function positionLerp(a: Positioned, b: Positioned, t: number): Positioned | undefined {
 	if (isWorldCoord(a) && isWorldCoord(b)) {
 		return {
 			x: a.x + (b.x - a.x) * t,
@@ -132,6 +139,7 @@ export function positionLerp(a: Positioned, b: Positioned, t: number): Positione
 	}
 	const aAxial = toAxialCoord(a)
 	const bAxial = toAxialCoord(b)
+	if (!aAxial || !bAxial) return undefined
 	return {
 		q: aAxial.q + (bAxial.q - aAxial.q) * t,
 		r: aAxial.r + (bAxial.r - aAxial.r) * t,
@@ -139,7 +147,8 @@ export function positionLerp(a: Positioned, b: Positioned, t: number): Positione
 }
 
 export function xyDistance(a: Positioned, b: Positioned): number {
-	const { x: ax, y: ay } = toWorldCoord(a)
-	const { x: bx, y: by } = toWorldCoord(b)
-	return Math.sqrt((ax - bx) ** 2 + (ay - by) ** 2)
+	const aWorld = toWorldCoord(a)
+	const bWorld = toWorldCoord(b)
+	if (!aWorld || !bWorld) return Infinity
+	return Math.sqrt((aWorld.x - bWorld.x) ** 2 + (aWorld.y - bWorld.y) ** 2)
 }

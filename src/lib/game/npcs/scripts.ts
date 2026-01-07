@@ -16,6 +16,7 @@ import {
 	isContract,
 	overloadContract,
 	registerContract,
+	checkContract,
 } from '$lib/types'
 import { axial, epsilon, objectMap } from '$lib/utils'
 import { Positioned, positionRoughly, toAxialCoord } from '$lib/utils/position'
@@ -85,6 +86,7 @@ export class GlobalContext {
 		}
 		if (Positioned.allows(a)) {
 			const axial = toAxialCoord(a)
+			if (!axial) return a
 			return { q: Math.round(axial.q), r: Math.round(axial.r) } as T
 		}
 		throw new Error(`Invalid round type: ${typeof a}`)
@@ -127,7 +129,9 @@ export class GameContext<Subject extends GameObject> extends GlobalContext {
 	declare [subject]: Subject
 	@contract(Positioned)
 	tileAt(positioned: Positioned) {
-		return this[subject].game.hex.getTile(axial.round(toAxialCoord(positioned)))
+		const ax = toAxialCoord(positioned)
+		if (!ax) return undefined
+		return this[subject].game.hex.getTile(axial.round(ax))
 	}
 }
 
@@ -231,11 +235,11 @@ export function loadNpcScripts(alveoli: Record<string, string>, context: Executi
 		if (isFuncDef && Array.isArray(contract)) {
 			const validate = contractScope.type(contract as any)
 			return registerContract((...args: any[]) => {
-				const result = validate(args)
-				if (result instanceof type.errors) {
-					throw new Error(`Validation failed for ${name}: ${result.summary}`)
+				checkContract(validate, args, name)
+				if (entryPoint instanceof FunctionDefinition) {
+					return new ScriptExecution(script, name, entryPoint.call(args))
 				}
-				return new ScriptExecution(script, name, (entryPoint as FunctionDefinition).call(args))
+				throw new Error(`Entry point ${name} is not a FunctionDefinition`)
 			})
 		}
 		if (!isFuncDef && !Array.isArray(contract)) {

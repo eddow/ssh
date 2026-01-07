@@ -14,7 +14,7 @@ import * as gameContent from '$assets/game-content'
 import { prefix, type ResourceTree, resources } from '$assets/resources'
 import { assert, namedEffect } from '$lib/debug'
 import { configuration } from '$lib/globals'
-import { hoverState, interactionMode, mrg } from '$lib/interactive-state'
+import { interactionMode, mrg } from '$lib/interactive-state'
 import { registerPixiApp, unregisterPixiApp } from '$lib/hmr-pixi'
 import type { AlveolusType, DepositType, GoodType } from '$lib/types'
 import { axial, axialRectangle, cartesian, fromCartesian } from '$lib/utils/axial'
@@ -35,6 +35,7 @@ import {
 import { alveolusClass, type Hive } from './hive'
 import type { HittableGameObject, InteractiveGameObject } from './object'
 import { Population } from './population/population'
+import { Game } from '.'
 
 unreactive(gameContent)
 const timeMultiplier = {
@@ -144,6 +145,9 @@ export class Game extends Eventful<GameEvents> {
 	public selectionOverlayLayer: Container
 	public resources: Record<string, Texture | Spritesheet> = null!
 	public readonly population: Population
+	// Dynamically loaded usage of Hive class
+	private HiveClass?: typeof Hive
+
 	getTexture(spec: Ssh.Sprite): Texture {
 		const ci = /(.*)\/(.*)/.exec(spec)
 
@@ -250,9 +254,16 @@ export class Game extends Eventful<GameEvents> {
 
 		// Create game generator
 		this.generator = new GameGenerator()
-		this.loaded.then(() => {
-			// Initialize base RNG with terrainSeed so everything is reproducible
-			;(this as any).rng = LCG('gameSeed', this.generationOptions.terrainSeed)
+		// Create game generator
+		this.generator = new GameGenerator()
+		this.loaded
+			.then(() => import('./hive'))
+			.then(({ Hive }) => {
+				this.HiveClass = Hive
+			})
+			.then(() => {
+				// Initialize base RNG with terrainSeed so everything is reproducible
+				;(this as any).rng = LCG('gameSeed', this.generationOptions.terrainSeed)
 			// Expose RNG to global for script helpers
 			;(globalThis as any).__GAME_RANDOM__ = (max?: number, min?: number) => this.random(max, min)
 			this.generate(this.generationOptions, this.patches)
@@ -264,6 +275,14 @@ export class Game extends Eventful<GameEvents> {
 
 			// Register the main ticker callback and start the game ticker after everything is built
 			this.ticker.add(this.tickerCallback)
+
+			// Expose for testing
+			;(globalThis as any).mrg = mrg
+			;(globalThis as any).testHover = (uid?: string) => {
+				const obj = uid ? this.getObject(uid) : undefined
+				mrg.hoveredObject = obj
+				console.log(`[testHover] set to ${uid} (${obj?.constructor.name})`)
+			}
 		})
 	}
 
@@ -370,6 +389,12 @@ export class Game extends Eventful<GameEvents> {
 				if (!AlveolusCtor) continue
 				const alv = new AlveolusCtor(tile)
 				tile.content = alv
+				if (!alv.hive) {
+					if (this.HiveClass) {
+						const h = this.HiveClass.for(tile)
+						h.attach(alv)
+					}
+				}
 				hiveInstance = alv.hive
 				alv.hive.name = hive.name
 				if (a.goods)
@@ -474,7 +499,7 @@ export class Game extends Eventful<GameEvents> {
 			for (const fg of goodsList) {
 				freeGoodsPatches!.push({
 					goodType: fg.goodType,
-					position: toAxialCoord(fg.position),
+					position: fg.position,
 				})
 			}
 		}
@@ -729,6 +754,12 @@ export class GameView {
 		const sy = this.stage.scale.y
 		this.stage.position.set(cx - x * sx, cy - y * sy)
 	}
+
+	// Expose for testing
+	public simulateObjectClick(object: InteractiveGameObject, event: MouseEvent = {} as any) {
+		this.game.emit('objectClick', event, object)
+	}
+
 	public setupInput(game: Game, canvas: HTMLCanvasElement) {
 		const getCanvasPoint = (e: MouseEvent | WheelEvent) => {
 			return { x: e.offsetX, y: e.offsetY }
@@ -756,10 +787,7 @@ export class GameView {
 		}
 
 		const emitOverOutIfNeeded = (nextHover: InteractiveGameObject | undefined, _ev: MouseEvent) => {
-			if (mrg.hoveredObject !== nextHover) {
-				const oldHover = mrg.hoveredObject
-				if (oldHover) hoverState.set(oldHover, false)
-				if (nextHover) hoverState.set(nextHover, true)
+			if (mrg.hoveredObject?.uid !== nextHover?.uid) {
 				mrg.hoveredObject = nextHover
 			}
 		}

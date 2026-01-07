@@ -4,11 +4,13 @@ import { Alveolus } from '$lib/game/board/content/alveolus'
 import type { Character } from '$lib/game/population/character'
 import type { IdlePlan, PickupPlan, Plan, TransferPlan, WorkPlan } from '$lib/types/base'
 import { type Positioned, toAxialCoord } from '$lib/utils'
+import { gameObjectsModule } from '$lib/types/game-objects'
 import { subject } from '../scripts'
 import { DurationStep } from '../steps'
 
 function getContentFromPosition(hex: HexBoard, position: Positioned) {
 	const coord = toAxialCoord(position)
+	if (!coord) return undefined
 	return isTileCoord(coord) ? hex.getTileContent(coord) : hex.getBorderContent(coord)
 }
 
@@ -177,9 +179,9 @@ const workPlanHandler: PlanHandler<WorkPlan> = {
 	begin(plan: WorkPlan, character: Character) {
 		const { target } = plan
 		// Assign worker only for alveoli
-		if (target instanceof Alveolus) {
+		if (gameObjectsModule.Alveolus.allows(target)) {
 			target.assignedWorker = character
-			character.assignedAlveolus = target
+			character.assignedAlveolus = target as Alveolus
 		}
 
 		// Set the assigned worker in the plan
@@ -189,7 +191,7 @@ const workPlanHandler: PlanHandler<WorkPlan> = {
 	},
 
 	finally(plan: WorkPlan, character: Character) {
-		if (plan.target instanceof Alveolus) {
+		if (gameObjectsModule.Alveolus.allows(plan.target)) {
 			plan.target.assignedWorker = undefined
 			character.assignedAlveolus = undefined
 		}

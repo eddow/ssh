@@ -3,7 +3,7 @@ import { ColorMatrixFilter, Container, Sprite } from 'pixi.js'
 import { characterEvolutionRates, characterTriggerLevels, maxWalkTime } from '$assets/constants'
 import { goods as goodsCatalog } from '$assets/game-content'
 import { assert, namedEffect } from '$lib/debug'
-import { hoverState, mrg } from '$lib/interactive-state'
+import { mrg } from '$lib/interactive-state'
 import type { GoodType, Job, WorkPlan } from '$lib/types/base'
 import { type AxialCoord, axial, maxBy, type Positioned } from '$lib/utils'
 import { axialDistance, type Position, toAxialCoord, toWorldCoord } from '../../utils/position'
@@ -68,9 +68,9 @@ export class Character extends withInteractive(
 		public position: Position,
 	) {
 		super(game, uid)
-		this._tile = game.hex.getTile(toAxialCoord(this.position))!
+		this._tile = game.hex.getTile(this.position)!
 		// Allocate initial occupancy on the board
-		const queueStep = this.game.hex.moveCharacter(this, toAxialCoord(this._tile.position))
+		const queueStep = this.game.hex.moveCharacter(this, this._tile.position)
 		assert(!queueStep, 'Character must not be queuing on creation')
 		if (queueStep) this.stepExecutor = queueStep
 
@@ -81,9 +81,7 @@ export class Character extends withInteractive(
 	/** Attempt to step onto a tile, managing board occupancy. */
 	stepOn(tile: Tile) {
 		if (axialDistance(this.position, tile.position) > 1.1) return false
-		const to = toAxialCoord(tile.position)
-		const from = toAxialCoord(this._tile.position)
-		const queue = this.game.hex.moveCharacter(this, to, from)
+		const queue = this.game.hex.moveCharacter(this, tile.position, this._tile.position)
 		if (queue)
 			return queue.finished(() => {
 				this._tile = tile
@@ -121,7 +119,7 @@ export class Character extends withInteractive(
 
 		// Find the best job using the findBest pathfinding function
 		const path = this.game.hex.findBestForCharacter(
-			start,
+			this.position,
 			this,
 			scoreJob,
 			maxWalkTime, // Use maxWalkTime from constants
@@ -146,7 +144,7 @@ export class Character extends withInteractive(
 		const workPlan: WorkPlan = {
 			...job,
 			type: 'work',
-			target: target as any,
+			target: target,
 		}
 		return this.scriptsContext.work.goWork(workPlan, path)
 	}
@@ -253,8 +251,8 @@ export class Character extends withInteractive(
 		// Hover highlight similar to tiles
 		const brightnessFilter = new ColorMatrixFilter()
 		characterSprite.filters = [brightnessFilter]
-		const mouseoverEffect = namedEffect('character.mouseover', () => {
-			if (hoverState.get(this)) {
+		const mouseoverEffect = namedEffect(`character.${this.uid}.mouseover`, () => {
+			if (mrg.hoveredObject?.uid === this.uid) {
 				characterSprite.tint = 0xaaaaff
 				brightnessFilter.brightness(1.2, false)
 			} else {
@@ -263,8 +261,8 @@ export class Character extends withInteractive(
 			}
 		})
 		const positionEffect = namedEffect('character.position', () => {
-			const { x, y } = toWorldCoord(this.position)
-			group.position.set(x, y)
+			const world = toWorldCoord(this.position)
+			if (world) group.position.set(world.x, world.y)
 		})
 
 		// Vehicle-specific effect hook (reserved for future state-driven visuals)

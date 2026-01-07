@@ -50,7 +50,7 @@ export class Tile extends withInteractive(GameObject) {
 
 	get title(): string {
 		const axial = toAxialCoord(this.position)
-		return `Tile ${axial.q}, ${axial.r}`
+		return axial ? `Tile ${axial.q}, ${axial.r}` : 'Tile (Unknown)'
 	}
 
 	get debugInfo(): Record<string, any> {

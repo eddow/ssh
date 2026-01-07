@@ -19,20 +19,27 @@ console.log('HarvestAlveolus during registration:', HarvestAlveolus);
 
 
 // Helper for robust instance checking (handles dual-package hazards in dev)
-const instance = <T extends abstract new (...args: any[]) => any>(clsFn: T | (() => T)) =>
-	type('object').narrow((data): data is InstanceType<T> => {
+// Helper for robust instance checking (handles dual-package hazards in dev)
+// For base classes, we accept either strict instanceOf OR a matching 'isa' property (duck typing for proxies/HMR)
+const instance = <T extends abstract new (...args: any[]) => any>(clsFn: T | (() => T), className: string) =>
+	(type('object').narrow((data): data is InstanceType<T> => {
 		const cls = typeof clsFn === 'function' && !('prototype' in clsFn) ? (clsFn as () => T)() : (clsFn as T)
-		return data instanceof cls || (!!data && (data as any).constructor?.name === cls.name)
-	})
+		return data instanceof cls || (!!data && (data as any).isa === className)
+	}) as any).describe(className)
+
+// Base Alveolus validator - robustly checks for Alveolus instance or isa='Alveolus'
+const AlveolusDef = instance(() => Alveolus, 'Alveolus')
 
 export const gameObjectsModule = scope({
 	...baseGameScope.export(),
-	Tile: instance(() => Tile),
-	TileBorder: instance(() => TileBorder),
-	TileContent: instance(() => TileContent),
-	Alveolus: instance(() => Alveolus),
-	HarvestAlveolus: instance(() => HarvestAlveolus),
-	GatherAlveolus: instance(() => GatherAlveolus),
-	EngineerAlveolus: instance(() => EngineerAlveolus),
-	BuildAlveolus: instance(() => BuildAlveolus),
+	Tile: instance(() => Tile, 'Tile'),
+	TileBorder: instance(() => TileBorder, 'TileBorder'),
+	TileContent: instance(() => TileContent, 'TileContent'),
+	Alveolus: AlveolusDef,
+	
+	// Specific Alveoli are refined from the base Alveolus by checking their action type
+	HarvestAlveolus: AlveolusDef.and({ action: { type: "'harvest'" } }).describe('HarvestAlveolus'),
+	GatherAlveolus: AlveolusDef.and({ action: { type: "'gather'" } }).describe('GatherAlveolus'),
+	EngineerAlveolus: AlveolusDef.and({ action: { type: "'engineer'" } }).describe('EngineerAlveolus'),
+	BuildAlveolus: AlveolusDef.and({ target: "string" }).describe('BuildAlveolus'), // BuildAlveolus has a 'target' property
 }).export()
