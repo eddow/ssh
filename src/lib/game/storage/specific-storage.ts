@@ -174,14 +174,26 @@ export class SpecificStorage extends Storage<SpecificAllocation> {
 	@atomic
 	allocate(goods: Goods, reason: any): SpecificAllocation {
 		const actualGoods: Goods = {}
+		let hasAnyAllocation = false
 
 		for (const [goodType, qty] of Object.entries(goods) as [GoodType, number][]) {
 			assert(qty && qty > 0, 'qty must be set')
 
-			assert(this.hasRoom(goodType) >= qty, `Insufficient room to allocate for ${goodType}`)
+			const room = this.hasRoom(goodType)
+			const take = Math.min(qty, room)
+			if (take > 0) {
+				this._allocated[goodType] = (this._allocated[goodType] || 0) + take
+				actualGoods[goodType] = take
+				hasAnyAllocation = true
+			}
+		}
 
-			this._allocated[goodType] = (this._allocated[goodType] || 0) + qty
-			actualGoods[goodType] = qty
+		if (!hasAnyAllocation && Object.keys(goods).length > 0) {
+			throw new AllocationError(`Insufficient room to allocate any goods`, reason)
+		}
+
+		if (Object.keys(goods).length === 0) {
+			throw new AllocationError(`Empty goods object provided for allocation`, reason)
 		}
 
 		return new SpecificAllocation(this, actualGoods, reason)

@@ -41,7 +41,6 @@ export class Finalized {
 	}
 }
 export abstract class ASingleStep extends Finalized {
-	abstract readonly isa: string
 	get description(): string | false {
 		return casing(this.constructor.name).transform((terms) => {
 			const lastTerm = terms.pop()
@@ -60,7 +59,6 @@ export abstract class ASingleStep extends Finalized {
 }
 
 export class QueueStep<Entity extends ScriptedObject> extends ASingleStep {
-	readonly isa = 'QueueStep'
 	get type() {
 		return 'idle' as const
 	}
@@ -91,7 +89,6 @@ export class QueueStep<Entity extends ScriptedObject> extends ASingleStep {
 }
 
 export abstract class AEvolutionStep extends ASingleStep {
-	readonly isa: string = 'AEvolutionStep'
 	constructor(public readonly duration: number) {
 		super()
 	}
@@ -108,7 +105,6 @@ export abstract class AEvolutionStep extends ASingleStep {
 }
 
 export abstract class ALerpStep<T extends number | Positioned> extends AEvolutionStep {
-	override readonly isa: string = 'ALerpStep'
 	constructor(
 		duration: number,
 		public readonly from: T,
@@ -180,7 +176,6 @@ export class DurationStep extends AEvolutionStep {
 }
 
 export class WaitForPredicateStep extends ASingleStep {
-	readonly isa = 'WaitForPredicateStep'
 	get type() {
 		return 'idle' as const
 	}

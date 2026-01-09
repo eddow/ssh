@@ -249,12 +249,13 @@ export class SlottedStorage extends Storage<SlottedAllocation> {
 	@atomic
 	allocate(goods: Goods, reason: any): SlottedAllocation {
 		const alloc: number[] = Array(this.slots.length).fill(0)
+		let hasAnyAllocation = false
 
 		for (const [goodType, qty] of Object.entries(goods) as [GoodType, number][]) {
-			assert(qty, 'qty must be set')
-			assert(this.hasRoom(goodType) >= qty, `Insufficient room to allocate for ${goodType}`)
+			assert(qty && qty > 0, 'qty must be set')
 
-			let remaining = qty
+			let remaining = Math.min(qty, this.hasRoom(goodType))
+			if (remaining <= 0) continue
 
 			// Create list of slots with their final quantities for sorting
 			const slotCandidates: { index: number; slot: Slot; finalQuantity: number }[] = []
@@ -290,7 +291,15 @@ export class SlottedStorage extends Storage<SlottedAllocation> {
 				remaining -= take
 			}
 
-			assert(!remaining, `Insufficient room to allocate for ${goodType}`)
+			if (qty - remaining > 0) hasAnyAllocation = true
+		}
+
+		if (!hasAnyAllocation && Object.keys(goods).length > 0) {
+			throw new AllocationError(`Insufficient room to allocate any goods`, reason)
+		}
+
+		if (Object.keys(goods).length === 0) {
+			throw new AllocationError(`Empty goods object provided for allocation`, reason)
 		}
 
 		return new SlottedAllocation(this, alloc, reason)

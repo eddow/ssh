@@ -33,7 +33,6 @@ import { Vehicle } from './vehicle/vehicle'
 export class Character extends withInteractive(
 	withScripted(withTicked(withGenerator(GameObject))),
 ) {
-	readonly isa = 'Character'
 	readonly triggerLevels = characterTriggerLevels
 
 	// Character needs levels (starting at 0, incrementing 1 per second)
@@ -217,7 +216,7 @@ export class Character extends withInteractive(
 	findAction() {
 		if (this.hunger > this.triggerLevels.hunger.high) return this.scriptsContext.selfCare.goEat()
 
-		if (Object.values(this.carry.stock).some((qty) => qty > 0)) {
+		if (Object.values(this.carry.availables).some((qty) => qty! > 0)) {
 			// Only try to drop if we can find a spot to drop them
 			if (this.scriptsContext.find.freeSpot()) {
 				return this.scriptsContext.inventory.dropAllFree()

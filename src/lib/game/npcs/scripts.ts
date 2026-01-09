@@ -1,11 +1,12 @@
 import { type } from 'arktype'
-import { reactive, unreactive } from 'mutts'
+import { unreactive } from 'mutts'
 import {
 	type ExecutionContext,
 	ExecutionError,
 	type ExecutionState,
 	FunctionDefinition,
 	NpcScript,
+	ScriptExecutor,
 } from 'npc-script'
 import { alveoli, deposits, goods, terrain } from '$assets/game-content'
 import { CharacterContract } from '$assets/scripts/contracts'
@@ -27,8 +28,8 @@ import { gameIsaTypes, gameOperators, lerp } from './utils'
 
 type XOrDictX<X> = X | { [k: string]: XOrDictX<X> }
 
-/*unreactive(ScriptExecutor)
-unreactive(NpcScript)*/
+unreactive(ScriptExecutor)
+unreactive(NpcScript)
 
 @unreactive
 export class GlobalContext {

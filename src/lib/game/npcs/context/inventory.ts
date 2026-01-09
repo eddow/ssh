@@ -20,7 +20,7 @@ export class InventoryFunctions {
 
 		const available = vehicle.storage.available(goodType) ?? 0
 		let amount = Math.min(available, maxAmount)
-		if (amount <= 0) return undefined // throw new Error('No goods to drop')
+		if (amount <= 0) throw new Error(`No ${goodType} to drop (available: ${available})`)
 		const vehicleTransfer = vehicle.storage.reserve({ [goodType]: amount }, `drop.${goodType}`)
 		if (character.tile.content instanceof Alveolus) debugger
 		return new DurationStep(amount * vehicle.transferTime, 'convey', `drop.${goodType}`)

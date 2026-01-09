@@ -16,7 +16,6 @@ import type { Zone } from './zone'
 
 @unreactive
 export class Tile extends withInteractive(GameObject) {
-	readonly isa = 'Tile'
 	// True when the tile is exactly as produced by generation
 	public asGenerated: boolean = false
 	//TODO: @memoize
@@ -72,8 +71,7 @@ export class Tile extends withInteractive(GameObject) {
 		// Offload if there are free goods on tile and it's a residential zone or alveolus tile
 		// Note: harvest zones do NOT trigger offload (goods can be dropped there)
 		// Cache the expensive computation during pathfinding
-		const freeGoodsList = this.board.freeGoods.getGoodsAt(toAxialCoord(this.position))
-		const hasFreeGoods = freeGoodsList.some((g) => g.available)
+		const hasFreeGoods = this.availableGoods.length > 0
 		const isResidentialOrAlveolus = this.zone === 'residential' || this.content instanceof Alveolus
 		if (hasFreeGoods && isResidentialOrAlveolus) {
 			return { job: 'offload', fatigue: 1, urgency: 10 }

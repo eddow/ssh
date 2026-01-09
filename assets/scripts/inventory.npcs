@@ -45,7 +45,7 @@ function dropAllFree()
 	if not where then return false
 	walk.into where
 	do
-		good = aKey(I.carry.stock)
+		good = aKey(I.carry.availables)
 	while good
 		// Move around the tile for preparationTime before dropping
 		walk.moveTo find.randomPositionInTile()

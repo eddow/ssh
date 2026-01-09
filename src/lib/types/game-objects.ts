@@ -19,15 +19,14 @@ console.log('HarvestAlveolus during registration:', HarvestAlveolus);
 
 
 // Helper for robust instance checking (handles dual-package hazards in dev)
-// Helper for robust instance checking (handles dual-package hazards in dev)
-// For base classes, we accept either strict instanceOf OR a matching 'isa' property (duck typing for proxies/HMR)
+// For base classes, we use strict instanceof checks.
 const instance = <T extends abstract new (...args: any[]) => any>(clsFn: T | (() => T), className: string) =>
 	(type('object').narrow((data): data is InstanceType<T> => {
 		const cls = typeof clsFn === 'function' && !('prototype' in clsFn) ? (clsFn as () => T)() : (clsFn as T)
-		return data instanceof cls || (!!data && (data as any).isa === className)
+		return data instanceof cls
 	}) as any).describe(className)
 
-// Base Alveolus validator - robustly checks for Alveolus instance or isa='Alveolus'
+// Base Alveolus validator - robustly checks for Alveolus instance
 const AlveolusDef = instance(() => Alveolus, 'Alveolus')
 
 export const gameObjectsModule = scope({

@@ -2,14 +2,15 @@ function goWork(jobPlan, path)
 	target = jobPlan.target
 	plan jobPlan
 		inventory.dropAllFree
+		if tile != target.tile then do
+			walk.until path
+		while tile != target.tile
+			path = find.path(target.tile, false)
+			if not path then error "No path found to target"
+		loop
+		walk.enter
+
 		if jobPlan.job != "offload" then
-			if tile != target.tile then do
-				walk.until path
-			while tile != target.tile
-				path = find.path(target.tile, false)
-				if not path then error "No path found to target"
-			loop
-			walk.enter
 			I.assignedAlveolus = target
 			work.prepare jobPlan
 		end if

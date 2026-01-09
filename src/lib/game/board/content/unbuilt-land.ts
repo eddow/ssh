@@ -9,6 +9,7 @@ import { toAxialCoord, toWorldCoord } from '$lib/utils/position'
 import { withTicked } from '../../object'
 import type { Tile } from '../tile'
 import { TileContent } from './content'
+import { gameIsaTypes } from '../../npcs/utils'
 import { GcClassed, GcClasses } from './utils'
 
 export class Deposit extends GcClassed<Ssh.DepositDefinition>() {
@@ -24,7 +25,6 @@ export class Deposit extends GcClassed<Ssh.DepositDefinition>() {
 @unreactive('tile')
 @reactive
 export class UnBuiltLand extends withTicked(TileContent) {
-	readonly isa = 'UnBuiltLand'
 	/** Project identifier (e.g., "build:sawmill") indicating pending construction */
 	public project?: string
 
@@ -214,4 +214,8 @@ export class UnBuiltLand extends withTicked(TileContent) {
 		// Can also accept other actions if they make sense
 		return false
 	}
+}
+
+gameIsaTypes.unbuilt = (value: any) => {
+	return value instanceof UnBuiltLand
 }

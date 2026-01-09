@@ -57,6 +57,9 @@ export default defineConfig({
 			filter: (id) => /\.[cm]?tsx?$/.test(id),
 		}),
 	],
+	optimizeDeps: {
+		exclude: ['mutts', 'npc-script', 'omni18n', 'ssh'],
+	},
 	resolve: {
 		alias: {
 			$lib: resolvePath(projectRootDir, 'src/lib'),

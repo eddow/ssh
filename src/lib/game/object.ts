@@ -17,7 +17,6 @@ export abstract class GameObject extends ReactiveBase {
 	) {
 		super()
 	}
-	public abstract readonly isa: string
 	public destroyed: boolean = false
 	/** Convenience random using the owning game's RNG */
 	random(max?: number, min?: number) {

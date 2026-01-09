@@ -31,7 +31,6 @@ export function isTileCoord(coord: AxialCoord | undefined): boolean {
 }
 
 export class HexBoard extends withContainer(withHittable(GameObject)) {
-	public readonly isa: string = 'board'
 	private readonly contents = reactive(new AxialKeyMap<TileContent | TileBorderContent>())
 	private readonly occupied = reactive(new AxialKeyMap<Character[]>([], () => []))
 	// Will contain goods when perhaps destroying a building (war-like destruction), killing a character,

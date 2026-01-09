@@ -4,9 +4,11 @@ import { defineConfig } from 'vitest/config'
 export default defineConfig({
 	resolve: {
 		alias: {
+			'@ssh': resolve(__dirname, './src'),
 			$lib: resolve(__dirname, './src/lib'),
 			$assets: resolve(__dirname, './assets'),
 		},
+		preserveSymlinks: false,
 	},
 	test: {
 		environment: 'node',
