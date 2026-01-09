@@ -4,7 +4,7 @@ import {
 	type IsaTypes,
 	jsIsaTypes,
 	jsOperators,
-	MiniScriptExecutor,
+	ScriptExecutor,
 	NpcScript,
 	type Operators,
 } from 'npc-script'
@@ -46,7 +46,7 @@ const divide = match({})
 	.case(['unknown', 'unknown'], ([left, right]) => jsOperators['/'](left, right))
 	.default('assert')
 
-unreactive(MiniScriptExecutor)
+unreactive(ScriptExecutor)
 unreactive(NpcScript)
 /**
  * Custom operators that extend JavaScript operators with position support

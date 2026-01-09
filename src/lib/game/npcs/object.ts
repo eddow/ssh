@@ -62,8 +62,10 @@ export function withScripted<T extends abstract new (...args: any[]) => TickedGa
 				const { type, value } = this.makeRun()
 				loopCount.push({ name: executingName, type, value })
 				if (loopCount.length > 50) {
-					console.warn('High loop count in nextStep, throttling', executingName, type, value)
-					this.stepExecutor = new DurationStep(0.016, "idle", "cpu.throttle")
+					console.error('High loop count in nextStep, throttling', executingName, type, value)
+					// throw new Error(`High loop count in nextStep: ${executingName}`)
+					this.stepExecutor = undefined
+					this.runningScripts = [] // Stop all scripts
 					return
 				}
 				if (type === 'return') this.runningScripts.shift()

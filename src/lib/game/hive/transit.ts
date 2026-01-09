@@ -1,6 +1,6 @@
 import type { GoodType } from '$lib/types'
 import type { GoodsRelations } from '$lib/utils/advertisement'
-import { Alveolus } from '../board'
+import { Alveolus } from '../board/content/alveolus'
 
 export class TransitAlveolus extends Alveolus {
 	get workingGoodsRelations(): GoodsRelations {

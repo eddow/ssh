@@ -3,20 +3,10 @@ import { positionTypes } from '$lib/utils/position'
 import type { ScriptExecution } from '../game/npcs/scripts'
 import { baseGameScope } from './base'
 import { gameObjectsModule } from './game-objects'
+import { contractDecorator, type Contract } from './contracts'
 
-// ============================================================
-// Contract Registry - FIRST for initialization order
-// ============================================================
-const contractRegistry = new WeakSet<(args: any[]) => any>()
-
-export function isContract(validate: (args: any[]) => any) {
-	return contractRegistry.has(validate)
-}
-
-export function registerContract(validate: (args: any[]) => any) {
-	contractRegistry.add(validate)
-	return validate
-}
+// Re-export contract runtime helpers
+export { checkContract, isContract, registerContract, type Contract } from './contracts'
 
 // Re-export base scope (foundation types)
 export {
@@ -59,25 +49,6 @@ export const contractScope = scope({
 // ============================================================
 export type ArkDef = Parameters<typeof type>[0]
 
-// Helper for consistent validation error handling
-export function checkContract(validate: (args: any[]) => any, args: any[], name: string) {
-	const result = validate(args)
-	if (result instanceof type.errors)
-		throw new Error(`Validation failed for ${name}: ${result.summary}`)
-	return result
-}
-
-function contractDecorator(validate: (args: any[]) => any) {
-	return (_target: any, propertyKey: string, descriptor: PropertyDescriptor) => {
-		const originalMethod = descriptor.value
-		descriptor.value = registerContract(function contractValidator(this: any, ...args: any[]) {
-			checkContract(validate, args, propertyKey)
-			return originalMethod.apply(this, args)
-		})
-		return descriptor
-	}
-}
-
 export function contract(...schemasInput: (string | Type | ArkDef)[]) {
 	const allStrings = schemasInput.every((s) => typeof s === 'string')
 	const validate = allStrings ? contractScope.type(schemasInput as any) : type(schemasInput as any)
@@ -88,8 +59,6 @@ export function overloadContract<Args extends any[][]>(...schemasInput: Args) {
 	// @ts-expect-error: no proper ArkDef
 	return contractDecorator(type.or(...schemasInput))
 }
-
-export type Contract = readonly string[] | { [K: string]: Contract }
 
 export type ContractType<T> = {
 	[K in keyof T]: T[K] extends readonly any[]

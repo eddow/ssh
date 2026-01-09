@@ -51,8 +51,7 @@ export function isAxialRef(value: any): value is AxialRef {
 }
 
 // Conversion functions
-export function toWorldCoord(positioned: Positioned | AxialKey): WorldCoord | undefined {
-	if (positioned === null || positioned === undefined) return undefined
+export function toWorldCoord(positioned: Positioned | AxialKey): WorldCoord {
 	if (isWorldCoord(positioned)) return positioned
 	if (typeof positioned === 'string') return cartesian(positioned, tileSize)
 	if (isAxialRef(positioned)) {
@@ -63,11 +62,10 @@ export function toWorldCoord(positioned: Positioned | AxialKey): WorldCoord | un
 	if (typeof positioned === 'object' && 'position' in positioned && positioned.position) {
 		return toWorldCoord(positioned.position)
 	}
-	return undefined
+	throw new Error(`Invalid position: ${positioned}`)
 }
 
-export function toAxialCoord(positioned: Positioned): { q: number; r: number } | undefined {
-	if (positioned === null || positioned === undefined) return undefined
+export function toAxialCoord(positioned: Positioned): { q: number; r: number } {
 	if (isAxialRef(positioned)) {
 		return axial.access(positioned)
 	}
@@ -79,7 +77,7 @@ export function toAxialCoord(positioned: Positioned): { q: number; r: number } |
 	if (typeof positioned === 'object' && 'position' in positioned && positioned.position) {
 		return toAxialCoord(positioned.position)
 	}
-	return undefined
+	throw new Error(`Invalid position: ${positioned}`)
 }
 
 // Position operations

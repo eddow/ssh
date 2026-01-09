@@ -1,5 +1,5 @@
 import { type } from 'arktype'
-import { unreactive } from 'mutts'
+import { reactive, unreactive } from 'mutts'
 import {
 	type ExecutionContext,
 	ExecutionError,
@@ -10,14 +10,16 @@ import {
 import { alveoli, deposits, goods, terrain } from '$assets/game-content'
 import { CharacterContract } from '$assets/scripts/contracts'
 import {
-	type Contract,
 	contract,
 	contractScope,
-	isContract,
 	overloadContract,
-	registerContract,
-	checkContract,
 } from '$lib/types'
+import {
+	checkContract,
+	type Contract,
+	isContract,
+	registerContract,
+} from '$lib/types/contracts'
 import { axial, epsilon, objectMap } from '$lib/utils'
 import { Positioned, positionRoughly, toAxialCoord } from '$lib/utils/position'
 import type { GameObject, InteractiveGameObject } from '../object'
@@ -25,7 +27,7 @@ import { gameIsaTypes, gameOperators, lerp } from './utils'
 
 type XOrDictX<X> = X | { [k: string]: XOrDictX<X> }
 
-/*unreactive(MiniScriptExecutor)
+/*unreactive(ScriptExecutor)
 unreactive(NpcScript)*/
 
 @unreactive

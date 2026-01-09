@@ -86,6 +86,7 @@ export function withInteractive<T extends abstract new (...args: any[]) => GameO
 			} else {
 				this.logs.push(line)
 			}
+			console.log(`[${this.uid}] ${line}`)
 			this.lastTopic = topic
 		}
 

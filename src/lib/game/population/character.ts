@@ -24,6 +24,7 @@ import aCharacterContext from '../npcs/context'
 import { withScripted } from '../npcs/object'
 // biome-ignore lint/correctness/noUnusedImports: We need `subject` for mixins tranquility: all propertyKeys are known
 import { type ScriptExecution } from '../npcs/scripts'
+import { gameIsaTypes } from '../npcs/utils'
 import { GameObject, withGenerator, withInteractive, withTicked } from '../object'
 import { renderTileGoods } from '../storage/goods-renderer'
 import { Vehicle } from './vehicle/vehicle'
@@ -296,4 +297,8 @@ export class Character extends withInteractive(
 	get carry(): Storage {
 		return this.vehicle.storage
 	}
+}
+
+gameIsaTypes.character = (value: any) => {
+	return value instanceof Character
 }

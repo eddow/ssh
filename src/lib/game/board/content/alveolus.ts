@@ -131,8 +131,14 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition, typeof 
 
 	getJob(character?: Character): Job | undefined {
 		if (this.assignedWorker) return undefined
-		// Don't provide jobs if the alveolus is burdened by FreeGoods
-		if (this.isBurdened) return undefined
+		// If the alveolus is burdened by FreeGoods, ask to remove them
+		if (this.isBurdened) {
+			return {
+				job: 'offload',
+				urgency: 4, // High urgency to clear blockages
+				fatigue: 1,
+			} as Job
+		}
 		const carry = this.conveyJob()
 		if (carry) return carry
 
