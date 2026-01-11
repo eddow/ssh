@@ -202,6 +202,12 @@ export class ScriptExecution {
 	}
 }
 
+const scriptRegistry = new Map<string, GameScript>()
+
+export function getGameScript(name: string): GameScript | undefined {
+	return scriptRegistry.get(name)
+}
+
 export function loadNpcScripts(alveoli: Record<string, string>, context: ExecutionContext) {
 	const npcScripts = Object.fromEntries(
 		Object.entries(alveoli).map(([path, source]) => {
@@ -210,7 +216,9 @@ export function loadNpcScripts(alveoli: Record<string, string>, context: Executi
 				.pop()!
 				.match(/(.*)\.npcs$/)?.[1]!
 				.replace(/\//g, '.')!
+				.replace(/\//g, '.')!
 			const gameScript = new GameScript(name, path, source)
+			scriptRegistry.set(name, gameScript)
 			const executed = gameScript.execute(context)
 			if (executed.type !== 'return') {
 				throw new Error(

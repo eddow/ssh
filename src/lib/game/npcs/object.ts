@@ -3,7 +3,7 @@ import type { ExecutionContext } from 'npc-script'
 import { assert } from '$lib/debug'
 import type { Game } from '../game'
 import type { GameObject, TickedGameObject, withTicked } from '../object'
-import { ScriptExecution } from './scripts'
+import { ScriptExecution, getGameScript } from './scripts'
 import { ASingleStep, DurationStep } from './steps'
 
 export function withScripted<T extends abstract new (...args: any[]) => TickedGameObject>(Base: T) {
@@ -142,6 +142,49 @@ export function withScripted<T extends abstract new (...args: any[]) => TickedGa
 			this.runningScripts = []
 			super.destroy()
 		}
+
+		public getScriptState() {
+			return {
+				runningScripts: this.runningScripts.map((s) => ({
+					scriptFileName: s.script.name, // The name of the GameScript module (e.g., 'work')
+					executionName: s.name, // The name of the function being executed (e.g., 'goWork')
+					state: s.state,
+				})),
+				stepExecutor: this.stepExecutor?.serialize(),
+			}
+		}
+
+		public restoreScriptState(data: { runningScripts: any[]; stepExecutor?: any }) {
+			// Restore step executor
+			if (data.stepExecutor) {
+				const step = ASingleStep.deserialize(
+					this.game as unknown as Game,
+					this as unknown as any,
+					data.stepExecutor,
+				)
+				if (step) this.stepExecutor = step
+			}
+
+			// Restore running scripts
+			if (data.runningScripts) {
+				const scriptsList = Array.isArray(data.runningScripts) 
+                    ? data.runningScripts 
+                    : Object.values(data.runningScripts)
+
+				this.runningScripts = scriptsList
+					.map((s: any) => {
+						const gameScript = getGameScript(s.scriptFileName)
+                        if (!gameScript) {
+							console.warn(`Could not find GameScript for file: ${s.scriptFileName}. Skipping script restoration.`)
+							return null
+						}
+						// Assuming ScriptExecution has a constructor compatible
+						return new ScriptExecution(gameScript, s.executionName, s.state)
+					})
+					.filter((s) => s) as ScriptExecution[]
+			}
+		}
+
 	}
 	return ScriptedMixin
 }

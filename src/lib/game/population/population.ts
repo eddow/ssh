@@ -50,4 +50,20 @@ export class Population extends withContainer(withHittable(GameObject)) {
 			0,
 		)
 	}
+
+	serialize() {
+		return Array.from(this.characters.values()).map((c) => c.serialize())
+	}
+
+	deserialize(data: any[]) {
+		this.characters.clear()
+		// Clear existing from container
+		this.clear() // Ensure visual cleanup
+		
+		for (const charData of data) {
+			const char = Character.deserialize(this.game, charData)
+			this.characters.set(char.uid, char)
+			this.add(char)
+		}
+	}
 }

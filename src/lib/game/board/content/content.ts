@@ -70,7 +70,7 @@ export abstract class TileContent extends withGenerator(GameObject) {
 		mask.poly(points).fill(0xffffff)
 		tileSprite.mask = mask
 		const brightnessFilter = new ColorMatrixFilter()
-		tileSprite.filters = [brightnessFilter]
+		// tileSprite.filters = [brightnessFilter] // Don't add initially
 
 		tileContainer.addChild(tileSprite, mask)
 		this.game.groundLayer.addChild(tileContainer)
@@ -116,7 +116,12 @@ export abstract class TileContent extends withGenerator(GameObject) {
 			}
 
 			tileSprite.tint = tint
-			brightnessFilter.brightness(brightness, false)
+			if (brightness !== 1) {
+				brightnessFilter.brightness(brightness, false)
+				tileSprite.filters = [brightnessFilter]
+			} else {
+				tileSprite.filters = []
+			}
 
 			// Draw border if color code provides one
 			zoneBorder.clear()

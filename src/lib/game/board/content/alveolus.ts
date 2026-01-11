@@ -120,10 +120,11 @@ export abstract class Alveolus extends GcClassed<Ssh.AlveolusDefinition, typeof 
 
 	@memoize
 	get isBurdened(): boolean {
-		// Check if there are FreeGoods on this tile
+		// Only consider available (unreserved) goods for burden check
+		// This prevents offering offload jobs for goods that are already being picked up
+		const availableGoods = this.tile.availableGoods
 		const coord = toAxialCoord(this.tile.position)!
-		const freeGoods = this.tile.board.freeGoods.getGoodsAt(coord)
-		return freeGoods.length > 0 && !this.hive.movingGoods.get(coord)?.length
+		return availableGoods.length > 0 && !this.hive.movingGoods.get(coord)?.length
 	}
 
 	nextJob?(character?: Character): Job | undefined

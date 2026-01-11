@@ -74,6 +74,15 @@ class WorkFunctions {
 		const movementData: MovementData[] = []
 
 		for (const mg of movements) {
+			if (!mg.allocations?.source) {
+				console.error('Source allocation missing for movement', mg)
+				console.log('mg keys:', Object.keys(mg))
+				const proto = Object.getPrototypeOf(mg)
+				console.log('mg prototype:', proto)
+				if (proto) console.log('mg prototype keys:', Object.keys(proto))
+				console.log('mg.allocations:', mg.allocations)
+				throw new Error('Source allocation missing')
+			}
 			mg.allocations.source.fulfill()
 			const hop = mg.hop()!
 
@@ -122,23 +131,37 @@ class WorkFunctions {
 				}
 			})
 			.finished(() => {
-				// Complete all movements
-				for (const { mg, moving, hopAlloc, hop } of movementData) {
-					const nextStorage = hive.storageAt(hop)
+				try {
+					// Complete all movements
+					for (const { mg, moving, hopAlloc, hop } of movementData) {
+						const nextStorage = hive.storageAt(hop)
 
-					moving.remove()
-					if (!mg.path.length) {
-						mg.allocations.target.fulfill()
-					} else {
-						hopAlloc!.fulfill()
-						mg.allocations.source = nextStorage!.reserve(
-							{ [mg.goodType]: 1 },
-							{
-								type: 'convey.path',
-								movement: mg,
-							},
-						)
+						moving.remove()
+						if (!mg.path.length) {
+							if (!mg.allocations?.target) {
+								console.error('Target allocation missing for', mg)
+								throw new Error('Target allocation missing')
+							}
+							mg.allocations.target.fulfill()
+						} else {
+							if (!hopAlloc) {
+								console.error('Hop allocation missing (but path exists) for', mg)
+								throw new Error('Hop allocation missing')
+							}
+							hopAlloc.fulfill()
+							mg.allocations.source = nextStorage!.reserve(
+								{ [mg.goodType]: 1 },
+								{
+									type: 'convey.path',
+									movement: mg,
+								},
+							)
+						}
 					}
+				} catch (e) {
+					console.error('Error in conveyStep finished:', e)
+					console.log('MovementData:', movementData)
+					throw e
 				}
 			})
 			.final(() => {

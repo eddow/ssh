@@ -47,6 +47,8 @@ if (debugMutts) {
 }
 reactiveOptions.maxEffectChain = 2000
 reactiveOptions.maxEffectReaction = 'throw'
+// Disable requestAnimationFrame hook to prevent effect context interference with animation frames
+reactiveOptions.zones.requestAnimationFrame = false
 enableDevTools()
 
 export function initConsoleTrap() {
@@ -114,4 +116,26 @@ export function initConsoleTrap() {
 		})
 		update()
 	})
+}
+
+// Black Box Logging System
+export type LogFn = typeof console.log;
+
+export const blackBoxLog = {
+	pathFinding: undefined as LogFn | undefined,
+	offload: undefined as LogFn | undefined,
+	inventory: undefined as LogFn | undefined,
+	jobs: undefined as LogFn | undefined,
+	behavior: undefined as LogFn | undefined,
+};
+
+export function logGroup(logger: LogFn | undefined | false, label: string, body: () => void) {
+	if (logger) {
+		console.group(label)
+		try {
+			body()
+		} finally {
+			console.groupEnd()
+		}
+	}
 }

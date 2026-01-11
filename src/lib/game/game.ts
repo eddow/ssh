@@ -35,9 +35,12 @@ import {
 import { alveolusClass, type Hive } from './hive'
 import type { HittableGameObject, InteractiveGameObject } from './object'
 import { Population } from './population/population'
-import { Game } from '.'
 
-unreactive(gameContent)
+try {
+	unreactive(gameContent)
+} catch {
+	// Ignore errors in test environment where gameContent might be a mock namespace
+}
 const timeMultiplier = {
 	pause: 0,
 	play: 1,
@@ -125,6 +128,11 @@ export interface GamePatches {
 		residential?: Array<[number, number]>
 	}
 	projects?: Record<string, Array<[number, number]>>
+}
+
+export interface SaveState extends GamePatches {
+	population: any[]
+	generationOptions: GameGenerationOptions
 }
 
 export class Game extends Eventful<GameEvents> {
@@ -430,7 +438,7 @@ export class Game extends Eventful<GameEvents> {
 		}
 	}
 
-	public saveGameData(): GamePatches {
+	public saveGameData(): SaveState {
 		const tiles: Array<TilePatch> = []
 		const hives = new Map<Hive, Array<AlveolusPatch>>()
 		const freeGoodsPatches: GamePatches['freeGoods'] = []
@@ -510,6 +518,26 @@ export class Game extends Eventful<GameEvents> {
 			freeGoods: freeGoodsPatches,
 			zones,
 			projects,
+			population: this.population.serialize(),
+			generationOptions: this.generationOptions,
+		}
+	}
+
+	public loadGameData(state: SaveState) {
+		// 1. Re-generate the base world (terrain)
+		// We assume state.generationOptions has the original seed
+		// TODO: Restore RNG state if necessary, or just rely on seed
+		
+		// Reset simulation if needed (though generate usually overwrites)
+		// Ideally we should clear everything first?
+		// for now, let's allow generate to overwrite.
+
+		// 2. Generate and apply patches
+		this.generate(state.generationOptions, state)
+
+		// 3. Load Population (after board is ready)
+		if (state.population) {
+			this.population.deserialize(state.population)
 		}
 	}
 

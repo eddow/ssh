@@ -4,6 +4,9 @@ import { goods as goodsCatalog } from '$assets/game-content'
 import { namedEffect } from '$lib/debug'
 import type { GoodType } from '$lib/types/base'
 
+const sharedGrayscaleFilter = new ColorMatrixFilter()
+sharedGrayscaleFilter.desaturate()
+
 export interface RenderedGoodSlot {
 	goodType: GoodType
 	present: number
@@ -107,10 +110,8 @@ export function renderTileGoods(
 				sprite.scale.set(scale)
 				sprite.anchor.set(0.5)
 				// Apply grayscale filter (black & white)
-				const grayscaleFilter = new ColorMatrixFilter()
-				grayscaleFilter.desaturate()
 				sprite.alpha = 0.5
-				sprite.filters = [grayscaleFilter]
+				sprite.filters = [sharedGrayscaleFilter]
 				sprite.position.set(x, y - a * dy - allocatedOffset)
 				root.addChild(sprite)
 				sprites.push(sprite)
@@ -257,10 +258,8 @@ export function renderBorderGoods(
 				sprite.scale.set(scale)
 				sprite.anchor.set(0.5)
 				// Apply grayscale filter (black & white)
-				const grayscaleFilter = new ColorMatrixFilter()
-				grayscaleFilter.desaturate()
 				sprite.alpha = 0.5
-				sprite.filters = [grayscaleFilter]
+				sprite.filters = [sharedGrayscaleFilter]
 				sprite.position.set(pos.x, pos.y - a * dy - allocatedOffset)
 				root.addChild(sprite)
 				sprites.push(sprite)

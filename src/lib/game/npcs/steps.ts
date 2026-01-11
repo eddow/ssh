@@ -8,6 +8,12 @@ import type { Position, Positioned } from '../../utils/position'
 import type { Character } from '../population'
 import type { ScriptedObject } from './object'
 import { lerp } from './utils'
+import type { Game } from '../game'
+
+export interface SerializedStep {
+	type: string
+	[key: string]: any
+}
 
 //#region Abstracts
 
@@ -56,6 +62,76 @@ export abstract class ASingleStep extends Finalized {
 	 */
 	abstract tick(dt: number): number | undefined
 	abstract readonly type: Ssh.ActivityType
+	abstract serialize(): SerializedStep
+
+	static deserialize(
+		game: Game,
+		character: Character,
+		data: SerializedStep,
+	): ASingleStep | undefined {
+		switch (data.type) {
+			case 'QueueStep': {
+				// Re-attempt the move to join the queue
+				const step = game.hex.moveCharacter(character, data.target)
+				if (step && data.passed) step.pass()
+				return step
+			}
+			case 'MoveToStep': {
+				const step = new MoveToStep(
+					data.duration,
+					character,
+					data.to,
+					data.activityType,
+					data.givenDescription,
+				)
+				step.evolution = data.evolution
+				// Bypass readonly check for restoration
+				;(step as any).from = data.from
+				step.lerp(step.from) // Restore initial position state if needed
+				return step
+			}
+			case 'MultiMoveStep': {
+				// Assumption: movements are relative to the character or solvable
+				// For now, we only support character-centric MultiMoveStep for serialization correctness
+				// If `who` is not the character, this might break.
+				// However, standard usage usually implies character self-movement.
+				const movements = (data.movements as any[]).map((m) => ({
+					...m,
+					who: character, // Force bind to character for now as we don't serialize 'who' reference
+				}))
+				const step = new MultiMoveStep(
+					data.duration,
+					movements,
+					data.activityType,
+					data.givenDescription,
+				)
+				step.evolution = data.evolution
+				return step
+			}
+			case 'DurationStep': {
+				const step = new DurationStep(data.duration, data.activityType, data.givenDescription)
+				step.evolution = data.evolution
+				return step
+			}
+			case 'WaitForPredicateStep':
+				// Predicates are closures and hard to serialize.
+				// Fallback: Return undefined to skip this step, character becomes idle/decides again.
+				return undefined
+			case 'EatStep': {
+				const step = new EatStep(character, data.food)
+				step.evolution = data.evolution
+				return step
+			}
+			case 'PonderingStep': {
+				const step = new PonderingStep(character, data.duration)
+				step.evolution = data.evolution
+				return step
+			}
+			default:
+				console.warn(`Unknown step type for deserialization: ${data.type}`)
+				return undefined
+		}
+	}
 }
 
 export class QueueStep<Entity extends ScriptedObject> extends ASingleStep {
@@ -85,6 +161,13 @@ export class QueueStep<Entity extends ScriptedObject> extends ASingleStep {
 	}
 	tick(dt: number): number | undefined {
 		return this.passed ? dt : undefined
+	}
+	serialize(): SerializedStep {
+		return {
+			type: 'QueueStep',
+			target: this.target,
+			passed: this.passed,
+		}
 	}
 }
 
@@ -136,6 +219,17 @@ export class MoveToStep extends ALerpStep<Positioned> {
 	lerp(position: Position): void {
 		this.who.position = position
 	}
+	serialize(): SerializedStep {
+		return {
+			type: 'MoveToStep',
+			duration: this.duration,
+			evolution: this.evolution,
+			to: this.to,
+			from: this.from,
+			activityType: this.type,
+			givenDescription: this.givenDescription,
+		}
+	}
 }
 
 export class MultiMoveStep extends AEvolutionStep {
@@ -160,6 +254,20 @@ export class MultiMoveStep extends AEvolutionStep {
 			movement.who.position = lerp(movement.from!, movement.to, evolution) as Position
 		}
 	}
+	serialize(): SerializedStep {
+		return {
+			type: 'MultiMoveStep',
+			duration: this.duration,
+			evolution: this.evolution,
+			movements: this.movements.map((m) => ({
+				from: m.from,
+				to: m.to,
+				// omit 'who' as it's runtime ref
+			})),
+			activityType: this.type,
+			givenDescription: this.givenDescription,
+		}
+	}
 }
 
 export class DurationStep extends AEvolutionStep {
@@ -172,6 +280,15 @@ export class DurationStep extends AEvolutionStep {
 		readonly givenDescription: string,
 	) {
 		super(duration)
+	}
+	serialize(): SerializedStep {
+		return {
+			type: 'DurationStep',
+			duration: this.duration,
+			evolution: this.evolution,
+			activityType: this.type,
+			givenDescription: this.givenDescription,
+		}
 	}
 }
 
@@ -199,6 +316,12 @@ export class WaitForPredicateStep extends ASingleStep {
 	tick(dt: number): number | undefined {
 		return this.passed ? dt : undefined
 	}
+	serialize(): SerializedStep {
+		return {
+			type: 'WaitForPredicateStep',
+			descriptionText: this.descriptionText,
+		}
+	}
 }
 
 //#endregion
@@ -220,6 +343,14 @@ export class EatStep extends AEvolutionStep {
 	evolve(_: number, dt: number): void {
 		this.character.hunger = Math.max(0, this.character.hunger - this.feedingValue * dt)
 	}
+	serialize(): SerializedStep {
+		return {
+			type: 'EatStep',
+			food: this.food,
+			evolution: this.evolution,
+			duration: this.duration, // Should we save duration? It's constant for EatStep but AEvolutionStep has it
+		}
+	}
 }
 
 export class PonderingStep extends AEvolutionStep {
@@ -237,6 +368,13 @@ export class PonderingStep extends AEvolutionStep {
 			duration ??
 				lerp(activityDurations.restMin, activityDurations.restMax, character.game.random()),
 		)
+	}
+	serialize(): SerializedStep {
+		return {
+			type: 'PonderingStep',
+			duration: this.duration,
+			evolution: this.evolution,
+		}
 	}
 }
 

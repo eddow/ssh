@@ -68,7 +68,8 @@ export class Character extends withInteractive(
 		public position: Position,
 	) {
 		super(game, uid)
-		this._tile = game.hex.getTile(this.position)!
+        const ax = toAxialCoord(this.position)
+		this._tile = game.hex.getTile({ q: Math.round(ax.q), r: Math.round(ax.r) })!
 		// Allocate initial occupancy on the board
 		const queueStep = this.game.hex.moveCharacter(this, this._tile.position)
 		assert(!queueStep, 'Character must not be queuing on creation')
@@ -250,14 +251,15 @@ export class Character extends withInteractive(
 
 		// Hover highlight similar to tiles
 		const brightnessFilter = new ColorMatrixFilter()
-		characterSprite.filters = [brightnessFilter]
+
 		const mouseoverEffect = namedEffect(`character.${this.uid}.mouseover`, () => {
 			if (mrg.hoveredObject?.uid === this.uid) {
 				characterSprite.tint = 0xaaaaff
 				brightnessFilter.brightness(1.2, false)
+				characterSprite.filters = [brightnessFilter]
 			} else {
 				characterSprite.tint = 0xffffff
-				brightnessFilter.brightness(1, false)
+				characterSprite.filters = [] // Remove filters to allow batching
 			}
 		})
 		const positionEffect = namedEffect('character.position', () => {
@@ -295,6 +297,61 @@ export class Character extends withInteractive(
 	}
 	get carry(): Storage {
 		return this.vehicle.storage
+	}
+
+	serialize() {
+		return {
+			uid: this.uid,
+			name: this.name,
+			position: this.position,
+			stats: {
+				hunger: this.hunger,
+				fatigue: this.fatigue,
+				tiredness: this.tiredness,
+			},
+			assignedAlveolus: this.assignedAlveolus
+				? {
+						q: (this.assignedAlveolus.tile.position as any).q,
+						r: (this.assignedAlveolus.tile.position as any).r,
+					} // Save coordinate of alveolus
+				: undefined,
+			inventory: this.carry.stock,
+			scripts: (this as any).getScriptState(), // Access mixin method
+		}
+	}
+
+	static deserialize(game: Game, data: any): Character {
+		// Character creation logic similar to constructor but setting UID
+		const char = new Character(game, data.uid, data.name, data.position)
+
+		// Restore Stats
+		char.hunger = data.stats.hunger
+		char.fatigue = data.stats.fatigue
+		char.tiredness = data.stats.tiredness
+
+		// Restore Inventory
+		for (const [good, qty] of Object.entries(data.inventory)) {
+			char.carry.addGood(good as GoodType, qty as number)
+		}
+
+		// Restore Scripts (after Character is created and context is available)
+		// We need to defer assignments that depend on other objects (e.g. Alveolus)?
+		// Or assume alveoli are already loaded.
+		// Alveoli are loaded in Game.generate -> loadGeneratedBoard -> applyHivesPatches.
+		// Population is loaded AFTER board. So Alveolus should exist.
+		if (data.assignedAlveolus) {
+			const tile = game.hex.getTile(data.assignedAlveolus)
+			if (tile && tile.content && 'hive' in tile.content) {
+				char.assignedAlveolus = tile.content as Alveolus
+			}
+		}
+
+		// Restore Scripts
+		if (data.scripts) {
+			;(char as any).restoreScriptState(data.scripts)
+		}
+
+		return char
 	}
 }
 
