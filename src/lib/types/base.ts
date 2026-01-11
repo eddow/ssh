@@ -132,6 +132,7 @@ export interface TransferPlan<T extends AllocationBase = AllocationBase> {
 	readonly goods: Goods
 	readonly target?: Positioned
 	readonly sourceTile?: Positioned
+	invariant?: () => boolean
 }
 
 export interface PickupPlan<T extends AllocationBase = AllocationBase> {
@@ -141,6 +142,7 @@ export interface PickupPlan<T extends AllocationBase = AllocationBase> {
 	readonly goodType: GoodType
 	readonly target: Positioned
 	releaseStopper?: () => void // Runtime-only field
+	invariant?: () => boolean
 }
 
 // Job types - returned by alveolus.nextJob()
@@ -214,11 +216,13 @@ export type Job =
 export type WorkPlan = Job & {
 	readonly type: 'work'
 	readonly target: TileContent | any // Allow Tile or other targets
+	invariant?: () => boolean
 }
 
 export interface IdlePlan {
 	readonly type: 'idle'
 	readonly duration: number
+	invariant?: () => boolean
 }
 
 export type Plan = TransferPlan | PickupPlan | WorkPlan | IdlePlan

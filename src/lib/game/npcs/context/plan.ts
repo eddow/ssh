@@ -240,6 +240,22 @@ class PlanFunctions {
 	conclude(plan: Plan) {
 		if (!plan) return
 		this[subject].logAbout(plan, `${plan.type}: concluded`)
+		
+		if (plan.invariant) {
+			try {
+				if (!plan.invariant()) {
+					console.error(`Plan ${plan.type} invariant failed`)
+					// Treat invariant failure as grounds for throwing, or just logging?
+					// User said "invariant: a test to assert at the end".
+					// Usually assertions throw.
+					throw new Error(`Plan ${plan.type} invariant failed`)
+				}
+			} catch(e) {
+				console.error(`Error executing plan ${plan.type} invariant:`, e)
+				throw e
+			}
+		}
+
 		if ('releaseStopper' in plan) plan.releaseStopper?.()
 		planHandlers[plan.type].conclude?.(plan, this[subject])
 	}
